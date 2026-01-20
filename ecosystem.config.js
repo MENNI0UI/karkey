@@ -2,13 +2,12 @@ module.exports = {
     apps: [
         {
             name: "karkey-app",
-            script: "npm",
-            args: "start",
-            instances: 1,
+            script: "node_modules/next/dist/bin/next",
+            args: "start -p 3000",
             exec_mode: "fork",
+            instances: 1,
             env: {
                 NODE_ENV: "production",
-                PORT: 3000,
             },
         },
     ],
