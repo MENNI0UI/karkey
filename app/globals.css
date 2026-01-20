@@ -1,0 +1,2327 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Consolidated base layer: :root, .dark and global base rules */
+@layer base {
+  :root {
+    /* AFCON 2025 Morocco Theme 🇲🇦 */
+    --site-primary: #B8071C;
+    /* أحمر داكن */
+    --site-accent: #00A651;
+    /* أخضر حيوي */
+    --site-accent-dark: #007A3D;
+    /* أخضر داكن للـ hover */
+    --site-gold: #DEB735;
+    /* ذهبي */
+    --site-blue: #103090;
+    /* أزرق داكن */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --radius: 0.5rem;
+    --font-family: var(--font-dm-sans), var(--font-noto-sans-arabic), sans-serif;
+    --font-body: var(--font-dm-sans), var(--font-noto-sans-arabic), sans-serif;
+    --font-poster: var(--font-dm-serif), var(--font-amiri), serif;
+    --site-header-height: 76px;
+    --searchbar-height: 64px;
+  }
+
+  /* Luxury Global Styles */
+  ::selection {
+    background-color: var(--site-primary);
+    color: #ffffff;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 5px;
+    border: 2px solid #f1f1f1;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--site-primary);
+  }
+
+  /* Premium Font Rendering */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Apply fonts and luxury cursor globally */
+  body,
+  button,
+  select {
+    font-family: var(--font-dm-sans), var(--font-noto-sans-arabic), sans-serif;
+    cursor: url('data:image/svg+xml;utf8,<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 5V26L16 20H25L10 5Z" fill="%23B8071C" stroke="white" stroke-width="1.5" stroke-linejoin="round"/><path d="M11 7V23.5L15.3 19.2L15.5 19H22.5L11 7Z" fill="white" fill-opacity="0.1"/></svg>') 10 5, auto;
+  }
+
+  /* High-Fidelity Luxury Hand Cursor (Exact Icon Request) */
+  a,
+  button,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"],
+  .cursor-pointer {
+    cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 30.225 30.225" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="25.606,16.562 24.782,16.131 16.79,11.933 16.79,9.596 16.79,6.133 16.79,0 11.12,0 11.12,6.133 11.12,9.596 11.12,11.933 11.12,12.27 11.12,14.479 11.12,15.544 11.12,16.995 10.413,15.544 9.213,13.086 3.868,13.067 6.063,17.573 6.045,17.573 6.363,18.219 7.456,20.434 7.638,20.807 7.638,20.807 8.449,22.441 8.923,23.402 11.12,27.844 13.468,27.844 13.468,30.225 24.011,30.225 24.011,27.844 26.356,27.844 26.356,25.04 26.356,22.441 26.356,16.957" fill="%23B8071C" stroke="white" stroke-width="1.2" stroke-linejoin="round"/></svg>') 10 0, pointer !important;
+  }
+
+  /* Luxury Slender Text (I-beam) Cursor */
+  input,
+  textarea,
+  [contenteditable="true"],
+  .cursor-text {
+    cursor: url('data:image/svg+xml;utf8,<svg width="12" height="20" viewBox="0 0 12 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.5 2.5V3.5H5.4V16.5H4.5V17.5H7.5V16.5H6.6V3.5H7.5V2.5H4.5Z" fill="%23B8071C" stroke="white" stroke-width="0.8" stroke-linejoin="round"/></svg>') 6 10, text !important;
+  }
+
+  /* Headings should be Serif */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-dm-serif), var(--font-noto-sans-arabic), serif;
+  }
+
+  /* Logo Class */
+  .font-logo {
+    font-family: var(--font-dm-serif), serif;
+  }
+
+  /* Ensure font-serif uses Amiri in Arabic */
+  html[lang="ar"] .font-serif {
+    font-family: var(--font-amiri), serif !important;
+  }
+
+  /* ARABIC OVERRIDES */
+  html[lang="ar"] body {
+    font-family: var(--font-noto-sans-arabic), sans-serif;
+    font-weight: 300 !important;
+  }
+
+  html[lang="ar"] h1,
+  html[lang="ar"] h2,
+  html[lang="ar"] h3,
+  html[lang="ar"] h4,
+  html[lang="ar"] h5,
+  html[lang="ar"] h6,
+  html[lang="ar"] .font-serif,
+  html[lang="ar"] .font-poster {
+    font-family: var(--font-amiri), serif !important;
+    font-weight: 700 !important;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+  }
+
+  * {
+    border-color: #e5e7eb;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    box-sizing: border-box;
+    font-display: swap;
+    height: 100%;
+    /* Allow normal browser scrolling (do not force a persistent scrollbar) */
+    overflow: auto;
+  }
+
+  /* Reduce base font-size so Tailwind rem-based sizes appear smaller */
+  html {
+    font-size: 14px;
+  }
+
+  /* Keep layout stable when scrollbars appear/disappear */
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    background-color: #f8fafc;
+    color: #111827;
+    font-family: var(--font-dm-sans), var(--font-noto-sans-arabic), sans-serif;
+    font-family: var(--font-body);
+    box-sizing: border-box;
+    position: relative;
+    /* overflow-x: hidden; REMOVED to fix sticky positioning (sticky binds to body if overflow is set) */
+    /* Use body as the single scroll container */
+    /* overflow-y: auto; REMOVED to fix double scrollbar */
+    min-height: 100vh;
+    /* Removed global padding-top to avoid white space under the fixed header.
+        Add page-specific top padding where needed (e.g. admin pages already use pt-20). */
+    margin: 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-family);
+  }
+
+  /* Utility to allow components to use the heading font (Playfair Display) */
+  .heading-font {
+    font-family: var(--font-family) !important;
+  }
+
+  /* Main fills viewport; pages that need offset from header should add padding themselves */
+  main {
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  /* Removed/neutralized body.has-header rules that caused duplicate padding */
+  /* ...existing code... */
+
+
+  /* minimal globals so layout and components have basic styles */
+  :root {
+    --site-header-height: 76px;
+    --pinned-top: var(--site-header-height);
+  }
+
+  html,
+  #root {
+    height: 100%
+  }
+
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none
+  }
+
+  /* Thinner scrollbars for better visual on Windows / large-scrollbar platforms */
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.28) transparent;
+  }
+
+  /* WebKit (Chrome, Edge, Safari) */
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.14);
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+
+  /* Keep consistent vertical scrollbar to avoid horizontal jumps */
+  html {
+    overflow-y: scroll !important;
+    scrollbar-gutter: stable;
+  }
+
+  /* Prevent Radix UI / react-remove-scroll from adding unexpected padding/margin when scroll is locked */
+  /* NOTE: The library applies INLINE styles to body and fixed elements, which have highest specificity.
+   To override inline styles, we use attribute selectors with !important and also override the CSS variable. */
+
+  /* 1. Override body padding/margin when scroll is locked */
+  html[data-scroll-locked],
+  html[data-scroll-locked] body,
+  body[data-scroll-locked],
+  body[style*="padding-right"] {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+    overflow-y: scroll !important;
+  }
+
+  /* 2. Force Radix internally to assume 0px scrollbar width when locked */
+  html[data-scroll-locked] {
+    --removed-body-scrollbar-width: 0px !important;
+  }
+
+  /* 3. Prevent padding compensation on fixed/sticky positioned headers and other elements */
+  /* react-remove-scroll adds inline padding-right to fixed elements to compensate for scrollbar removal.
+   Since we use scrollbar-gutter: stable, we don't need this compensation. */
+  [data-scroll-locked] header,
+  [data-scroll-locked] [style*="position: fixed"],
+  [data-scroll-locked] [style*="position:fixed"],
+  header[style*="padding-right"],
+  [style*="position: fixed"][style*="padding-right"],
+  [style*="position:fixed"][style*="padding-right"] {
+    padding-right: 0 !important;
+  }
+
+  /* 4. Override any element that has data-rso attributes (react-remove-scroll internal) */
+  [data-rso],
+  [data-rso-body-margin-right],
+  [data-rso-padding-right] {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* Utilities layer */
+  @layer utilities {
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+
+    .font-display {
+      font-family: var(--font-family);
+    }
+
+    .font-body {
+      font-family: var(--font-body);
+    }
+
+    .font-poster {
+      font-family: var(--font-poster);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+    }
+
+    /* professional font for important field values */
+    .professional-font {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      font-weight: 500;
+      letter-spacing: 0;
+      line-height: 1.2;
+    }
+  }
+
+  /* Components layer: searchbar, countdown and related UI */
+  @layer components {
+
+    /* Two-column layout: 55% / 45% on large screens (lg and up) */
+    @media (min-width: 1024px) {
+      .two-col-55-45 {
+        display: grid;
+        grid-template-columns: 55% 45%;
+        gap: 3rem;
+        /* matches existing gap-12 (~3rem) */
+      }
+    }
+
+
+    /* premium searchbar container */
+    .searchbar-floating {
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-radius: 999px !important;
+      box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 10px 30px -5px rgba(0, 0, 0, 0.1),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+      transition:
+        transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 200ms ease,
+        box-shadow 250ms ease,
+        background-color 200ms ease;
+      will-change: transform, opacity, box-shadow;
+    }
+
+    .searchbar-floating[data-pinned="true"] .searchbar-grid {
+      display: flex !important;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.25rem;
+      max-width: 100%;
+      margin: 0 auto;
+    }
+
+    .searchbar-floating[data-pinned="true"] .searchbar-grid>div {
+      padding: 0.375rem 0.75rem !important;
+    }
+
+    .searchbar-floating[data-pinned="true"] .searchbar-grid>div:last-child {
+      border-right: 0 !important;
+    }
+
+    .searchbar-floating[data-pinned="true"] .searchbar-grid .font-semibold {
+      font-size: 0.70rem !important;
+      margin-bottom: 0.12rem !important;
+    }
+
+    .searchbar-floating[data-pinned="true"] .searchbar-grid select,
+    .searchbar-floating[data-pinned="true"] .searchbar-grid .text-sm {
+      font-size: 0.85rem !important;
+      line-height: 1.1rem !important;
+    }
+
+    .searchbar-floating[data-pinned="true"] .searchbar-grid select {
+      width: 100% !important;
+      min-width: 87px;
+      max-width: 147px;
+    }
+
+    .searchbar-floating[data-pinned="true"] {
+      padding: 0.25rem 0 !important;
+      border-radius: 1rem;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+    }
+
+    .searchbar-floating[data-pinned="false"] {
+      transform: translateY(0) scale(1.02);
+      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.15);
+    }
+
+    .searchbar-floating:hover {
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.2);
+    }
+
+    .sb-cell {
+      background: transparent !important;
+      border-radius: 0;
+      transition: none;
+    }
+
+    .searchbar-grid>.sb-cell,
+    .searchbar-grid-main>.sb-cell {
+      border-right: 1px solid rgba(0, 0, 0, 0.06) !important;
+      border-left: none !important;
+      padding: 0.35rem 0.75rem;
+      transition: background-color 200ms ease, transform 200ms ease;
+      cursor: pointer;
+    }
+
+    .sb-cell:hover:not(.searchbar-actions) {
+      background-color: rgba(0, 0, 0, 0.02) !important;
+    }
+
+    .searchbar-grid>.sb-cell:last-child,
+    .searchbar-grid-main>.sb-cell:last-child {
+      border-right: 0 !important;
+    }
+
+    /* RTL: flip divider lines to left side */
+    [dir="rtl"] .searchbar-grid>.sb-cell,
+    [dir="rtl"] .searchbar-grid-main>.sb-cell {
+      border-right: none !important;
+      border-left: 1px solid #ececec !important;
+    }
+
+    [dir="rtl"] .searchbar-grid>.sb-cell:last-child,
+    [dir="rtl"] .searchbar-grid-main>.sb-cell:last-child {
+      border-left: 0 !important;
+    }
+
+    .sb-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #717171;
+      margin-bottom: 0.125rem;
+    }
+
+    .searchbar-select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23717171' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+      background-position: right 0.15rem center;
+      background-repeat: no-repeat;
+      background-size: 1em 1em;
+      padding-right: 1.1rem !important;
+      padding-left: 0.25rem !important;
+      min-height: 1.5rem !important;
+      border-radius: 0.22rem !important;
+      background-color: transparent !important;
+      color: #B8071C !important;
+      font-size: 0.78rem !important;
+      font-weight: 400 !important;
+      text-align: start;
+      direction: ltr;
+    }
+
+    /* RTL support for searchbar select */
+    [dir="rtl"] .searchbar-select {
+      background-position: left 0.15rem center;
+      padding-left: 1.1rem !important;
+      padding-right: 0.25rem !important;
+      direction: rtl;
+      text-align: right;
+    }
+
+    /* Ensure dropdown options are properly aligned */
+    .searchbar-select option {
+      direction: ltr;
+      text-align: left;
+    }
+
+    [dir="rtl"] .searchbar-select option {
+      direction: rtl;
+      text-align: right;
+    }
+
+    .searchbar-select:focus,
+    .searchbar-select:active {
+      background-color: transparent !important;
+      outline: none !important;
+      box-shadow: none !important;
+      color: #B8071C !important;
+    }
+
+    /* helper: show "All" entries in selects as gray */
+    .searchbar-select--all {
+      color: #717171 !important;
+    }
+
+    /* fallback: ensure options with value="All" appear gray in native dropdowns */
+    select option[value="All"] {
+      color: #717171;
+    }
+
+    /* Custom Select Component Styles */
+    .custom-select-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .custom-select-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.25rem;
+      padding: 0.125rem 0.25rem;
+      min-height: 1.5rem;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: #B8071C;
+      font-size: 0.78rem;
+      font-weight: 400;
+      text-align: start;
+      width: 100%;
+    }
+
+    .custom-select-trigger--all {
+      color: #717171;
+    }
+
+    .sb-dropdown-trigger-bordered .custom-select-trigger {
+      border: 1px solid #e5e7eb !important;
+      border-radius: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      background: #f9fafb;
+      min-height: 2.5rem;
+      color: #374151;
+    }
+
+    .custom-select-value {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .custom-select-arrow {
+      width: 0.9rem;
+      height: 0.9rem;
+      flex-shrink: 0;
+      color: #94a3b8;
+      transition: transform 0.2s ease;
+    }
+
+    .custom-select-dropdown {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 1.25rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+      padding: 0.5rem;
+      animation: dropdown-pop 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes dropdown-pop {
+      from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    [dir="rtl"] .custom-select-dropdown {
+      text-align: right;
+    }
+
+    [dir="rtl"] .custom-select-option {
+      text-align: right;
+    }
+
+    .custom-select-option {
+      display: block;
+      width: 100%;
+      padding: 0.4rem 0.5rem;
+      text-align: start;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 0.8rem;
+      color: #374151;
+      transition: background 0.1s ease;
+      white-space: nowrap;
+    }
+
+    .custom-select-option:hover {
+      background: #f3f4f6;
+    }
+
+    .custom-select-option--selected {
+      background: rgba(0, 166, 81, 0.05);
+      color: #00A651;
+      font-weight: 600;
+    }
+
+    .custom-select-option--selected:hover {
+      background: rgba(0, 166, 81, 0.1);
+    }
+
+    .searchbar-grid-main {
+      display: flex;
+      gap: 0.375rem;
+      align-items: center;
+      width: 100%;
+      padding: 0.15rem;
+      /* desktop / large screens: keep original single-row behavior */
+      flex-wrap: nowrap;
+      white-space: nowrap;
+    }
+
+    .sb-cell {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sb-cell.grow {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .searchbar-actions {
+      display: flex;
+      flex-direction: row;
+      gap: 1rem;
+      align-items: center;
+      justify-content: flex-end;
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
+    .searchbar-search-btn {
+      width: 32px !important;
+      height: 32px !important;
+      border-radius: 9999px !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: transform 150ms ease, box-shadow 180ms ease, background-color 140ms ease;
+      will-change: transform, box-shadow;
+    }
+
+    /* primary circular search button larger (right-most) */
+    .searchbar-search-btn--primary {
+      width: 32px !important;
+      height: 32px !important;
+      /* new solid green background */
+      background: #00A651 !important;
+      color: #ffffff !important;
+      border: none !important;
+      box-shadow: 0 8px 20px rgba(0, 166, 81, 0.20) !important;
+    }
+
+    .searchbar-search-btn--primary:hover {
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 14px 34px rgba(0, 166, 81, 0.30) !important;
+    }
+
+    .searchbar-search-btn--primary:active {
+      transform: translateY(0) scale(0.995);
+    }
+
+    .searchbar-search-btn--primary:focus {
+      outline: 3px solid rgba(0, 166, 81, 0.20);
+      outline-offset: 2px;
+    }
+
+    .searchbar-search-btn--clear {
+      background: #ffffff !important;
+      color: #B8071C !important;
+      border: 1px solid #ececec !important;
+      box-shadow: none !important;
+      width: 32px !important;
+      height: 32px !important;
+    }
+
+    .searchbar-search-btn--clear:hover {
+      transform: translateY(-1px) scale(1.03);
+      box-shadow: 0 8px 18px rgba(65, 87, 163, 0.06);
+      background: #fafafa !important;
+    }
+
+    .searchbar-search-btn--clear:focus {
+      outline: 2px solid rgba(65, 87, 163, 0.06);
+      outline-offset: 2px;
+    }
+
+    /* icon inside primary button */
+    .search-icon {
+      width: 16px;
+      height: 16px;
+      display: block;
+      object-fit: contain;
+      /* try to render white; if SVG has internal fill this may not change it */
+      filter: brightness(0) invert(1) saturate(0) contrast(100%);
+      transition: transform 120ms ease;
+    }
+
+    /* small hover micro-animation for the icon */
+    .searchbar-search-btn--primary:hover .search-icon {
+      transform: translateY(-1px) scale(1.02);
+    }
+
+    /* refined contour: very light lift on hover + stronger, visible shadow */
+    .card-contour {
+      border-color: #e6f4ff !important;
+      /* subtle blue tint */
+      /* base shadow tuned toward blue for clearer separation (reduced intensity) */
+      box-shadow: 0 10px 24px rgba(166, 10, 135, 0.04);
+      will-change: transform, box-shadow, opacity;
+      transform: translateZ(0);
+      transition: transform 220ms cubic-bezier(.22, .9, .28, 1), box-shadow 220ms cubic-bezier(.22, .9, .28, 1), opacity 160ms ease;
+    }
+
+    .card-contour:hover {
+      transform: translateY(-1px);
+      /* very light lift */
+      box-shadow: 0 22px 56px rgba(166, 10, 135, 0.10);
+      /* slightly reduced blue shadow on hover */
+      opacity: 1;
+    }
+
+    /* reusable subtle card shadow (use on cards where Tailwind shadow classes were removed) */
+    .card-shadow {
+      box-shadow: 0 10px 26px rgba(166, 10, 135, 0.06);
+      transition: box-shadow 220ms cubic-bezier(.22, .9, .28, 1), transform 220ms cubic-bezier(.22, .9, .28, 1);
+    }
+
+    .card-contour.card-shadow:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 28px 70px rgba(166, 10, 135, 0.12);
+    }
+
+    /* Countdown styling used inside auction cards (light fallback) */
+    .card-countdown {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      background: rgba(0, 0, 0, 0.20);
+      color: #ffffff;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: 0.875rem;
+      line-height: 1;
+    }
+
+    .card-countdown .small {
+      font-size: 0.75rem;
+      opacity: 0.9;
+      display: block;
+    }
+
+    .card-countdown.ending-soon {
+      box-shadow: 0 0 0 4px rgba(184, 156, 78, 0.06);
+      animation: pulse 1200ms infinite;
+    }
+
+    /* modern overlay countdown on photo */
+    .card-countdown-overlay {
+      position: absolute;
+      /* move slightly inward so it's not flush against header/card edge */
+      left: 16px;
+      /* position the timer closer to the bottom edge of the image (smaller bottom -> lower on screen) */
+      bottom: 8px;
+      display: inline-flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      min-width: 110px;
+      justify-content: center;
+      /* Dark translucent background for reliable contrast over images (user requested 0.20) */
+      background: rgba(0, 0, 0, 0.20);
+      color: #ffffff;
+      /* white text for contrast */
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      line-height: 1;
+      box-shadow: 0 8px 20px rgba(2, 6, 23, 0.06);
+      backdrop-filter: blur(4px);
+      z-index: 60;
+      white-space: nowrap;
+      flex-wrap: nowrap;
+    }
+
+    [dir="rtl"] .card-countdown-overlay {
+      left: auto;
+      right: 16px;
+    }
+
+    /* small hover: slightly stronger background and a gentle shake animation */
+    .card-countdown-overlay {
+      transition: background-color 180ms cubic-bezier(.22, .9, .28, 1), box-shadow 200ms cubic-bezier(.22, .9, .28, 1), transform 180ms cubic-bezier(.22, .9, .28, 1);
+      transform-origin: center center;
+      will-change: transform, background-color, box-shadow;
+    }
+
+    .card-countdown-overlay:hover,
+    .card-countdown-overlay:focus-visible {
+      /* keep the same text color as the default (do not invert to white) */
+      color: inherit;
+      /* slightly stronger dark surface on hover to improve legibility (kept proportional) */
+      background: rgba(0, 0, 0, 0.32);
+      box-shadow: 0 12px 30px rgba(2, 6, 23, 0.12);
+      /* gentle smooth lift using transform transition */
+      transform: translateY(-1px);
+    }
+
+    /* removed keyframe animation in favor of a smooth transform transition on hover */
+    @media (max-width:480px) {
+
+      /* mobile: also position closer to bottom of image */
+      .card-countdown-overlay {
+        left: 12px;
+        bottom: 8px;
+        padding: 6px 10px;
+        gap: 6px;
+        font-size: 0.85rem;
+        min-width: 100px;
+      }
+
+      [dir="rtl"] .card-countdown-overlay {
+        left: auto;
+        right: 12px;
+      }
+
+      .card-countdown-overlay .cd-label {
+        display: none;
+      }
+    }
+
+    /* tablet: make countdown smaller to fit cards */
+    @media (min-width:481px) and (max-width:1439px) {
+
+      /* Compact countdown for tablet / small laptops — slightly larger than previous tiny size */
+      .card-countdown-overlay {
+        left: 8px;
+        bottom: 6px;
+        padding: 4px 8px !important;
+        gap: 6px;
+        /* make the overlay text compact but readable; prefer this size on tablets */
+        font-size: 0.78rem !important;
+        min-width: 76px !important;
+      }
+
+      [dir="rtl"] .card-countdown-overlay {
+        left: auto;
+        right: 8px;
+      }
+
+      /* show a very small label but keep it short to save space */
+      .card-countdown-overlay .cd-label {
+        display: inline-block !important;
+        font-size: 0.58rem !important;
+        text-transform: uppercase;
+        opacity: 0.9;
+      }
+
+      /* make the time slightly larger than label so it's readable */
+      .card-countdown-overlay .cd-time {
+        font-size: 0.86rem !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.02em;
+      }
+    }
+
+    /* force label/time to behave as inline elements and avoid wrapping */
+    .card-countdown-overlay .cd-label,
+    .card-countdown-overlay .cd-time {
+      display: inline-block;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    /* slightly reduce label font so long times fit on one line */
+    .card-countdown-overlay .cd-label {
+      font-size: 0.65rem;
+      opacity: 0.95;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      /* inherit color from the parent overlay so label is visible on both light and dark backgrounds */
+      color: inherit;
+    }
+
+    /* monospace for time, keep it compact */
+    .card-countdown-overlay .cd-time {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Helvetica Neue", monospace;
+      font-weight: 800;
+      /* inherit color so time matches the overlay's text color (blue default, white on hover) */
+      color: inherit;
+      font-size: 0.95rem;
+    }
+
+    /* mobile: hide label to save space (keeps single-line and readable) */
+    @media (max-width:480px) {
+      .card-countdown-overlay {
+        left: 12px;
+        bottom: 18px;
+        padding: 6px 10px;
+        gap: 6px;
+        font-size: 0.85rem;
+        min-width: 100px;
+      }
+
+      .card-countdown-overlay .cd-label {
+        display: none;
+      }
+    }
+
+    /* when search is pinned, allow tighter cells so more selects fit side-by-side */
+    .searchbar-floating[data-pinned="true"] .searchbar-grid-main {
+      gap: 0.25rem;
+    }
+
+    .searchbar-floating[data-pinned="true"] .sb-cell {
+      /* slightly smaller min width to avoid hiding fields in compact pinned mode */
+      flex: 0 1 100px;
+      min-width: 64px;
+    }
+
+    /* ensure pinned search container can overflow horizontally when compact */
+    .searchbar-floating[data-pinned="true"] {
+      overflow-x: auto;
+      /* allow scrolling when items overflow */
+      -webkit-overflow-scrolling: touch;
+      /* keep a visible background and slightly raised stacking context */
+      background-color: #fff !important;
+      box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+    }
+
+    /* reduce per-cell min width in pinned mode so more selects are visible */
+    .searchbar-floating[data-pinned="true"] .sb-cell {
+      flex: 0 1 auto;
+      /* auto width based on content */
+      min-width: 80px;
+      /* allow smaller cells on constrained screens */
+    }
+
+    /* ensure the inner grid doesn't collapse; keep nowrap but allow scroll */
+    .searchbar-floating[data-pinned="true"] .searchbar-grid-main {
+      display: flex;
+      gap: 0.25rem;
+      align-items: center;
+      white-space: nowrap;
+      flex-wrap: nowrap;
+      /* prevent wrapping; scroll horizontally instead */
+    }
+
+    /* visual: pinned container wrapper used by searchbar.tsx (the fixed parent) */
+    /* this targets the fixed wrapper when present — gives it pointer-events none on root and allows inner element to accept interactions */
+    .fixed.pointer-events-none>.pointer-events-auto {
+      pointer-events: auto;
+    }
+
+    /* make model/select readable on small screens by slightly reducing font & padding in pinned mode */
+    @media (max-width: 900px) {
+      .searchbar-floating[data-pinned="true"] .searchbar-select {
+        font-size: 0.72rem !important;
+        padding-left: 0.25rem !important;
+        padding-right: 0.5rem !important;
+        min-height: 36px !important;
+      }
+
+      .searchbar-floating[data-pinned="true"] .custom-select-trigger {
+        font-size: 0.72rem !important;
+        min-height: 36px !important;
+      }
+    }
+
+    /* Custom select in pinned mode should match native select sizing */
+    .searchbar-floating[data-pinned="true"] .custom-select-trigger {
+      min-height: 32px;
+      font-size: 0.85rem;
+    }
+
+    .searchbar-floating[data-pinned="true"] .custom-select-container {
+      min-width: 80px;
+    }
+
+    /* Responsive: on small screens stack fields into two columns and place actions on their own row */
+    @media (max-width: 640px) {
+      .searchbar-grid-main {
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        white-space: normal;
+      }
+
+      .searchbar-grid-main>.sb-cell {
+        flex: 0 0 48%;
+        min-width: 0;
+      }
+
+      .searchbar-grid-main>.sb-cell.grow {
+        display: none !important;
+      }
+
+      .searchbar-grid-main>.sb-cell.sb-cell--tight,
+      .searchbar-grid-main>.sb-cell.searchbar-actions {
+        flex: 0 0 100% !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+        gap: 0.5rem !important;
+        padding-top: 0.25rem !important;
+      }
+
+      .searchbar-search-btn--primary {
+        width: 100% !important;
+      }
+
+      .searchbar-search-btn--clear {
+        width: auto !important;
+      }
+    }
+
+    @media (max-width: 420px) {
+
+      /* Keep labels visible only for pinned searchbar */
+      .searchbar-grid-main:not([data-pinned="true"]) .sb-label {
+        display: none !important;
+      }
+
+      .searchbar-grid-main>.sb-cell {
+        flex: 0 0 100% !important;
+      }
+
+      .searchbar-grid-main>.sb-cell.sb-cell--tight,
+      .searchbar-grid-main>.sb-cell.searchbar-actions {
+        justify-content: center !important;
+      }
+    }
+
+    /* When the pinned search is visible (or shown early), push page content down so the
+     fixed pinned bar does not overlap the page. This uses the --searchbar-height
+     variable defined in :root. Apply padding to the main content area. */
+    /* REMOVED to fix infinite flickering loop on large screens:
+     Adding padding-top pushes the main search bar down, which brings it back into view,
+     causing the pinned search bar to hide, removing padding, and looping.
+  body.searchbar-pinned main {
+    padding-top: calc(var(--searchbar-height, 64px) + 2px) !important;
+  }
+
+  body.searchbar-pinned .home-cards,
+  body.searchbar-pinned .page-body,
+  body.searchbar-pinned .content {
+    padding-top: calc(var(--searchbar-height, 64px) + 2px) !important;
+  }
+  */
+
+    /* On mobile/small screens, use exact calculation based on header + searchbar + gap */
+    @media (max-width: 640px) {
+
+      body.searchbar-pinned main,
+      body.searchbar-pinned .home-cards,
+      body.searchbar-pinned .page-body,
+      body.searchbar-pinned .content {
+        /* Header (76px) + compact searchbar (~56px with py-2) + gap (8px) = ~140px, then add small buffer */
+        padding-top: 24px !important;
+      }
+
+      /* Make pinned searchbar smaller on mobile */
+      .searchbar-floating[data-pinned="true"] {
+        max-width: calc(100vw - 12px) !important;
+        width: auto !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        transform: scale(0.88) translateX(-50%) !important;
+      }
+
+      /* Make grid compact with horizontal scroll capability */
+      .searchbar-floating[data-pinned="true"] .searchbar-grid-main {
+        padding-left: 0.4rem !important;
+        padding-right: 0.4rem !important;
+        padding-top: 0.3rem !important;
+        padding-bottom: 0.3rem !important;
+        gap: 0.25rem !important;
+        overflow-x: visible !important;
+        flex-wrap: nowrap !important;
+        display: inline-flex !important;
+        min-width: min-content !important;
+      }
+
+      /* Show labels but make them very small */
+      .searchbar-floating[data-pinned="true"] .sb-label {
+        display: block !important;
+        font-size: 0.48rem !important;
+        margin-bottom: 0.08rem !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+      }
+
+      /* Make cells compact */
+      .searchbar-floating[data-pinned="true"] .sb-cell {
+        flex: 0 0 auto !important;
+        min-width: 0 !important;
+        padding-left: 0.25rem !important;
+        padding-right: 0.25rem !important;
+      }
+
+      /* Compact selects with readable text */
+      .searchbar-floating[data-pinned="true"] .searchbar-select {
+        font-size: 0.68rem !important;
+        min-width: 50px !important;
+        width: 55px !important;
+        padding: 0.2rem 0.15rem !important;
+      }
+
+      /* Make action buttons always visible and compact */
+      .searchbar-floating[data-pinned="true"] .sb-cell--tight,
+      .searchbar-floating[data-pinned="true"] .searchbar-actions {
+        flex-shrink: 0 !important;
+        position: sticky !important;
+        right: 0 !important;
+        background: white !important;
+        z-index: 1 !important;
+      }
+
+      .searchbar-floating[data-pinned="true"] .searchbar-search-btn {
+        width: 26px !important;
+        height: 26px !important;
+        padding: 0.25rem !important;
+      }
+
+      .searchbar-floating[data-pinned="true"] .searchbar-search-btn--clear {
+        width: 24px !important;
+        height: 24px !important;
+      }
+    }
+
+    /* badge that shows vehicle make on top-left of the photo */
+    .photo-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      z-index: 10040;
+      background: #f2f7ff;
+      /* light blue background */
+      color: #B8071C;
+      /* primary blue */
+      padding: 4px 8px;
+      border-radius: 999px;
+      /* force Changa for the make badge */
+      font-family: var(--font-body) !important;
+      font-weight: 500 !important;
+      font-size: 0.78rem !important;
+      line-height: 1;
+      letter-spacing: 0.01em;
+      text-transform: none;
+      border: 1px solid #cfe0ff;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.04);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      max-width: calc(100% - 32px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: auto;
+
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Small responsive tweak */
+    @media (max-width: 480px) {
+      .photo-badge {
+        top: 6px;
+        left: 6px;
+        padding: 3px 6px;
+        font-size: 0.72rem;
+      }
+    }
+
+    /* Larger card photos: slightly reduced heights for better balance */
+    .vehicle-photo {
+      position: relative;
+      width: 100%;
+      /* reduced height from 22rem -> 18rem */
+      min-height: 18rem;
+      /* ~288px */
+      height: 18rem;
+      max-height: 24rem;
+      overflow: hidden;
+      border-radius: 0.5rem;
+      background: #f3f4f6;
+    }
+
+    /* image fills container while preserving natural aspect ratio.
+     Use `object-fit: contain` to avoid zoom/cropping; switch to `cover`
+     if you prefer full-bleed cropped images instead. */
+    .vehicle-photo img,
+    .vehicle-photo .object-cover {
+      position: absolute;
+      inset: 0;
+      /* top:0; right:0; bottom:0; left:0; */
+      width: 100%;
+      height: 100%;
+      /* fill the container. cover crops but ensures image covers available area */
+      object-fit: cover;
+      object-position: center;
+      transform: none;
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    /* ensure overlays (badge/timer) stay visible above the image */
+    .vehicle-photo .photo-badge,
+    .vehicle-photo .card-countdown-overlay {
+      z-index: 40;
+    }
+
+    /* Responsive: reduce height on small screens (kept a bit larger than original) */
+    @media (max-width: 768px) {
+      .vehicle-photo {
+        min-height: 12rem;
+        /* ~192px (reduced from 14.5rem earlier) */
+        height: 12rem;
+      }
+    }
+
+    /* Desktop extra: allow slightly taller cards on very wide screens (reduced from 24rem) */
+    @media (min-width: 1400px) {
+      .vehicle-photo {
+        min-height: 20rem;
+        /* ~320px */
+        height: 20rem;
+      }
+    }
+
+    /* tight small cell used for action buttons (filter icon) to avoid expansion) */
+    .sb-cell--tight {
+      flex: 0 0 auto !important;
+      min-width: 32px !important;
+      /* slightly smaller so it doesn't add empty space */
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    /* in pinned mode shrink any grow spacer to a tiny gap (prevents large empty area) */
+    .searchbar-floating[data-pinned="true"] .sb-cell.grow {
+      flex: 0 0 8px !important;
+      min-width: 8px !important;
+      max-width: 8px !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    /* make pinned grid padding consistent for compactInner */
+    .searchbar-floating[data-pinned="true"] .searchbar-grid-main {
+      padding-top: 0.2rem !important;
+      padding-bottom: 0.2rem !important;
+      gap: 0.25rem;
+      align-items: center;
+    }
+
+    /* reduce per-cell min width in pinned mode so more selects are visible, but keep tight cells compact */
+    .searchbar-floating[data-pinned="true"] .sb-cell {
+      flex: 0 1 96px;
+      min-width: 64px;
+    }
+
+    /* pinned-mode: prevent selects from stretching their cells
+     - disable flex-grow for cells
+     - limit max-width for cells and selects so MODEL لا يحتكر المساحة
+     - set select width to auto so it fits its content up to max-width */
+    .searchbar-floating[data-pinned="true"] .searchbar-grid-main>.sb-cell {
+      flex: 0 0 auto !important;
+      /* no grow, fixed by content */
+      min-width: 0 !important;
+      max-width: 140px !important;
+      /* upper bound for any cell (tune as needed) */
+    }
+
+    /* tighter cap for typical select fields (make/model/year/fuel) */
+    .searchbar-floating[data-pinned="true"] .searchbar-grid-main>.sb-cell .searchbar-select {
+      width: auto !important;
+      min-width: 64px !important;
+      max-width: 120px !important;
+      /* prevents a single select from expanding too far */
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+    }
+
+    /* allow action cells (buttons) to remain compact */
+    .searchbar-floating[data-pinned="true"] .searchbar-grid-main>.sb-cell.sb-cell--tight {
+      max-width: 48px !important;
+      min-width: 40px !important;
+    }
+
+    /* ensure pinned pill sizes to content and doesn't stretch across container */
+    .searchbar-floating[data-pinned="true"] {
+      display: inline-flex !important;
+      width: auto !important;
+      /* shrink to content */
+      align-items: center !important;
+      /* slightly reduce right/left padding to tighten space next to buttons */
+      padding: 0.25rem 0.25rem !important;
+      border-radius: 999px !important;
+      /* more pill-like when compact */
+      box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+      background-color: #fff !important;
+    }
+
+    /* make the inner grid inline so it doesn't force extra width */
+    .searchbar-floating[data-pinned="true"] .searchbar-grid-main {
+      display: inline-flex !important;
+      width: auto !important;
+      gap: 0.25rem !important;
+      /* tighten gaps between cells */
+      align-items: center !important;
+      white-space: nowrap !important;
+    }
+
+    /* search actions spacing */
+    .searchbar-actions {
+      display: flex;
+      flex-direction: row;
+      gap: 1rem;
+      align-items: center;
+      justify-content: flex-end;
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
+    /* when pinned, avoid large min-width on generic sb-cell; allow tight cells to stay compact */
+    .searchbar-floating[data-pinned="true"] .sb-cell {
+      flex: 0 0 auto !important;
+      min-width: 0 !important;
+    }
+
+    /* keep tight action cells compact */
+    .searchbar-floating[data-pinned="true"] .sb-cell--tight {
+      min-width: 36px !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+
+    /* remove the right divider for specific action cells (e.g. filter button) */
+    .sb-cell--no-divider {
+      border-right: 0 !important;
+      /* ensure no visual gap remains */
+      padding-right: 0.25rem !important;
+    }
+
+    /* also ensure pinned mode respects the no-divider override */
+    .searchbar-floating[data-pinned="true"] .sb-cell--no-divider {
+      border-right: 0 !important;
+      padding-right: 0.25rem !important;
+    }
+
+    /* ensure no vertical divider remains to the right of filter/action cells (both cell and the inner button) */
+    .sb-cell--no-divider,
+    .searchbar-grid .sb-cell--no-divider,
+    .searchbar-grid-main .sb-cell--no-divider {
+      border-right: 0 !important;
+      padding-right: 0.25rem !important;
+    }
+
+    /* remove button's right border inside the no-divider cell (button had `border` class) */
+    .sb-cell--no-divider>button,
+    .searchbar-grid .sb-cell--no-divider>button,
+    .searchbar-grid-main .sb-cell--no-divider>button {
+      border-right: 0 !important;
+      /* keep full button border-radius so it still looks rounded */
+      border-top-right-radius: 9999px !important;
+      border-bottom-right-radius: 9999px !important;
+    }
+
+    /* also handle the pinned variant explicitly */
+    .searchbar-floating[data-pinned="true"] .sb-cell--no-divider,
+    .searchbar-floating[data-pinned="true"] .sb-cell--no-divider>button {
+      border-right: 0 !important;
+      padding-right: 0.25rem !important;
+    }
+
+    /* unified spacing for header action buttons and searchbar action buttons */
+    .header-actions {
+      gap: 1rem;
+    }
+
+    /* matches Tailwind gap-4 (1rem) */
+    .searchbar-actions {
+      display: flex;
+      flex-direction: row;
+      gap: 1rem;
+      align-items: center;
+      justify-content: flex-end;
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
+    /* Hover / focus styles for filter/action buttons (main + pinned) */
+    .searchbar-floating .sb-cell--no-divider>button,
+    .searchbar-floating .sb-cell--tight>button {
+      transition: transform 120ms ease, box-shadow 160ms ease, background-color 120ms ease, border-color 120ms ease;
+      will-change: transform, box-shadow, background-color;
+    }
+
+    .searchbar-floating .sb-cell--no-divider>button:hover,
+    .searchbar-floating .sb-cell--tight>button:hover,
+    .searchbar-floating[data-pinned="true"] .sb-cell--no-divider>button:hover,
+    .searchbar-floating[data-pinned="true"] .sb-cell--tight>button:hover {
+      /* keep motion and depth but do not change colors on hover */
+      transform: translateY(-2px) !important;
+      /* slight lift */
+      box-shadow: 0 10px 20px rgba(65, 87, 163, 0.08) !important;
+      cursor: pointer;
+    }
+
+    /* keyboard focus (accessibility) */
+    .searchbar-floating .sb-cell--no-divider>button:focus,
+    .searchbar-floating .sb-cell--tight>button:focus {
+      outline: 3px solid rgba(65, 87, 163, 0.08) !important;
+      outline-offset: 2px !important;
+    }
+
+    /* small pressed state */
+    .searchbar-floating .sb-cell--no-divider>button:active,
+    .searchbar-floating .sb-cell--tight>button:active {
+      transform: translateY(0) !important;
+      box-shadow: 0 6px 12px rgba(65, 87, 163, 0.06) !important;
+    }
+
+    /* make heart/watchlist button more visible over photos */
+    .watchlist-btn {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      /* slightly transparent white so the photo shows through a bit */
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--site-primary);
+      /* default icon stroke uses site primary blue */
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      box-shadow: 0 10px 24px rgba(2, 6, 23, 0.12);
+      /* only animate transform (compositor-friendly). color/background handled via composited pseudo-element and opacity toggles below */
+      transition: transform 140ms ease;
+      will-change: transform, opacity;
+      z-index: 80;
+      cursor: pointer;
+      pointer-events: auto;
+      transform: translateZ(0);
+    }
+
+    /* Inline full-width variant used in auction detail (matches Place Bid sizing) */
+    .watchlist-btn--inline {
+      position: static;
+      /* no absolute positioning in inline/full-width layout */
+      width: 100% !important;
+      height: auto !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 0.75rem !important;
+      /* rounded-xl equivalent */
+      padding-top: 0.75rem !important;
+      /* matches `py-3` on Place Bid */
+      padding-bottom: 0.75rem !important;
+      padding-left: 1rem !important;
+      padding-right: 1rem !important;
+      /* Unsaved (default) inline appearance: subtle site-blue surface + blue text/border */
+      background: rgba(37, 99, 235, 0.06) !important;
+      /* soft blue surface */
+      color: #B8071C !important;
+      border: 1px solid rgba(37, 99, 235, 0.12) !important;
+      box-shadow: none !important;
+      /* match Place Bid (no heavy shadow) */
+    }
+
+    .watchlist-btn--inline:hover {
+      background: rgba(37, 99, 235, 0.12) !important;
+    }
+
+    .watchlist-btn--inline::before {
+      display: none !important;
+    }
+
+    .watchlist-btn--inline .heart-icon-wrap {
+      width: 18px !important;
+      height: 18px !important;
+    }
+
+    .watchlist-btn--inline .heart-icon-outline,
+    .watchlist-btn--inline .heart-icon-filled {
+      width: 18px !important;
+      height: 18px !important;
+    }
+
+    /* Saved inline variant: solid primary blue with white text/icon */
+    .watchlist-btn--inline.watchlist-btn--saved,
+    .watchlist-btn--saved.watchlist-btn--inline {
+      background: #B8071C !important;
+      color: #fff !important;
+      border: 0 !important;
+      box-shadow: 0 8px 20px rgba(65, 87, 163, 0.12) !important;
+    }
+
+    /* helper: disable heart opacity transitions during initial mount/hydration to avoid blink */
+    .watchlist-btn--no-transition .heart-icon-outline,
+    .watchlist-btn--no-transition .heart-icon-filled,
+    .watchlist-btn--no-transition::before {
+      transition: none !important;
+    }
+
+    .watchlist-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    /* Use a composited circular background via pseudo-element; toggle opacity only to avoid background-color repaint */
+    .watchlist-btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      /* fill the button */
+      border-radius: 9999px;
+      background-color: var(--site-accent);
+      opacity: 0;
+      transition: opacity 160ms linear;
+      z-index: 0;
+      pointer-events: none;
+      transform: translateZ(0);
+      will-change: opacity;
+    }
+
+    /* saved state: stronger red filled button */
+    .watchlist-btn--saved {
+      color: #fff;
+      /* keep icon color high-contrast over accent */
+      border: 0;
+      box-shadow: 0 12px 30px rgba(65, 87, 163, 0.12);
+      /* make saved state visibly solid so heart reads clearly */
+      background: var(--site-primary);
+    }
+
+    .watchlist-btn--saved::before {
+      opacity: 1;
+    }
+
+    /* stacked SVGs: outline visible when not saved, filled visible when saved. Only opacity toggles. */
+    .heart-icon-wrap {
+      position: relative;
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      z-index: 1;
+    }
+
+    .heart-icon-wrap svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+
+    .heart-icon-outline {
+      opacity: 1;
+      transition: opacity 160ms linear;
+      will-change: opacity;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.4;
+    }
+
+    .heart-icon-filled {
+      opacity: 0;
+      transition: opacity 160ms linear;
+      will-change: opacity;
+      fill: white;
+      stroke: none;
+    }
+
+    .watchlist-btn--saved .heart-icon-outline {
+      opacity: 0;
+    }
+
+    .watchlist-btn--saved .heart-icon-filled {
+      opacity: 1;
+    }
+
+    /* icon: stroke for default, filled for saved */
+    .watchlist-btn svg.heart-icon {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+
+    /* default: outlined heart using site primary color */
+    .watchlist-btn svg.heart-icon path {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* saved: filled with accent (gold) to match site colors */
+    .watchlist-btn--saved svg.heart-icon path {
+      fill: currentColor;
+      stroke: none;
+    }
+
+    /* accessible focus ring */
+    .watchlist-btn:focus {
+      outline: 3px solid rgba(37, 99, 235, 0.14);
+      outline-offset: 2px;
+    }
+
+    /* small inline message (bubble) shown above the watchlist heart */
+    .watchlist-msg {
+      position: absolute;
+      /* anchor near the heart button on the right so it doesn't cross the make badge on the left */
+      top: 3.5rem;
+      right: 0.5rem;
+      z-index: 10050;
+      /* put bubble above .photo-badge (which uses very high z-index) */
+      background: #ffffff;
+      border: 1px solid #e6f4ff;
+      color: #103090;
+      box-shadow: 0 8px 22px rgba(2, 6, 23, 0.08);
+      padding: 8px 10px;
+      border-radius: 10px;
+      min-width: 200px;
+      max-width: calc(100% - 48px);
+      /* avoid overflowing the card on narrow screens */
+      display: inline-flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-start;
+      font-size: 13px;
+      pointer-events: auto;
+      transform: none;
+      /* Use normal sans-serif font instead of premium serif */
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    }
+
+    /* on very small screens: align right with the button to prevent right-side clipping, but ensure it fits screen */
+    @media (max-width: 640px) {
+      .watchlist-msg {
+        left: auto;
+        right: 0;
+        transform: none;
+        top: 3.5rem;
+        max-width: 85vw;
+        width: max-content;
+        margin-right: -0.5rem;
+        /* Re-align with card edge if button inset is 0.5rem */
+      }
+    }
+
+    .watchlist-msg .watchlist-msg-text {
+      font-weight: 600;
+      color: #103090;
+      white-space: normal;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .watchlist-msg .watchlist-msg-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .watchlist-msg .watchlist-msg-link {
+      color: var(--site-primary);
+      font-weight: 600;
+      text-decoration: none;
+      background: rgba(37, 99, 235, 0.06);
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(37, 99, 235, 0.06);
+    }
+
+    .watchlist-msg .watchlist-msg-btn {
+      background: transparent;
+      border: 1px solid #cfe0ff;
+      color: var(--site-primary);
+      padding: 6px 8px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .watchlist-msg .watchlist-msg-link,
+    .watchlist-msg .watchlist-msg-btn {
+      white-space: nowrap;
+    }
+
+    .watchlist-msg .watchlist-msg-btn--confirm {
+      background: var(--site-primary);
+      color: #fff;
+      border: 0;
+    }
+
+    .watchlist-msg--success {
+      background: linear-gradient(180deg, #ecf8ff, #ffffff);
+      border-color: #cfe0ff;
+    }
+
+    .watchlist-msg--error {
+      background: #fff6f6;
+      border-color: #f8d7da;
+      color: #b91c1c;
+    }
+
+    .watchlist-msg--signin {
+      background: #ffffff;
+      border-color: #cfe0ff;
+    }
+
+    /* Inline variant: use when the bubble should flow in document layout (e.g., under a button)
+     Keeps the same visual styling but removes absolute positioning so it sits directly
+     beneath the trigger and can be sized/tuned via margin/padding. */
+    .watchlist-msg--inline {
+      position: static !important;
+      right: auto !important;
+      top: auto !important;
+      transform: none !important;
+      margin-top: 4px !important;
+      /* small gap to visually touch the button */
+      box-shadow: 0 8px 18px rgba(2, 6, 23, 0.06) !important;
+      min-width: 0 !important;
+      max-width: 320px !important;
+      align-items: flex-start !important;
+      pointer-events: auto !important;
+    }
+
+    .watchlist-msg--inline .watchlist-msg-text {
+      font-size: 13px;
+      font-weight: 600;
+    }
+  }
+
+  /* Performance helper: temporarily simplify visuals while scrolling to reduce repaint cost.
+   This does NOT change permanent appearance — only while body.has-class 'is-scrolling'. */
+  body.is-scrolling {
+    /* hint to compositor to composite layers (may help on some browsers) */
+  }
+
+  /* reduce heavy shadows and long transitions while scrolling */
+  body.is-scrolling .card-contour,
+  body.is-scrolling .card-shadow,
+  body.is-scrolling .karkey-card,
+  body.is-scrolling .auction-card {
+    /* remove large multi-layer shadows (substitute with very light single shadow) */
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.04) !important;
+    transition: none !important;
+    /* Removed filter: none !important to avoid stripping child element filters like colored icons */
+  }
+
+  /* disable hover lift / transform during scroll for smoother motion */
+  body.is-scrolling .card-contour:hover,
+  body.is-scrolling .karkey-card:hover,
+  body.is-scrolling .auction-card:hover {
+    transform: none !important;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  /* reduce overlay/backdrop costs (e.g. countdown overlay) while scrolling */
+  body.is-scrolling .card-countdown-overlay,
+  body.is-scrolling .watchlist-msg,
+  body.is-scrolling .photo-badge {
+    will-change: auto !important;
+    backdrop-filter: none !important;
+  }
+
+  /* images: prefer compositing & avoid layout thrash while scrolling */
+  body.is-scrolling img,
+  body.is-scrolling picture,
+  body.is-scrolling video {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    /* Removed filter: none !important to preserve colored icons that use CSS filters */
+  }
+
+  /* keep minimal transition for focus accessibility even when scrolling */
+  body.is-scrolling :focus-visible {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+  }
+
+  /* end of performance helpers */
+
+  /* Performance: lightweight rendering on auction detail pages */
+  body.auction-detail {
+    /* avoid creating many composited layers */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* simplify card visuals temporarily (keeps shape but reduces paint cost) */
+  body.auction-detail .card-contour,
+  body.auction-detail .card-shadow,
+  body.auction-detail .karkey-card,
+  body.auction-detail .auction-card {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.04) !important;
+    transition: none !important;
+    will-change: auto !important;
+    filter: none !important;
+  }
+
+  /* disable hover lifts/transforms during detail view to avoid repaints on scroll */
+  body.auction-detail .card-contour:hover,
+  body.auction-detail .karkey-card:hover,
+  body.auction-detail .auction-card:hover {
+    transform: none !important;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  /* remove expensive backdrop/blur and filters */
+  body.auction-detail .card-countdown-overlay,
+  body.auction-detail .watchlist-msg,
+  body.auction-detail .photo-badge,
+  body.auction-detail .searchbar-floating {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  /* stop CSS animations/transitions site-wide inside detail page (improves scroll) */
+  body.auction-detail * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* prefer compositing images (hint) and avoid layout thrash */
+  body.auction-detail img {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    image-rendering: auto;
+  }
+
+  /* keep accessibility focus visible but lightweight */
+  body.auction-detail :focus-visible {
+    outline: 3px solid rgba(37, 99, 235, 0.12) !important;
+    box-shadow: none !important;
+  }
+
+  /* ensure any heavy shadows in home-cards are toned down on detail */
+  body.auction-detail .home-cards .karkey-card,
+  body.auction-detail .home-cards .auction-card {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  /* Aggressive performance mode for auction detail pages (temporary) */
+  body.auction-detail-performance {
+    /* reduce layout/paint work */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* hint to compositor */
+    will-change: auto !important;
+  }
+
+  /* strip heavy visuals site-wide inside this mode */
+  body.auction-detail-performance *,
+  body.auction-detail-performance *::before,
+  body.auction-detail-performance *::after {
+    transition: none !important;
+    animation: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    backface-visibility: hidden !important;
+    will-change: auto !important;
+    /* avoid costly paint attributes */
+    outline: none !important;
+  }
+
+  /* specifically neutralize card/frame shadows and hover lifts */
+  body.auction-detail-performance .card-contour,
+  body.auction-detail-performance .card-shadow,
+  body.auction-detail-performance .karkey-card,
+  body.auction-detail-performance .auction-card,
+  body.auction-detail-performance .home-cards .auction-card {
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  /* disable backdrop blur and heavy overlays */
+  body.auction-detail-performance .card-countdown-overlay,
+  body.auction-detail-performance .watchlist-msg,
+  body.auction-detail-performance .photo-badge,
+  body.auction-detail-performance .searchbar-floating {
+    backdrop-filter: none !important;
+    filter: none !important;
+    box-shadow: none !important;
+  }
+
+  /* favor fast image compositing and avoid layout thrash */
+  body.auction-detail-performance img,
+  body.auction-detail-performance picture,
+  body.auction-detail-performance video {
+    will-change: transform, opacity !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+    image-rendering: auto !important;
+  }
+
+  /* keep focus visible but lightweight */
+  body.auction-detail-performance :focus-visible {
+    outline: 3px solid rgba(37, 99, 235, 0.08) !important;
+    box-shadow: none !important;
+  }
+
+  /* end performance-mode rules */
+
+  /* Restore visible card panel for home cards (override previous transparent rules) */
+  .home-cards .auction-card {
+    background: #ffffff !important;
+    /* white panel like /auctions */
+    border: none !important;
+    /* no border for free-floating look */
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+    /* neutral gray shadow for clean look */
+    border-radius: 0.75rem !important;
+    /* slightly rounded */
+    overflow: hidden !important;
+    position: relative !important;
+    z-index: 0 !important;
+    transition: transform 350ms ease, box-shadow 350ms ease !important;
+  }
+
+  /* Standardized hover effect for all car cards across the platform */
+  .karkey-card:hover,
+  .auction-card:hover {
+    transform: scale(1.01) !important;
+    box-shadow: 0 12px 30px rgba(37, 99, 235, 0.12) !important;
+  }
+
+  /* Ensure inner content uses its own padding (do not force transparent backgrounds) */
+  .home-cards .auction-card>* {
+    background: transparent !important;
+    /* preserve inner component backgrounds */
+    box-shadow: none !important;
+    /* inner elements should not add extra panel shadows */
+  }
+
+  /* If inner wrappers were forced to zero padding earlier, restore comfortable padding */
+  .home-cards .auction-card .p-4 {
+    padding: 1rem !important;
+  }
+
+  /* Label text next to masked icons: keep exact same dark-gray as mask background
+   Use !important to ensure it overrides Tailwind defaults where necessary. */
+  .icon-label {
+    color: #111827 !important;
+  }
+
+  /* Ensure the main (large) search pill is fully removed from layout on small screens
+   to prevent any visual flash or overlap beneath the pinned search bar. */
+  @media (max-width: 640px) {
+    .main-search {
+      display: none !important;
+      height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+    }
+  }
+
+  /* ========== Performance Optimizations ========== */
+
+  /* Use content-visibility for off-screen content to improve rendering performance */
+  .auction-card,
+  .direct-sale-card {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 400px;
+  }
+
+  /* Improve scrolling performance */
+  .scroll-container,
+  [data-scroll-container] {
+    will-change: scroll-position;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Reduce layout shifts on images */
+  .card-image-container {
+    aspect-ratio: 16/10;
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  }
+
+  /* Skeleton loading animation */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Optimize font rendering */
+  body {
+    text-rendering: optimizeSpeed;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Reduce paint on hover transitions */
+  .hover-lift {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  @layer utilities {
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      /* IE and Edge */
+      scrollbar-width: none;
+      /* Firefox */
+    }
+  }
+
+  /* Custom Autofill Styles - Force White/Blue */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px white inset !important;
+    -webkit-text-fill-color: #103090 !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  /* AFCON 2025: Custom Premium Animations */
+  @keyframes heartbeat {
+    0% {
+      transform: scale(1.1) translateY(-4px);
+    }
+
+    25% {
+      transform: scale(1.12) translateY(-4px);
+    }
+
+    50% {
+      transform: scale(1.1) translateY(-4px);
+    }
+
+    75% {
+      transform: scale(1.12) translateY(-4px);
+    }
+
+    100% {
+      transform: scale(1.1) translateY(-4px);
+    }
+  }
+
+  .animate-heartbeat {
+    animation: heartbeat 1.5s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  /* Heart Pop Animation - SUPER EXPLOSIVE */
+  @keyframes heart-pop {
+    0% {
+      transform: scale(1);
+    }
+
+    40% {
+      transform: scale(3.5) rotate(15deg);
+    }
+
+    60% {
+      transform: scale(3.5) rotate(-15deg);
+    }
+
+    80% {
+      transform: scale(2.0);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .animate-heart-pop {
+    animation: heart-pop 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+    /* Faster, punchier easing */
+  }
+
+  /* Sparkles Explosion Animation - BIGGER RADIUS */
+  @keyframes sparkles {
+    0% {
+      box-shadow: 0 0 0 #B8071C;
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    100% {
+      box-shadow:
+        -32px -32px 0 rgba(184, 7, 28, 0),
+        32px -32px 0 rgba(184, 7, 28, 0),
+        -32px 32px 0 rgba(184, 7, 28, 0),
+        32px 32px 0 rgba(184, 7, 28, 0),
+        0 -45px 0 rgba(184, 7, 28, 0),
+        0 45px 0 rgba(184, 7, 28, 0),
+        -45px 0 0 rgba(184, 7, 28, 0),
+        45px 0 0 rgba(184, 7, 28, 0);
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(1.5);
+    }
+  }
+
+  /* Attach sparkles to the saved button */
+  .watchlist-btn--saved::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    background: transparent;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: -1;
+    box-shadow:
+      -16px -16px 0 #B8071C,
+      16px -16px 0 #B8071C,
+      -16px 16px 0 #B8071C,
+      16px 16px 0 #B8071C,
+      0 -22px 0 #B8071C,
+      0 22px 0 #B8071C,
+      -22px 0 0 #B8071C,
+      22px 0 0 #B8071C;
+    animation: sparkles 0.6s ease-out forwards;
+  }
+
+  @keyframes shine-slow {
+    0% {
+      left: -100%;
+    }
+
+    100% {
+      left: 100%;
+    }
+  }
+
+  .animate-shine-slow {
+    position: absolute;
+    animation: shine-slow 3s infinite;
+  }
+
+  @keyframes glow-pulse {
+
+    0%,
+    100% {
+      box-shadow: 0 0 15px rgba(0, 166, 81, 0.4);
+    }
+
+    50% {
+      box-shadow: 0 0 30px rgba(0, 166, 81, 0.8);
+    }
+  }
+
+  .animate-glow-green {
+    animation: glow-pulse 3s infinite ease-in-out;
+  }
+
+  /* ========== Premium Luxury Component Aesthetics ========== */
+
+  .premium-card {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    transition-duration: 500ms;
+    position: relative;
+    overflow: hidden;
+    will-change: transform, box-shadow;
+  }
+
+  .premium-card:hover {
+    transform: translateY(-8px) translateZ(0);
+    box-shadow: 0 40px 80px -15px rgba(16, 48, 144, 0.12), 0 15px 30px -10px rgba(184, 7, 28, 0.08);
+    /* Multi-color luxury shadow */
+  }
+
+  /* Shine Sweep Effect */
+  .shine-sweep {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shine-sweep::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent);
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  .shine-sweep:hover::before {
+    left: 150%;
+    transition: all 0.92s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Glassmorphism Badge */
+  .glass-badge {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  /* Smooth Image Scale on Card Hover */
+  .premium-card .group-hover\:scale-105 {
+    transform: var(--tw-transform);
+    transition-property: transform;
+    transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    transition-duration: 700ms;
+  }
+
+  .premium-card:hover .group-hover\:scale-110 {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes luxury-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(184, 7, 28, 0.4);
+  }
+
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(184, 7, 28, 0);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(184, 7, 28, 0);
+  }
+}
+
+.animate-luxury-pulse {
+  animation: luxury-pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}

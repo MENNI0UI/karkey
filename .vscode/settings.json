@@ -1,0 +1,40 @@
+{
+  // Increase memory for the TS server (prevents OOM crashes)
+  "typescript.tsserver.maxTsServerMemory": 4096,
+  // Use workspace TypeScript version if available (more stable)
+  "typescript.tsdk": "node_modules/typescript/lib",
+  // Reduce tsserver workload: exclude heavy/generated folders from watcher/search/folders
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.next/**": true,
+    "**/dist/**": true,
+    "**/.git/**": true,
+    "**/out/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/dist": true,
+    "**/out": true
+  },
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/dist": true,
+    "**/out": true
+  },
+  // Optionally reduce TS server logging to avoid extra IO
+  "typescript.tsserver.log": "off",
+  // Avoid automatic extension recommendations that may re-enable problematic extensions
+  "extensions.ignoreRecommendations": true,
+  "python.testing.unittestArgs": [
+    "-v",
+    "-s",
+    "./tests",
+    "-p",
+    "*test.py"
+  ],
+  "python.testing.pytestEnabled": false,
+  "python.testing.unittestEnabled": true,
+  "snyk.advanced.autoSelectOrganization": true
+}
