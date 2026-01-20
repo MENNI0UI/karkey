@@ -10,6 +10,13 @@ This guide explains how to deploy Karkey to a VPS (Ubuntu/Debian recommended) us
 4.  **Git**: `sudo apt install git`
 5.  **Database**: A running MySQL/MariaDB instance.
 
+**Verify installation:**
+\`\`\`bash
+node -v
+pnpm -v
+pm2 -v
+\`\`\`
+
 ## 1. Upgrade & Prepare
 
 \`\`\`bash
@@ -19,7 +26,8 @@ sudo apt update && sudo apt upgrade -y
 ## 2. Clone Repository
 
 \`\`\`bash
-git clone https://github.com/MENNI0UI/karkey.git
+# Use --depth=1 to minimize download size (optional)
+git clone --depth=1 https://github.com/MENNI0UI/karkey.git
 cd karkey
 \`\`\`
 
@@ -32,7 +40,9 @@ cp .env.example .env
 nano .env
 \`\`\`
 
-**Important:** Ensure \`DATABASE_URL\` and \`AUTH_SECRET\` are set correctly.
+**Important:**
+- Ensure \`DATABASE_URL\` and \`AUTH_SECRET\` are set correctly.
+- ❌ **NEVER** commit \`.env\` file to GitHub.
 
 ## 4. Install & Build (Critical Step)
 
@@ -50,6 +60,7 @@ pnpm build
 Run migrations to set up your production database schema:
 
 \`\`\`bash
+# Only required if Prisma is used
 npx prisma migrate deploy
 \`\`\`
 
@@ -66,6 +77,7 @@ pm2 startup
 ## 7. Configuration Notes
 
 - **Port**: The app runs on port `3000` by default (managed in `ecosystem.config.js`). 
+- **Security**: PM2 processes should never be exposed directly to the internet.
 - **Nginx**: Use Nginx as a reverse proxy to handle SSL and forward traffic to port 3000.
 
 ## 8. Update Application
@@ -84,6 +96,19 @@ pm2 restart karkey-app
 - **Source Code**: Managed via Git.
 - **Build/Cache**: Generated locally on the VPS (ignored by Git).
 - **Uploads**: Stored in \`public/uploads\` (excluded from Git).
+
+## 📂 Project Structure (Production)
+
+- \`app/\`: Next.js source code.
+- \`backend/\`: API / scripts.
+- \`public/uploads\`: Runtime uploads (ignored by Git).
+- \`.next/\`: Build output (generated on VPS).
+
+## 🔧 Troubleshooting
+
+- **500 Error**: Ensure \`pnpm build\` was executed successfully.
+- **Port already in use**: Check PM2 list or Nginx config.
+- **App not starting**: Check logs with \`pm2 logs karkey-app\`.
 
 ## 🚀 Advanced Configuration (Roadmap)
 
