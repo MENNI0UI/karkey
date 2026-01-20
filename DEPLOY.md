@@ -84,3 +84,12 @@ pm2 restart karkey-app
 - **Source Code**: Managed via Git.
 - **Build/Cache**: Generated locally on the VPS (ignored by Git).
 - **Uploads**: Stored in \`public/uploads\` (excluded from Git).
+
+## 🚀 Advanced Configuration (Roadmap)
+
+To reach 100% production grade, consider implementing these next steps:
+
+1.  **Nginx + SSL + HTTP/2**: Use Nginx as a reverse proxy in front of PM2 to handle HTTPS (Let's Encrypt) and serve static files (gzip/brotli).
+2.  **Separate Backend**: If your backend grows, run it as a separate app in `ecosystem.config.js` (e.g., `karkey-api`).
+3.  **Cloudflare R2**: improved performance and lower costs, offload image storage (`public/uploads`) to Cloudflare R2 or AWS S3.
+4.  **CI/CD (GitHub Actions)**: Automate the deploy process so that `git push` triggers a build and deploy on your VPS automatically.
