@@ -50,7 +50,7 @@ npx prisma migrate deploy
 
 ## 6. Start with PM2
 
-Use the included ecosystem file to start the app in cluster mode:
+Use the included ecosystem file to start the app (runs in fork mode for Next.js stability):
 
 \`\`\`bash
 pm2 start ecosystem.config.js
