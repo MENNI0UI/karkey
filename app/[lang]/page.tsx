@@ -1,7 +1,7 @@
 import nextDynamic from "next/dynamic"
 import SearchBar from "@/components/searchbar"
 import { getApprovedVehicles, getApprovedKarkeyCars, getDirectSalesFilterOptions, getHomeCitiesData } from "@/app/actions"
-import { en, fr, ar, es } from "@/lib/translations"
+import { loadTranslations } from "@/lib/translations"
 import { HeroHeadline } from "@/components/hero-headline"
 import { ParticlesBackground } from "@/components/particles-background"
 
@@ -15,10 +15,9 @@ export const revalidate = 60
 
 export default async function HomePage(props: { params: Promise<{ lang: "en" | "fr" | "ar" | "es" }> }) {
     const params = await props.params;
-    const dicts = { en, fr, ar, es }
     // Safe language fallback
     const lang = params?.lang || "en"
-    const t = dicts[lang] || dicts.en
+    const t = await loadTranslations(lang)
 
     let initialVehicles: any[] = []
     let initialServerTime: string | null = null

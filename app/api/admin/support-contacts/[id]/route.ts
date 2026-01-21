@@ -11,7 +11,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { id: idParam } = await params
-    const id = BigInt(idParam)
+    const id = Number(idParam)
     if (!id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
     const body = await request.json().catch(() => ({}))
@@ -52,7 +52,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { id: idParam } = await params
-    const id = BigInt(idParam)
+    const id = Number(idParam)
     if (!id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
     await prisma.direct_sales_contacts.delete({

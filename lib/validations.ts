@@ -1,7 +1,7 @@
 // Form Validation Utilities
 // Contains regex patterns and validation functions for user input
 
-import { parsePhoneNumberFromString, CountryCode, isValidPhoneNumber } from "libphonenumber-js"
+import { parsePhoneNumberFromString, CountryCode, isValidPhoneNumber } from "libphonenumber-js/mobile"
 
 // ============================================
 // Validation Regex Patterns
@@ -92,20 +92,20 @@ export function validatePhoneInternational(phone: string, countryCode?: string):
   if (!phone) {
     return { isValid: false, error: "validation.phone_required" }
   }
-  
+
   try {
     // Parse the phone number with optional country hint
     const phoneNumber = parsePhoneNumberFromString(phone, countryCode as CountryCode | undefined)
-    
+
     if (!phoneNumber) {
       return { isValid: false, error: "validation.phone_format" }
     }
-    
+
     // Use libphonenumber's built-in validation
     if (!phoneNumber.isValid()) {
       return { isValid: false, error: "validation.phone_format" }
     }
-    
+
     return { isValid: true }
   } catch {
     return { isValid: false, error: "validation.phone_format" }

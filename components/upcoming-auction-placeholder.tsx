@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { m } from "framer-motion"
 import { Bell, Star, Sparkles, Plus, Mail, Loader2, CheckCircle, BellOff } from "lucide-react"
 import { useTranslation } from "@/lib/i18n-context"
 import { useToast } from "@/hooks/use-toast"
@@ -227,7 +227,7 @@ export default function UpcomingAuctionsPlaceholder() {
             <div className="relative z-10 container mx-auto px-4 text-center">
 
                 {/* Premium Badge */}
-                <motion.div
+                <m.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.2 }}
@@ -235,10 +235,10 @@ export default function UpcomingAuctionsPlaceholder() {
                 >
                     <Sparkles className="w-4 h-4 text-white fill-white" />
                     <span className="text-sm font-semibold tracking-wide uppercase">{t('auctions.placeholder.premium_badge')}</span>
-                </motion.div>
+                </m.div>
 
                 {/* Editorial Title */}
-                <motion.h1
+                <m.h1
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.3 }}
@@ -249,25 +249,25 @@ export default function UpcomingAuctionsPlaceholder() {
                     </span>{' '}
                     <span className="text-[#B8071C] italic inline-block relative">
                         {t('auctions.placeholder.hero_title_suffix')}
-                        <motion.span
+                        <m.span
                             initial={{ width: 0 }}
                             animate={{ width: '100%' }}
                             transition={{ delay: 1, duration: 0.8 }}
                             className="absolute -bottom-2 left-0 h-[2px] bg-gradient-to-r from-transparent via-[#B8071C] to-transparent"
                         />
                     </span>
-                </motion.h1>
-                <motion.p
+                </m.h1>
+                <m.p
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.4 }}
                     className="text-lg md:text-xl text-slate-500 max-w-2xl mx-auto mb-14 font-light leading-relaxed"
                 >
                     {t('auctions.placeholder.hero_subtitle')}
-                </motion.p>
+                </m.p>
 
                 {/* Elegant Countdown */}
-                <motion.div
+                <m.div
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.5 }}
@@ -280,17 +280,17 @@ export default function UpcomingAuctionsPlaceholder() {
                     <CountdownUnit value={timeLeft.m} label={t('auctions.placeholder.unit.minutes')} />
                     <div className="hidden md:block text-4xl font-serif text-slate-200 self-start mt-2">:</div>
                     <CountdownUnit value={timeLeft.s} label={t('auctions.placeholder.unit.seconds')} />
-                </motion.div>
+                </m.div>
 
                 {/* Ultra Luxury Actions */}
-                <motion.div
+                <m.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.6 }}
                     className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8"
                 >
                     <Link href="/direct-sales/create" className="w-full sm:w-auto">
-                        <motion.button
+                        <m.button
                             whileHover={{ scale: 1.02, translateY: -2 }}
                             whileTap={{ scale: 0.98 }}
                             className="group relative w-full sm:min-w-[300px] px-10 py-3.5 sm:py-4.5 bg-gradient-to-r from-[#B8071C] to-[#E53935] text-white rounded-2xl overflow-hidden shadow-2xl shadow-red-950/30 transition-shadow duration-300"
@@ -307,11 +307,11 @@ export default function UpcomingAuctionsPlaceholder() {
                                 </span>
                                 <span className="font-serif text-xl tracking-wide text-white drop-shadow-sm">{t('auctions.placeholder.list_your_vehicle')}</span>
                             </span>
-                        </motion.button>
+                        </m.button>
                     </Link>
 
                     {/* Remind Me Button */}
-                    <motion.button
+                    <m.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={isSubscribed ? () => setIsAlreadySubscribedOpen(true) : handleRemindMe}
@@ -343,8 +343,8 @@ export default function UpcomingAuctionsPlaceholder() {
                                 </>
                             )}
                         </span>
-                    </motion.button>
-                </motion.div>
+                    </m.button>
+                </m.div>
 
                 {/* Guest Email Dialog */}
                 <Dialog open={isReminderOpen} onOpenChange={setIsReminderOpen}>
@@ -468,7 +468,7 @@ export default function UpcomingAuctionsPlaceholder() {
                 </Dialog>
 
                 {/* Value Proposition */}
-                <motion.div
+                <m.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.8, duration: 1 }}
@@ -481,7 +481,7 @@ export default function UpcomingAuctionsPlaceholder() {
                         <div className="hidden md:block w-px h-4 bg-slate-200" />
                         <PropItem text={t('auctions.placeholder.prop.premium_selection')} delay={1.1} />
                     </div>
-                </motion.div>
+                </m.div>
             </div>
         </div>
     )
@@ -500,7 +500,7 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
 
 function PropItem({ text, delay }: { text: string; delay: number }) {
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -511,6 +511,6 @@ function PropItem({ text, delay }: { text: string; delay: number }) {
                 <Star className="w-5 h-5 text-[#B8071C] fill-[#B8071C]/10" />
             </div>
             {text}
-        </motion.div>
+        </m.div>
     )
 }

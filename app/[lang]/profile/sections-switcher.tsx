@@ -6,13 +6,14 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import { Shield, CheckCircle, Clock, AlertCircle, BadgeCheck, Sparkles, X } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useRouter } from "next/navigation";
 
 import ListingsSection from "./listings-section";
 import { useTranslation } from "@/lib/i18n-context";
 import ProfilePictureUpload from "./profile-picture-upload";
 import StatisticsSection from "./statistics-section";
+import { UserProfile, ListingItem } from "./types";
 // -- New Imports --
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -22,11 +23,11 @@ import { EmailVerification } from "@/components/auth/email-verification";
 
 /* -------- Props -------- */
 interface SectionsSwitcherProps {
-  profile: any;
+  profile: UserProfile;
   userId: number;
-  auctions?: any[]; // optional now
-  watchlist?: any[];
-  dsWatchlist?: any[];
+  auctions?: ListingItem[]; // optional now
+  watchlist?: ListingItem[];
+  dsWatchlist?: ListingItem[];
   successFlag?: boolean;
   initialTab?: string;
 }
@@ -82,8 +83,8 @@ export default function SectionsSwitcher({
   }, []);
 
   // Local state management
-  const [favoritesState, setFavoritesState] = useState<any[] | undefined>(undefined);
-  const [auctionsState, setAuctionsState] = useState<any[] | undefined>(() => (Array.isArray(auctions) ? auctions : undefined));
+  const [favoritesState, setFavoritesState] = useState<ListingItem[] | undefined>(undefined);
+  const [auctionsState, setAuctionsState] = useState<ListingItem[] | undefined>(() => (Array.isArray(auctions) ? auctions : undefined));
   const [isFetching, startTransition] = useTransition();
   const [resubmitSuccess, setResubmitSuccess] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -187,20 +188,8 @@ export default function SectionsSwitcher({
           dsWatchlist: dsWatchRes?.length
         });
 
-        // Normalize auction watchlist
-        const normalizedAuctions = (watchRes || []).map((a: any) => ({
-          ...a,
-          type: "auction"
-        }));
-
-        // Normalize direct sales watchlist
-        const normalizedDs = (dsWatchRes || []).map((ds: any) => ({
-          ...ds,
-          type: "direct_sale"
-        }));
-
         // Merge and sort
-        const merged = [...normalizedAuctions, ...normalizedDs].sort((a, b) => {
+        const merged = [...(watchRes || []), ...(dsWatchRes || [])].sort((a, b) => {
           const dateA = new Date(a.created_at || 0).getTime();
           const dateB = new Date(b.created_at || 0).getTime();
           return dateB - dateA;
@@ -230,12 +219,12 @@ export default function SectionsSwitcher({
         ]);
 
         console.log("[SectionsSwitcher] My listings fetch results:", {
-          auctions: aucRes.success ? aucRes.auctions.length : "failed",
-          directSales: dsRes.success ? dsRes.directSales.length : "failed"
+          auctions: aucRes?.success ? aucRes.auctions?.length : "failed",
+          directSales: dsRes?.success ? dsRes.directSales?.length : "failed"
         });
 
-        const aucs = aucRes.success && aucRes.auctions ? aucRes.auctions : [];
-        const dSales = dsRes.success && dsRes.directSales ? dsRes.directSales : [];
+        const aucs = aucRes?.success && aucRes?.auctions ? aucRes.auctions : [];
+        const dSales = dsRes?.success && dsRes?.directSales ? dsRes.directSales : [];
 
         // Merge and sort everything by creation date descending
         const merged = [...aucs, ...dSales].sort((a, b) => {
@@ -471,7 +460,7 @@ export default function SectionsSwitcher({
 
               <h1 className="text-4xl md:text-6xl font-serif text-[#008E46] tracking-tight leading-none relative inline-block">
                 {p.first_name || p.username} <span className="text-[#B8071C] italic">{p.last_name || ""}</span>
-                <motion.span
+                <m.span
                   initial={{ width: 0 }}
                   animate={{ width: "100%" }}
                   transition={{ delay: 0.5, duration: 0.8 }}
@@ -537,7 +526,7 @@ export default function SectionsSwitcher({
                   <Sparkles className="w-4 h-4 text-[#B8071C] absolute -top-3 -left-1" />
                   <span className="relative inline-block">
                     {t("profile.my_listings")}
-                    <motion.span
+                    <m.span
                       initial={{ width: 0 }}
                       animate={{ width: "100%" }}
                       transition={{ delay: 0.5, duration: 0.8 }}
@@ -580,7 +569,7 @@ export default function SectionsSwitcher({
                   <Sparkles className="w-4 h-4 text-[#008E46] absolute -top-3 -left-1" />
                   <span className="relative inline-block">
                     {t("nav.my_favorites")}
-                    <motion.span
+                    <m.span
                       initial={{ width: 0 }}
                       animate={{ width: "100%" }}
                       transition={{ delay: 0.5, duration: 0.8 }}

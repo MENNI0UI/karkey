@@ -9,7 +9,7 @@
  * - Ready for SMS/WhatsApp integration
  */
 
-import { parsePhoneNumberFromString, isValidPhoneNumber, CountryCode } from "libphonenumber-js"
+import { parsePhoneNumberFromString, isValidPhoneNumber, CountryCode } from "libphonenumber-js/mobile"
 
 export interface PhoneValidationResult {
   isValid: boolean

@@ -1,4 +1,4 @@
-import { en, fr, ar, es } from "@/lib/translations";
+import { searchTerms } from "@/lib/locales/search-terms";
 import { SEARCH_DICTIONARY } from "@/lib/search-dictionary";
 
 // Map localized value -> English value (DB value)
@@ -9,14 +9,14 @@ function initReverseMap() {
     if (reverseMap) return;
     reverseMap = new Map<string, string>();
 
-    const languages = [fr, ar, es];
+    const languages = [searchTerms.fr, searchTerms.ar, searchTerms.es];
 
     // We only care about specific categories that are stored as English enum-like values in DB
     const processKeys = (prefix: string) => {
         // Iterate over English keys to find valid DB values
-        Object.keys(en).forEach((key) => {
+        Object.keys(searchTerms.en).forEach((key) => {
             if (key.startsWith(prefix)) {
-                const dbValue = (en as Record<string, string>)[key]; // This is the English value stored in DB (e.g. "Petrol")
+                const dbValue = (searchTerms.en as Record<string, string>)[key]; // This is the English value stored in DB (e.g. "Petrol")
 
                 // Map the English value itself to itself (normalization)
                 // reverseMap!.set(dbValue.toLowerCase(), dbValue);

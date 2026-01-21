@@ -4,34 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { Eye, Heart, MessageCircle, Store, CheckCircle, Clock, ShoppingBag, TrendingUp } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useTranslation } from "@/lib/i18n-context";
 import { getUserStatistics } from "./actions";
 import { LuxuryLoader } from "@/components/ui/luxury-loader";
-
-interface StatisticsData {
-    totalViews: number;
-    totalSaves: number;
-    totalContacts: number;
-    activeListings: number;
-    soldListings: number;
-    approvedListings: number;
-    pendingListings: number;
-    totalListings: number;
-    listingPerformance: ListingPerformanceItem[];
-}
-
-interface ListingPerformanceItem {
-    id: number;
-    title: string;
-    image_url: string | null;
-    price: number;
-    status: string;
-    views: number;
-    saves: number;
-    contacts: number;
-    created_at: Date;
-}
+import { ListingPerformance, UserStatistics } from "./types";
 
 interface StatisticsSectionProps {
     userId: number;
@@ -39,7 +16,7 @@ interface StatisticsSectionProps {
 
 export default function StatisticsSection({ userId }: StatisticsSectionProps) {
     const { t } = useTranslation();
-    const [stats, setStats] = useState<StatisticsData | null>(null);
+    const [stats, setStats] = useState<UserStatistics | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -135,7 +112,7 @@ export default function StatisticsSection({ userId }: StatisticsSectionProps) {
             <div className="text-center mb-10">
                 <h1 className="text-4xl md:text-5xl font-serif text-[#008E46] mb-2 relative inline-block">
                     {t("profile.statistics.title")}
-                    <motion.span
+                    <m.span
                         initial={{ width: 0 }}
                         animate={{ width: "100%" }}
                         transition={{ delay: 0.5, duration: 0.8 }}

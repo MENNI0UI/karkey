@@ -3,17 +3,23 @@
 import React, { useEffect, useState, useRef } from "react"
 import Link from "next/link"
 import { X } from "lucide-react"
+import dynamic from "next/dynamic"
 import AuctionCard from "@/components/auction-card"
 import { CarCardSkeleton } from "@/components/ui/car-card-skeleton"
 import { LuxuryLoader } from "@/components/ui/luxury-loader"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
-import NewItemsNotifier from "@/components/NewItemsNotifier"
-import UpcomingAuctionsPlaceholder from "@/components/upcoming-auction-placeholder"
 import { useRouter as useNextRouter, useSearchParams } from "next/navigation"
-import { AuctionFiltersSidebar, type FilterOptions } from "@/components/auction-filters-sidebar"
-import { DraggableFilterButton } from "@/components/DraggableFilterButton"
 import { useTranslation } from "@/lib/i18n-context"
 import { useToast } from "@/hooks/use-toast"
+
+// --- Lazy loaded components ---
+const AuctionFiltersSidebar = dynamic(() => import("@/components/auction-filters-sidebar").then(mod => mod.AuctionFiltersSidebar), {
+  loading: () => <div className="w-64 h-screen bg-gray-50 animate-pulse" />
+})
+import type { FilterOptions } from "@/components/auction-filters-sidebar"
+const NewItemsNotifier = dynamic(() => import("@/components/NewItemsNotifier"), { ssr: false })
+const UpcomingAuctionsPlaceholder = dynamic(() => import("@/components/upcoming-auction-placeholder"), { ssr: false })
+const DraggableFilterButton = dynamic(() => import("@/components/DraggableFilterButton").then(mod => mod.DraggableFilterButton), { ssr: false })
 
 // --- module-level in-memory cache so client navigations reuse results instantly ---
 const _auctionsMemoryCache: { items: any[]; timestamp: number } | null = null

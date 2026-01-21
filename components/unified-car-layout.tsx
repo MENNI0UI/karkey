@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useTranslation } from "@/lib/i18n-context"
-import { TranslationKey } from "@/lib/translations"
+import type { TranslationKey } from "@/lib/locales"
 import {
     Car,
     MapPin,

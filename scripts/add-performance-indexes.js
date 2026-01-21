@@ -3,10 +3,17 @@
  * Run with: node scripts/add-performance-indexes.js
  */
 
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') });
+const path = require('node:path');
+const fs = require('fs');
+const dotenv = require('dotenv');
 
 const mysql = require('mysql2/promise');
+
+// Build absolute path to .env.local
+const envPath = path.resolve(process.cwd(), '.env.local');
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath });
+}
 
 async function main() {
   const dbConfig = {
@@ -14,7 +21,7 @@ async function main() {
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'karkey',
-    port: parseInt(process.env.DB_PORT || '3306', 10),
+    port: Number.parseInt(process.env.DB_PORT || '3306', 10),
   };
 
   console.log('🔧 Adding performance indexes to database...\n');
@@ -31,7 +38,7 @@ async function main() {
           `SHOW INDEX FROM ${table} WHERE Key_name = ?`,
           [indexName]
         );
-        
+
         if (existing.length > 0) {
           console.log(`  ⏭️  ${indexName} already exists on ${table}`);
           return;
@@ -50,74 +57,47 @@ async function main() {
       }
     }
 
-    console.log('📦 Vehicles table indexes:');
-    await addIndex('vehicles', 'idx_vehicles_make', 'make');
-    await addIndex('vehicles', 'idx_vehicles_model', 'model');
-    await addIndex('vehicles', 'idx_vehicles_year', 'year');
-    await addIndex('vehicles', 'idx_vehicles_fuel_type', 'fuel_type');
-    await addIndex('vehicles', 'idx_vehicles_transmission', 'transmission');
-    await addIndex('vehicles', 'idx_vehicles_mileage', 'mileage');
-    await addIndex('vehicles', 'idx_vehicles_engine_size', 'engine_size');
-    await addIndex('vehicles', 'idx_vehicles_doors', 'doors');
-    await addIndex('vehicles', 'idx_vehicles_vehicle_condition', 'vehicle_condition');
-    await addIndex('vehicles', 'idx_vehicles_verification_created', 'verification_status, created_at DESC');
-    await addIndex('vehicles', 'idx_vehicles_make_model', 'make, model');
+    console.log('📦 Direct Sales ( & Auctions) table indexes:');
+    // Common filters
+    await addIndex('direct_sales', 'idx_ds_make_model', 'make, model');
+    await addIndex('direct_sales', 'idx_ds_year', 'year');
+    await addIndex('direct_sales', 'idx_ds_price_loc', 'price, location');
 
-    console.log('\n📦 Auctions table indexes:');
-    await addIndex('auctions', 'idx_auctions_vehicle_status', 'vehicle_id, status');
-    await addIndex('auctions', 'idx_auctions_status_dates', 'status, start_date, end_date');
-    await addIndex('auctions', 'idx_auctions_starting_price', 'starting_price');
-    await addIndex('auctions', 'idx_auctions_vehicle_active_created', 'vehicle_id, status, created_at DESC');
+    // Status & Filtering
+    await addIndex('direct_sales', 'idx_ds_status_composite', 'sale_status, verification_status, is_active'); // assuming is_active might exist or derived
+    await addIndex('direct_sales', 'idx_ds_verification', 'verification_status');
+    await addIndex('direct_sales', 'idx_ds_sale_status', 'sale_status');
 
-    console.log('\n📦 Direct sales table indexes:');
-    await addIndex('direct_sales', 'idx_direct_sales_verification_sale', 'verification_status, sale_status');
-    await addIndex('direct_sales', 'idx_direct_sales_make', 'make');
-    await addIndex('direct_sales', 'idx_direct_sales_model', 'model');
-    await addIndex('direct_sales', 'idx_direct_sales_year', 'year');
-    await addIndex('direct_sales', 'idx_direct_sales_fuel_type', 'fuel_type');
-    await addIndex('direct_sales', 'idx_direct_sales_transmission', 'transmission');
-    await addIndex('direct_sales', 'idx_direct_sales_price', 'price');
-    await addIndex('direct_sales', 'idx_direct_sales_vehicle_condition', 'vehicle_condition');
+    // Auction specific
+    await addIndex('direct_sales', 'idx_ds_auction_status', 'auction_status');
+    await addIndex('direct_sales', 'idx_ds_auction_end', 'auction_end_date');
+    await addIndex('direct_sales', 'idx_ds_auction_lookup', 'auction_status, auction_end_date');
 
-    console.log('\n📦 Vehicle photos table indexes:');
-    await addIndex('vehicle_photos', 'idx_vehicle_photos_vehicle_order', 'vehicle_id, position_order');
-
-    console.log('\n📦 Direct sale photos table indexes:');
-    await addIndex('direct_sale_photos', 'idx_direct_sale_photos_order', 'direct_sale_id, position_order');
+    console.log('\n📦 Karkey Cars (Admin Listings) table indexes:');
+    await addIndex('karkey_cars', 'idx_kc_make_model', 'make, model');
+    await addIndex('karkey_cars', 'idx_kc_price', 'price');
+    await addIndex('karkey_cars', 'idx_kc_active_created', 'is_active, created_at DESC');
 
     console.log('\n📦 Users table indexes:');
-    await addIndex('users', 'idx_users_verification', 'verification_status');
-    await addIndex('users', 'idx_users_type_verification', 'user_type, verification_status');
+    // Most user lookups are by ID (PK) or email (Unique), but we might filter by type
+    await addIndex('users', 'idx_users_type', 'user_type');
+    await addIndex('users', 'idx_users_created', 'created_at');
 
     console.log('\n📦 Notifications table indexes:');
-    await addIndex('notifications', 'idx_notifications_user_read', 'user_id, is_read');
-    await addIndex('notifications', 'idx_notifications_user_created', 'user_id, created_at DESC');
-
-    console.log('\n📦 Bids table indexes:');
-    await addIndex('bids', 'idx_bids_auction_created', 'auction_id, created_at DESC');
-    await addIndex('bids', 'idx_bids_user_auction', 'user_id, auction_id');
+    await addIndex('notifications', 'idx_notif_user_read', 'user_id, is_read');
 
     console.log('\n🔄 Analyzing tables...');
-    const tables = ['vehicles', 'auctions', 'direct_sales', 'vehicle_photos', 'users', 'notifications', 'bids', 'direct_sale_photos'];
+    const tables = ['direct_sales', 'karkey_cars', 'users', 'notifications', 'showroom'];
     for (const table of tables) {
       try {
         await connection.query(`ANALYZE TABLE ${table}`);
         console.log(`  ✅ Analyzed ${table}`);
       } catch (err) {
-        if (err.code !== 'ER_NO_SUCH_TABLE') {
-          console.log(`  ⚠️  Could not analyze ${table}: ${err.message}`);
-        }
+        console.log(`  ⚠️  Could not analyze ${table}: ${err.message}`);
       }
     }
 
-    console.log('\n✨ Performance indexes added successfully!');
-    console.log('\n📊 These indexes will improve:');
-    console.log('   • Vehicle search and filtering queries');
-    console.log('   • Auction listing performance');
-    console.log('   • Direct sales browsing speed');
-    console.log('   • User verification lookups');
-    console.log('   • Notification loading times');
-
+    console.log('\n✨ Performance indexes update complete!');
   } catch (err) {
     console.error('❌ Error:', err.message);
     process.exit(1);
@@ -128,4 +108,5 @@ async function main() {
   }
 }
 
-main();
+// Run the script
+await main();

@@ -1,105 +1,105 @@
-import fs from "fs"
-import path from "path"
-import os from "os"
-
 /**
  * Cache utilities for server actions
- * Provides file-based caching with TTL support
+ * Replaced filesystem cache with In-Memory Cache for scalability.
  * 
  * NOTE: This file does NOT use "use server" because it exports constants.
- * These are utilities meant to be called FROM server actions, not exposed as server actions themselves.
+ * These are utilities meant to be called FROM server actions.
  */
 
-export const CACHE_DIR = path.join(os.tmpdir(), "karkey-cache")
-export const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+// Global in-memory cache store
+// Key -> { data: any, timestamp: number }
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
 
-// Cache file paths
+const MEMORY_CACHE = new Map<string, CacheEntry<any>>();
+
+export const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Cache keys (previously file paths, now simple keys)
 export const CACHE_FILES = {
-  approvedVehicles: path.join(CACHE_DIR, "approvedVehicles.json"),
-  filterOptions: path.join(CACHE_DIR, "filterOptions.json"),
-  directSalesFilterOptions: path.join(CACHE_DIR, "directSalesFilterOptions.json"),
-} as const
+  approvedVehicles: "approvedVehicles",
+  filterOptions: "filterOptions",
+  directSalesFilterOptions: "directSalesFilterOptions",
+} as const;
 
 /**
- * Read cache file (no TTL check)
- * @param cacheFile - Optional path to cache file. Defaults to approvedVehicles.json
+ * Read cache (no TTL check)
+ * @param key - Cache key. Defaults to approvedVehicles
  */
-export async function readCache<T = unknown[]>(cacheFile?: string): Promise<T | null> {
-  const filePath = cacheFile ?? CACHE_FILES.approvedVehicles
+export async function readCache<T = unknown[]>(key?: string): Promise<T | null> {
+  const cacheKey = key ?? CACHE_FILES.approvedVehicles;
+  const entry = MEMORY_CACHE.get(cacheKey);
+
+  if (!entry) return null;
+  // clone to avoid mutation side-effects interactions between callers
   try {
-    const raw = await fs.promises.readFile(filePath, "utf8")
-    if (!raw || !raw.trim()) return null
-    const parsed = JSON.parse(raw)
-    return parsed as T
+    return JSON.parse(JSON.stringify(entry.data)) as T;
   } catch {
-    return null
+    return entry.data as T;
   }
 }
 
 /**
- * Read cache file with TTL check
+ * Read cache with TTL check
  */
 export async function readCacheWithTTL<T>(
-  cacheFile: string, 
+  key: string,
   ttlMs: number = CACHE_TTL_MS
 ): Promise<T | null> {
-  try {
-    const stat = await fs.promises.stat(cacheFile)
-    const age = Date.now() - stat.mtimeMs
-    if (age > ttlMs) return null // expired
+  const entry = MEMORY_CACHE.get(key);
+  if (!entry) return null;
 
-    const raw = await fs.promises.readFile(cacheFile, "utf8")
-    if (!raw || !raw.trim()) return null
-    return JSON.parse(raw) as T
+  const age = Date.now() - entry.timestamp;
+  if (age > ttlMs) {
+    MEMORY_CACHE.delete(key);
+    return null; // expired
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(entry.data)) as T;
   } catch {
-    return null
+    return entry.data as T;
   }
 }
 
 /**
- * Write data to cache file
- * @param dataOrFile - Either the data to write (uses default file) or file path
- * @param data - The data to write (when first arg is file path)
+ * Write data to cache
+ * @param keyOrData - Either the data to write (uses default key) or cache key
+ * @param data - The data to write (when first arg is key)
  */
-export async function writeCache(dataOrFile: unknown, data?: unknown): Promise<void> {
-  let filePath: string
-  let content: unknown
-  
+export async function writeCache(keyOrData: unknown, data?: unknown): Promise<void> {
+  let cacheKey: string;
+  let content: unknown;
+
   // Support both patterns:
-  // writeCache(data) - writes to default file
-  // writeCache(cacheFile, data) - writes to specific file
+  // writeCache(data) - writes to default key
+  // writeCache(key, data) - writes to specific key
   if (data === undefined) {
-    filePath = CACHE_FILES.approvedVehicles
-    content = dataOrFile
+    cacheKey = CACHE_FILES.approvedVehicles;
+    content = keyOrData;
   } else {
-    filePath = dataOrFile as string
-    content = data
+    cacheKey = keyOrData as string;
+    content = data;
   }
-  
-  try {
-    await fs.promises.mkdir(CACHE_DIR, { recursive: true })
-    await fs.promises.writeFile(filePath, JSON.stringify(content), "utf8")
-  } catch {
-    // best-effort only - don't throw
-  }
+
+  MEMORY_CACHE.set(cacheKey, {
+    data: content,
+    timestamp: Date.now()
+  });
 }
 
 /**
- * Invalidate (delete) a cache file
+ * Invalidate (delete) a cache entry
  */
-export async function invalidateCache(cacheFile: string): Promise<void> {
-  try {
-    await fs.promises.unlink(cacheFile)
-  } catch {
-    // ignore if file doesn't exist
-  }
+export async function invalidateCache(key: string): Promise<void> {
+  MEMORY_CACHE.delete(key);
 }
 
 /**
- * Invalidate all cache files
+ * Invalidate all cache entries
  */
 export async function invalidateAllCaches(): Promise<void> {
-  await Promise.allSettled(
-    Object.values(CACHE_FILES).map(file => invalidateCache(file))
-  )
+  MEMORY_CACHE.clear();
 }

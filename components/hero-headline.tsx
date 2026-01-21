@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { motion } from "framer-motion"
+import { m } from "framer-motion"
 import { SplittingText, SlideUp } from "@/components/ui/motion-wrappers"
 
 interface HeroHeadlineProps {
@@ -21,7 +21,7 @@ export function HeroHeadline({ titleStart, titleEnd, subtitle }: HeroHeadlinePro
                 />
                 {' '}
                 <span className="italic relative inline-block text-[#B8071C] ml-1">
-                    <motion.span
+                    <m.span
                         animate={{
                             textShadow: [
                                 "0 0 0px rgba(184, 7, 28, 0)",
@@ -35,9 +35,9 @@ export function HeroHeadline({ titleStart, titleEnd, subtitle }: HeroHeadlinePro
                             text={titleEnd}
                             delay={1.2}
                         />
-                    </motion.span>
+                    </m.span>
                     {/* Underline deco - Animated */}
-                    <motion.span
+                    <m.span
                         initial={{ scaleX: 0, opacity: 0 }}
                         animate={{ scaleX: 1, opacity: 1 }}
                         transition={{ delay: 2.2, duration: 0.8, ease: "circOut" }}

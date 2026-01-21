@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Check, Info, X, PanelRight, HelpCircle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n-context";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
     Drawer,
     DrawerContent,
@@ -43,7 +43,7 @@ export function WizardLayout({
 
     return (
         <div className="min-h-screen bg-[#f8f9fa] font-serif overflow-x-hidden">
-            <motion.div
+            <m.div
                 className="w-full pt-[85px] lg:pt-8 pb-8 mx-auto px-2 lg:px-4"
                 animate={{
                     maxWidth: isGuideVisible ? 1920 : 1240,
@@ -54,7 +54,7 @@ export function WizardLayout({
                 }}
             >
                 {/* Header - Cinematic Reveal */}
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
                     animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                     transition={{
@@ -80,11 +80,11 @@ export function WizardLayout({
                             </span>
                         </button>
                     )}
-                </motion.div>
+                </m.div>
 
                 <div className="flex gap-4">
                     {/* Sidebar Progress - Cinematic Reveal */}
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, x: -15, filter: "blur(4px)" }}
                         animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                         transition={{
@@ -174,7 +174,7 @@ export function WizardLayout({
                                 </div>
                             </div>
                         </div>
-                    </motion.div>
+                    </m.div>
 
                     {/* Mobile Progress - Fixed below Navbar (76px) */}
                     <div className="lg:hidden fixed top-[76px] left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-100 z-[9999] px-4 py-3">
@@ -220,7 +220,7 @@ export function WizardLayout({
                     </div>
 
                     {/* Main Content - Cinematic Reveal */}
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, scale: 0.98, filter: "blur(6px)" }}
                         animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
                         transition={{
@@ -231,12 +231,12 @@ export function WizardLayout({
                         className="flex-grow min-w-0 px-2 lg:px-4"
                     >
                         {children}
-                    </motion.div>
+                    </m.div>
 
                     {/* Right Sidebar (Guide) - Ultra-smooth entry */}
                     <AnimatePresence mode="popLayout">
                         {sidebar && isGuideVisible && (
-                            <motion.div
+                            <m.div
                                 initial={{ opacity: 0, x: isRtl ? -20 : 20, filter: "blur(4px)" }}
                                 animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                                 exit={{
@@ -255,11 +255,11 @@ export function WizardLayout({
                                 <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
                                     {sidebar}
                                 </div>
-                            </motion.div>
+                            </m.div>
                         )}
                     </AnimatePresence>
                 </div>
-            </motion.div>
+            </m.div>
         </div>
     );
 }

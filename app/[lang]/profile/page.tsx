@@ -2,8 +2,11 @@ import { redirect } from "next/navigation"
 import { getCurrentUser, verifyToken } from "@/lib/mysql-auth"
 import { cookies } from "next/headers"
 import { getUserProfile, getUserAuctions, getWatchlistForUser, getDirectSalesWatchlistForUser } from "./actions"
+import { ListingItem } from "./types"
 import { Card } from "@/components/ui/card"
 import dynamic from "next/dynamic"
+import AuthSyncClient from "./auth-sync-client" // Direct import since it's client component
+
 
 // Skeleton loaders for better UX
 const MenuSkeleton = () => (
@@ -60,31 +63,7 @@ export default async function ProfilePage({
     return (
       <>
         <div id="auth-sync-root" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function(){
-                try{
-                  const fallback = "/auth/login";
-                  const t = (localStorage.getItem("auth_token") || localStorage.getItem("auth:token") || null);
-                  if(!t){ location.replace(fallback); return; }
-                  fetch("/api/auth/session", {
-                    method: "POST",
-                    credentials: "include",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ token: t })
-                  }).then(()=> {
-                    try { location.replace((window.location.pathname + window.location.hash) || "/profile"); } catch(e){ location.replace("/profile"); }
-                  }).catch(()=> {
-                    try { location.replace(fallback); } catch(e) { location.replace("/auth/login"); }
-                  });
-                }catch(e){
-                  try{ location.replace("/auth/login") }catch{}
-                }
-              })();
-            `,
-          }}
-        />
+        <AuthSyncClient fallbackRedirect="/auth/login" />
       </>
     )
   }
@@ -99,22 +78,7 @@ export default async function ProfilePage({
     return (
       <>
         <div id="auth-sync-root" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function(){
-                try{
-                  const fallback="/auth/login";
-                  const t = (localStorage.getItem("auth_token")||localStorage.getItem("auth:token")||null);
-                  if(!t){ location.replace(fallback); return; }
-                  fetch("/api/auth/session",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:t})})
-                    .then(()=>{ try{ location.replace((window.location.pathname + window.location.hash) || "/profile"); }catch(e){ location.replace("/profile"); } })
-                    .catch(()=>{ try{ location.replace(fallback) }catch{} });
-                }catch(e){ try{ location.replace("/auth/login") }catch{} }
-              })();
-            `,
-          }}
-        />
+        <AuthSyncClient fallbackRedirect="/auth/login" />
       </>
     )
   }
@@ -124,9 +88,9 @@ export default async function ProfilePage({
 
   // We no longer fetch auctions/watchlists server-side to allow instant page load.
   // The client components will fetch them asynchronously.
-  const auctions: any[] | undefined = undefined
-  const watchlist: any[] | undefined = undefined
-  const dsWatchlist: any[] | undefined = undefined
+  const auctions: ListingItem[] | undefined = undefined
+  const watchlist: ListingItem[] | undefined = undefined
+  const dsWatchlist: ListingItem[] | undefined = undefined
 
   if (!profile) {
     return (

@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,7 @@ export default function UnsubscribePage() {
 
     return (
         <div className="min-h-[calc(100vh-var(--site-header-height,76px))] flex items-center justify-center bg-gradient-to-b from-white to-slate-50 px-4">
-            <motion.div
+            <m.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center"
@@ -64,13 +64,13 @@ export default function UnsubscribePage() {
 
                 {status === "success" && (
                     <>
-                        <motion.div
+                        <m.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ type: "spring", stiffness: 200, damping: 15 }}
                         >
                             <CheckCircle className="w-16 h-16 mx-auto text-[#00A651] mb-6" />
-                        </motion.div>
+                        </m.div>
                         <h1 className="text-2xl font-serif text-slate-800 mb-2">Unsubscribed</h1>
                         <p className="text-slate-500 mb-6">{message}</p>
                         <Link href="/auctions">
@@ -83,13 +83,13 @@ export default function UnsubscribePage() {
 
                 {status === "already" && (
                     <>
-                        <motion.div
+                        <m.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ type: "spring", stiffness: 200, damping: 15 }}
                         >
                             <CheckCircle className="w-16 h-16 mx-auto text-amber-500 mb-6" />
-                        </motion.div>
+                        </m.div>
                         <h1 className="text-2xl font-serif text-slate-800 mb-2">Already Unsubscribed</h1>
                         <p className="text-slate-500 mb-6">{message}</p>
                         <Link href="/auctions">
@@ -102,13 +102,13 @@ export default function UnsubscribePage() {
 
                 {status === "error" && (
                     <>
-                        <motion.div
+                        <m.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ type: "spring", stiffness: 200, damping: 15 }}
                         >
                             <XCircle className="w-16 h-16 mx-auto text-red-500 mb-6" />
-                        </motion.div>
+                        </m.div>
                         <h1 className="text-2xl font-serif text-slate-800 mb-2">Error</h1>
                         <p className="text-slate-500 mb-6">{message}</p>
                         <Link href="/auctions">
@@ -118,7 +118,7 @@ export default function UnsubscribePage() {
                         </Link>
                     </>
                 )}
-            </motion.div>
+            </m.div>
         </div>
     );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import React, { useMemo } from "react";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +45,7 @@ export function LuxuryLoader({ size = "md", className = "", progress }: LuxuryLo
                 />
 
                 {/* Active Progress Arc (Shimmering) */}
-                <motion.path
+                <m.path
                     d="M 43.7 132.5 A 65 65 0 1 1 156.3 132.5"
                     fill="none"
                     stroke="url(#speedoGradient)"
@@ -76,7 +76,7 @@ export function LuxuryLoader({ size = "md", className = "", progress }: LuxuryLo
                 ))}
 
                 {/* Needle with "Motion Blur" effect */}
-                <motion.g
+                <m.g
                     initial={{ rotate: -120 }}
                     animate={{ rotate: [-120, 96, 48, 120, -120] }}
                     transition={{
@@ -105,7 +105,7 @@ export function LuxuryLoader({ size = "md", className = "", progress }: LuxuryLo
                     {/* Hub Cap */}
                     <circle cx="100" cy="100" r="12" fill="#0f172a" />
                     <circle cx="100" cy="100" r="5" fill="#B8071C" className="animate-pulse" />
-                </motion.g>
+                </m.g>
 
                 <defs>
                     <linearGradient id="speedoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -118,7 +118,7 @@ export function LuxuryLoader({ size = "md", className = "", progress }: LuxuryLo
 
             {/* Dash Meter Text */}
             <div className="absolute top-[62%] left-1/2 -translate-x-1/2 text-center pointer-events-none">
-                <motion.div
+                <m.div
                     animate={{ opacity: [0.4, 0.8, 0.4] }}
                     transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
                 >
@@ -129,7 +129,7 @@ export function LuxuryLoader({ size = "md", className = "", progress }: LuxuryLo
                         {progress !== undefined ? `${Math.round(progress)}%` : "KM/H"}
                     </span>
                     <div className="h-[2px] w-4 bg-[#B8071C] mx-auto mt-0.5 rounded-full" />
-                </motion.div>
+                </m.div>
             </div>
         </div>
     );

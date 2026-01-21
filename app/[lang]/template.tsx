@@ -1,17 +1,11 @@
-"use client"
-
-import { motion } from "framer-motion"
+// "use client" - Removed as we don't need hooks anymore for simple CSS animation
 
 export default function Template({ children }: { children: React.ReactNode }) {
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} // smooth apple-style cubic-bezier
-            className="min-h-screen"
+        <div
+            className="min-h-screen animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out"
         >
             {children}
-        </motion.div>
+        </div>
     )
 }

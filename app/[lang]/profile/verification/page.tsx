@@ -9,19 +9,7 @@ export default async function VerificationPage() {
     return (
       <>
         <div id="auth-sync-root" />
-        <script dangerouslySetInnerHTML={{
-          __html: `
-          (function(){
-            try{
-              const fallback="/auth/login";
-              const t = (localStorage.getItem("auth_token")||localStorage.getItem("auth:token")||null);
-              if(!t){ location.replace(fallback); return; }
-              fetch("/api/auth/session",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:t})})
-                .then(()=>{ try{ location.replace(window.location.pathname || "/profile#verification"); }catch(e){ location.replace("/profile#verification"); } })
-                .catch(()=>{ try{ location.replace(fallback) }catch{} });
-            }catch(e){ try{ location.replace("/auth/login") }catch{} }
-          })();
-        `}} />
+        <AuthSyncClient fallbackRedirect="/auth/login" />
       </>
     )
   }

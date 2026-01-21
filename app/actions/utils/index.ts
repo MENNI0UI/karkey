@@ -8,7 +8,6 @@
 
 // Cache utilities
 export {
-  CACHE_DIR,
   CACHE_TTL_MS,
   CACHE_FILES,
   readCache,

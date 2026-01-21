@@ -1,0 +1,779 @@
+/* premium searchbar container */
+.searchbar-floating {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 999px !important;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 10px 30px -5px rgba(0, 0, 0, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+  transition:
+    transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 200ms ease,
+    box-shadow 250ms ease,
+    background-color 200ms ease;
+  will-change: transform, opacity, box-shadow;
+}
+
+.searchbar-floating[data-pinned="true"] .searchbar-grid {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.searchbar-floating[data-pinned="true"] .searchbar-grid>div {
+  padding: 0.375rem 0.75rem !important;
+}
+
+.searchbar-floating[data-pinned="true"] .searchbar-grid>div:last-child {
+  border-right: 0 !important;
+}
+
+.searchbar-floating[data-pinned="true"] .searchbar-grid .font-semibold {
+  font-size: 0.70rem !important;
+  margin-bottom: 0.12rem !important;
+}
+
+.searchbar-floating[data-pinned="true"] .searchbar-grid select,
+.searchbar-floating[data-pinned="true"] .searchbar-grid .text-sm {
+  font-size: 0.85rem !important;
+  line-height: 1.1rem !important;
+}
+
+.searchbar-floating[data-pinned="true"] .searchbar-grid select {
+  width: 100% !important;
+  min-width: 87px;
+  max-width: 147px;
+}
+
+.searchbar-floating[data-pinned="true"] {
+  padding: 0.25rem 0 !important;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+}
+
+.searchbar-floating[data-pinned="false"] {
+  transform: translateY(0) scale(1.02);
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.15);
+}
+
+.searchbar-floating:hover {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.2);
+}
+
+.sb-cell {
+  background: transparent !important;
+  border-radius: 0;
+  transition: none;
+}
+
+.searchbar-grid>.sb-cell,
+.searchbar-grid-main>.sb-cell {
+  border-right: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border-left: none !important;
+  padding: 0.35rem 0.75rem;
+  transition: background-color 200ms ease, transform 200ms ease;
+  cursor: pointer;
+}
+
+.sb-cell:hover:not(.searchbar-actions) {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+.searchbar-grid>.sb-cell:last-child,
+.searchbar-grid-main>.sb-cell:last-child {
+  border-right: 0 !important;
+}
+
+/* RTL: flip divider lines to left side */
+[dir="rtl"] .searchbar-grid>.sb-cell,
+[dir="rtl"] .searchbar-grid-main>.sb-cell {
+  border-right: none !important;
+  border-left: 1px solid #ececec !important;
+}
+
+[dir="rtl"] .searchbar-grid>.sb-cell:last-child,
+[dir="rtl"] .searchbar-grid-main>.sb-cell:last-child {
+  border-left: 0 !important;
+}
+
+.sb-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #717171;
+  margin-bottom: 0.125rem;
+}
+
+.searchbar-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23717171' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.15rem center;
+  background-repeat: no-repeat;
+  background-size: 1em 1em;
+  padding-right: 1.1rem !important;
+  padding-left: 0.25rem !important;
+  min-height: 1.5rem !important;
+  border-radius: 0.22rem !important;
+  background-color: transparent !important;
+  color: #B8071C !important;
+  font-size: 0.78rem !important;
+  font-weight: 400 !important;
+  text-align: start;
+  direction: ltr;
+}
+
+/* RTL support for searchbar select */
+[dir="rtl"] .searchbar-select {
+  background-position: left 0.15rem center;
+  padding-left: 1.1rem !important;
+  padding-right: 0.25rem !important;
+  direction: rtl;
+  text-align: right;
+}
+
+/* Ensure dropdown options are properly aligned */
+.searchbar-select option {
+  direction: ltr;
+  text-align: left;
+}
+
+[dir="rtl"] .searchbar-select option {
+  direction: rtl;
+  text-align: right;
+}
+
+.searchbar-select:focus,
+.searchbar-select:active {
+  background-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: #B8071C !important;
+}
+
+/* helper: show "All" entries in selects as gray */
+.searchbar-select--all {
+  color: #717171 !important;
+}
+
+/* fallback: ensure options with value="All" appear gray in native dropdowns */
+select option[value="All"] {
+  color: #717171;
+}
+
+/* Custom Select Component Styles */
+.custom-select-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.custom-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  padding: 0.125rem 0.25rem;
+  min-height: 1.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #B8071C;
+  font-size: 0.78rem;
+  font-weight: 400;
+  text-align: start;
+  width: 100%;
+}
+
+.custom-select-trigger--all {
+  color: #717171;
+}
+
+.sb-dropdown-trigger-bordered .custom-select-trigger {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #f9fafb;
+  min-height: 2.5rem;
+  color: #374151;
+}
+
+.custom-select-value {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-select-arrow {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex-shrink: 0;
+  color: #94a3b8;
+  transition: transform 0.2s ease;
+}
+
+.custom-select-dropdown {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 1.25rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+  padding: 0.5rem;
+  animation: dropdown-pop 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dropdown-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+[dir="rtl"] .custom-select-dropdown {
+  text-align: right;
+}
+
+[dir="rtl"] .custom-select-option {
+  text-align: right;
+}
+
+.custom-select-option {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  text-align: start;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #374151;
+  transition: background 0.1s ease;
+  white-space: nowrap;
+}
+
+.custom-select-option:hover {
+  background: #f3f4f6;
+}
+
+.custom-select-option--selected {
+  background: rgba(0, 166, 81, 0.05);
+  color: #00A651;
+  font-weight: 600;
+}
+
+.custom-select-option--selected:hover {
+  background: rgba(0, 166, 81, 0.1);
+}
+
+.searchbar-grid-main {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.15rem;
+  /* desktop / large screens: keep original single-row behavior */
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.sb-cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sb-cell.grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.searchbar-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.searchbar-search-btn {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 9999px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: transform 150ms ease, box-shadow 180ms ease, background-color 140ms ease;
+  will-change: transform, box-shadow;
+}
+
+/* primary circular search button larger (right-most) */
+.searchbar-search-btn--primary {
+  width: 32px !important;
+  height: 32px !important;
+  /* new solid green background */
+  background: #00A651 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 8px 20px rgba(0, 166, 81, 0.20) !important;
+}
+
+.searchbar-search-btn--primary:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 14px 34px rgba(0, 166, 81, 0.30) !important;
+}
+
+.searchbar-search-btn--primary:active {
+  transform: translateY(0) scale(0.995);
+}
+
+.searchbar-search-btn--primary:focus {
+  outline: 3px solid rgba(0, 166, 81, 0.20);
+  outline-offset: 2px;
+}
+
+.searchbar-search-btn--clear {
+  background: #ffffff !important;
+  color: #B8071C !important;
+  border: 1px solid #ececec !important;
+  box-shadow: none !important;
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.searchbar-search-btn--clear:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 8px 18px rgba(65, 87, 163, 0.06);
+  background: #fafafa !important;
+}
+
+.searchbar-search-btn--clear:focus {
+  outline: 2px solid rgba(65, 87, 163, 0.06);
+  outline-offset: 2px;
+}
+
+/* icon inside primary button */
+.search-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  object-fit: contain;
+  /* try to render white; if SVG has internal fill this may not change it */
+  filter: brightness(0) invert(1) saturate(0) contrast(100%);
+  transition: transform 120ms ease;
+}
+
+/* small hover micro-animation for the icon */
+.searchbar-search-btn--primary:hover .search-icon {
+  transform: translateY(-1px) scale(1.02);
+}
+
+/* when search is pinned, allow tighter cells so more selects fit side-by-side */
+.searchbar-floating[data-pinned="true"] .searchbar-grid-main {
+  gap: 0.25rem;
+}
+
+.searchbar-floating[data-pinned="true"] .sb-cell {
+  /* slightly smaller min width to avoid hiding fields in compact pinned mode */
+  flex: 0 1 100px;
+  min-width: 64px;
+}
+
+/* ensure pinned search container can overflow horizontally when compact */
+.searchbar-floating[data-pinned="true"] {
+  overflow-x: auto;
+  /* allow scrolling when items overflow */
+  -webkit-overflow-scrolling: touch;
+  /* keep a visible background and slightly raised stacking context */
+  background-color: #fff !important;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+}
+
+/* reduce per-cell min width in pinned mode so more selects are visible */
+.searchbar-floating[data-pinned="true"] .sb-cell {
+  flex: 0 1 auto;
+  /* auto width based on content */
+  min-width: 80px;
+  /* allow smaller cells on constrained screens */
+}
+
+/* ensure the inner grid doesn't collapse; keep nowrap but allow scroll */
+.searchbar-floating[data-pinned="true"] .searchbar-grid-main {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+  /* prevent wrapping; scroll horizontally instead */
+}
+
+/* visual: pinned container wrapper used by searchbar.tsx (the fixed parent) */
+/* this targets the fixed wrapper when present — gives it pointer-events none on root and allows inner element to accept interactions */
+.fixed.pointer-events-none>.pointer-events-auto {
+  pointer-events: auto;
+}
+
+/* make model/select readable on small screens by slightly reducing font & padding in pinned mode */
+@media (max-width: 900px) {
+  .searchbar-floating[data-pinned="true"] .searchbar-select {
+    font-size: 0.72rem !important;
+    padding-left: 0.25rem !important;
+    padding-right: 0.5rem !important;
+    min-height: 36px !important;
+  }
+
+  .searchbar-floating[data-pinned="true"] .custom-select-trigger {
+    font-size: 0.72rem !important;
+    min-height: 36px !important;
+  }
+}
+
+/* Custom select in pinned mode should match native select sizing */
+.searchbar-floating[data-pinned="true"] .custom-select-trigger {
+  min-height: 32px;
+  font-size: 0.85rem;
+}
+
+.searchbar-floating[data-pinned="true"] .custom-select-container {
+  min-width: 80px;
+}
+
+/* Responsive: on small screens stack fields into two columns and place actions on their own row */
+@media (max-width: 640px) {
+  .searchbar-grid-main {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+
+  .searchbar-grid-main>.sb-cell {
+    flex: 0 0 48%;
+    min-width: 0;
+  }
+
+  .searchbar-grid-main>.sb-cell.grow {
+    display: none !important;
+  }
+
+  .searchbar-grid-main>.sb-cell.sb-cell--tight,
+  .searchbar-grid-main>.sb-cell.searchbar-actions {
+    flex: 0 0 100% !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 0.5rem !important;
+    padding-top: 0.25rem !important;
+  }
+
+  .searchbar-search-btn--primary {
+    width: 100% !important;
+  }
+
+  .searchbar-search-btn--clear {
+    width: auto !important;
+  }
+}
+
+@media (max-width: 420px) {
+
+  /* Keep labels visible only for pinned searchbar */
+  .searchbar-grid-main:not([data-pinned="true"]) .sb-label {
+    display: none !important;
+  }
+
+  .searchbar-grid-main>.sb-cell {
+    flex: 0 0 100% !important;
+  }
+
+  .searchbar-grid-main>.sb-cell.sb-cell--tight,
+  .searchbar-grid-main>.sb-cell.searchbar-actions {
+    justify-content: center !important;
+  }
+}
+
+/* On mobile/small screens, use exact calculation based on header + searchbar + gap */
+@media (max-width: 640px) {
+
+  body.searchbar-pinned main,
+  body.searchbar-pinned .home-cards,
+  body.searchbar-pinned .page-body,
+  body.searchbar-pinned .content {
+    /* Header (76px) + compact searchbar (~56px with py-2) + gap (8px) = ~140px, then add small buffer */
+    padding-top: 24px !important;
+  }
+
+  /* Make pinned searchbar smaller on mobile */
+  .searchbar-floating[data-pinned="true"] {
+    max-width: calc(100vw - 12px) !important;
+    width: auto !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    transform: scale(0.88) translateX(-50%) !important;
+  }
+
+  /* Make grid compact with horizontal scroll capability */
+  .searchbar-floating[data-pinned="true"] .searchbar-grid-main {
+    padding-left: 0.4rem !important;
+    padding-right: 0.4rem !important;
+    padding-top: 0.3rem !important;
+    padding-bottom: 0.3rem !important;
+    gap: 0.25rem !important;
+    overflow-x: visible !important;
+    flex-wrap: nowrap !important;
+    display: inline-flex !important;
+    min-width: min-content !important;
+  }
+
+  /* Show labels but make them very small */
+  .searchbar-floating[data-pinned="true"] .sb-label {
+    display: block !important;
+    font-size: 0.48rem !important;
+    margin-bottom: 0.08rem !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  /* Make cells compact */
+  .searchbar-floating[data-pinned="true"] .sb-cell {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+
+  /* Compact selects with readable text */
+  .searchbar-floating[data-pinned="true"] .searchbar-select {
+    font-size: 0.68rem !important;
+    min-width: 50px !important;
+    width: 55px !important;
+    padding: 0.2rem 0.15rem !important;
+  }
+
+  /* Make action buttons always visible and compact */
+  .searchbar-floating[data-pinned="true"] .sb-cell--tight,
+  .searchbar-floating[data-pinned="true"] .searchbar-actions {
+    flex-shrink: 0 !important;
+    position: sticky !important;
+    right: 0 !important;
+    background: white !important;
+    z-index: 1 !important;
+  }
+
+  .searchbar-floating[data-pinned="true"] .searchbar-search-btn {
+    width: 26px !important;
+    height: 26px !important;
+    padding: 0.25rem !important;
+  }
+
+  .searchbar-floating[data-pinned="true"] .searchbar-search-btn--clear {
+    width: 24px !important;
+    height: 24px !important;
+  }
+}
+
+/* tight small cell used for action buttons (filter icon) to avoid expansion) */
+.sb-cell--tight {
+  flex: 0 0 auto !important;
+  min-width: 32px !important;
+  /* slightly smaller so it doesn't add empty space */
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* in pinned mode shrink any grow spacer to a tiny gap (prevents large empty area) */
+.searchbar-floating[data-pinned="true"] .sb-cell.grow {
+  flex: 0 0 8px !important;
+  min-width: 8px !important;
+  max-width: 8px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* make pinned grid padding consistent for compactInner */
+.searchbar-floating[data-pinned="true"] .searchbar-grid-main {
+  padding-top: 0.2rem !important;
+  padding-bottom: 0.2rem !important;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+/* reduce per-cell min width in pinned mode so more selects are visible, but keep tight cells compact */
+.searchbar-floating[data-pinned="true"] .sb-cell {
+  flex: 0 1 96px;
+  min-width: 64px;
+}
+
+/* pinned-mode: prevent selects from stretching their cells
+    - disable flex-grow for cells
+    - limit max-width for cells and selects so MODEL لا يحتكر المساحة
+    - set select width to auto so it fits its content up to max-width */
+.searchbar-floating[data-pinned="true"] .searchbar-grid-main>.sb-cell {
+  flex: 0 0 auto !important;
+  /* no grow, fixed by content */
+  min-width: 0 !important;
+  max-width: 140px !important;
+  /* upper bound for any cell (tune as needed) */
+}
+
+/* tighter cap for typical select fields (make/model/year/fuel) */
+.searchbar-floating[data-pinned="true"] .searchbar-grid-main>.sb-cell .searchbar-select {
+  width: auto !important;
+  min-width: 64px !important;
+  max-width: 120px !important;
+  /* prevents a single select from expanding too far */
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* allow action cells (buttons) to remain compact */
+.searchbar-floating[data-pinned="true"] .searchbar-grid-main>.sb-cell.sb-cell--tight {
+  max-width: 48px !important;
+  min-width: 40px !important;
+}
+
+/* ensure pinned pill sizes to content and doesn't stretch across container */
+.searchbar-floating[data-pinned="true"] {
+  display: inline-flex !important;
+  width: auto !important;
+  /* shrink to content */
+  align-items: center !important;
+  /* slightly reduce right/left padding to tighten space next to buttons */
+  padding: 0.25rem 0.25rem !important;
+  border-radius: 999px !important;
+  /* more pill-like when compact */
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+  background-color: #fff !important;
+}
+
+/* make the inner grid inline so it doesn't force extra width */
+.searchbar-floating[data-pinned="true"] .searchbar-grid-main {
+  display: inline-flex !important;
+  width: auto !important;
+  gap: 0.25rem !important;
+  /* tighten gaps between cells */
+  align-items: center !important;
+  white-space: nowrap !important;
+}
+
+/* when pinned, avoid large min-width on generic sb-cell; allow tight cells to stay compact */
+.searchbar-floating[data-pinned="true"] .sb-cell {
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+}
+
+/* keep tight action cells compact */
+.searchbar-floating[data-pinned="true"] .sb-cell--tight {
+  min-width: 36px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* remove the right divider for specific action cells (e.g. filter button) */
+.sb-cell--no-divider {
+  border-right: 0 !important;
+  /* ensure no visual gap remains */
+  padding-right: 0.25rem !important;
+}
+
+/* also ensure pinned mode respects the no-divider override */
+.searchbar-floating[data-pinned="true"] .sb-cell--no-divider {
+  border-right: 0 !important;
+  padding-right: 0.25rem !important;
+}
+
+/* ensure no vertical divider remains to the right of filter/action cells (both cell and the inner button) */
+.sb-cell--no-divider,
+.searchbar-grid .sb-cell--no-divider,
+.searchbar-grid-main .sb-cell--no-divider {
+  border-right: 0 !important;
+  padding-right: 0.25rem !important;
+}
+
+/* remove button's right border inside the no-divider cell (button had `border` class) */
+.sb-cell--no-divider>button,
+.searchbar-grid .sb-cell--no-divider>button,
+.searchbar-grid-main .sb-cell--no-divider>button {
+  border-right: 0 !important;
+  /* keep full button border-radius so it still looks rounded */
+  border-top-right-radius: 9999px !important;
+  border-bottom-right-radius: 9999px !important;
+}
+
+/* also handle the pinned variant explicitly */
+.searchbar-floating[data-pinned="true"] .sb-cell--no-divider,
+.searchbar-floating[data-pinned="true"] .sb-cell--no-divider>button {
+  border-right: 0 !important;
+  padding-right: 0.25rem !important;
+}
+
+/* unified spacing for header action buttons and searchbar action buttons */
+.header-actions {
+  gap: 1rem;
+}
+
+/* Hover / focus styles for filter/action buttons (main + pinned) */
+.searchbar-floating .sb-cell--no-divider>button,
+.searchbar-floating .sb-cell--tight>button {
+  transition: transform 120ms ease, box-shadow 160ms ease, background-color 120ms ease, border-color 120ms ease;
+  will-change: transform, box-shadow, background-color;
+}
+
+.searchbar-floating .sb-cell--no-divider>button:hover,
+.searchbar-floating .sb-cell--tight>button:hover,
+.searchbar-floating[data-pinned="true"] .sb-cell--no-divider>button:hover,
+.searchbar-floating[data-pinned="true"] .sb-cell--tight>button:hover {
+  /* keep motion and depth but do not change colors on hover */
+  transform: translateY(-2px) !important;
+  /* slight lift */
+  box-shadow: 0 10px 20px rgba(65, 87, 163, 0.08) !important;
+  cursor: pointer;
+}
+
+/* keyboard focus (accessibility) */
+.searchbar-floating .sb-cell--no-divider>button:focus,
+.searchbar-floating .sb-cell--tight>button:focus {
+  outline: 3px solid rgba(65, 87, 163, 0.08) !important;
+  outline-offset: 2px !important;
+}
+
+/* small pressed state */
+.searchbar-floating .sb-cell--no-divider>button:active,
+.searchbar-floating .sb-cell--tight>button:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 6px 12px rgba(65, 87, 163, 0.06) !important;
+}
+
+/* Ensure the main (large) search pill is fully removed from layout on small screens
+    to prevent any visual flash or overlap beneath the pinned search bar. */
+@media (max-width: 640px) {
+  .main-search {
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+}

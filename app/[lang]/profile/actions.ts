@@ -2,8 +2,9 @@
 
 import prisma from "@/lib/prisma"
 import { verifyToken } from "@/lib/mysql-auth" // used to decode token for userId
+import { UserProfile, AuctionItem, DirectSaleItem, StatisticsResponse, UserStatistics } from "./types"
 
-export async function getUserProfile(userId: number) {
+export async function getUserProfile(userId: number): Promise<UserProfile | null> {
   try {
     const user = await prisma.users.findUnique({
       where: { id: userId },
@@ -50,7 +51,7 @@ export async function getUserProfile(userId: number) {
   }
 }
 
-export async function getUserAuctions(userId: number) {
+export async function getUserAuctions(userId: number): Promise<{ success: boolean; auctions?: AuctionItem[]; error?: string }> {
   try {
     // 🆕 النظام الجديد: المزادات الآن في direct_sales مع auction_mode
     const auctions = await prisma.direct_sales.findMany({
@@ -92,7 +93,7 @@ export async function getUserAuctions(userId: number) {
         end_date: a.auction_end_date,
         vehicle_id: a.id,
         created_at: a.created_at,
-        type: "auction"
+        type: "auction" as const
       }
     })
 
@@ -264,7 +265,7 @@ export async function logoutUser() {
   }
 }
 
-export async function getWatchlistForUser(userId: number) {
+export async function getWatchlistForUser(userId: number): Promise<AuctionItem[]> {
   try {
     // 🆕 النظام الجديد: المزادات الآن في direct_sales_watchlist مع auction_mode
     // نستخدم direct_sales_watchlist بدلاً من watchlist القديم
@@ -313,7 +314,11 @@ export async function getWatchlistForUser(userId: number) {
           current_price: ds.auction_current_bid ? Number(ds.auction_current_bid) : null,
           image_url: imageUrl,
           status: effectiveStatus,
+          start_date: ds.created_at,
           end_date: ds.auction_end_date ?? null,
+          vehicle_id: ds.id,
+          created_at: w.created_at,
+          type: "auction" as const
         }
       })
   } catch (err) {
@@ -322,7 +327,7 @@ export async function getWatchlistForUser(userId: number) {
   }
 }
 
-export async function getDirectSalesWatchlistForUser(userId: number) {
+export async function getDirectSalesWatchlistForUser(userId: number): Promise<DirectSaleItem[]> {
   try {
     // Get watchlist items
     const watchlistItems = await prisma.direct_sales_watchlist.findMany({
@@ -367,8 +372,11 @@ export async function getDirectSalesWatchlistForUser(userId: number) {
         current_price: null,
         image_url: imageUrl,
         status: effectiveStatus,
+        start_date: ds?.created_at ?? w.created_at,
+        end_date: null,
+        vehicle_id: null,
         created_at: ds?.created_at ?? w.created_at,
-        type: "direct_sale"
+        type: "direct_sale" as const
       }
     })
   } catch (err) {
@@ -377,7 +385,7 @@ export async function getDirectSalesWatchlistForUser(userId: number) {
   }
 }
 
-export async function getUserDirectSales(userId: number) {
+export async function getUserDirectSales(userId: number): Promise<{ success: boolean; directSales?: DirectSaleItem[]; error?: string }> {
   try {
     const directSales = await prisma.direct_sales.findMany({
       where: { user_id: userId },
@@ -413,9 +421,9 @@ export async function getUserDirectSales(userId: number) {
         status: effectiveStatus,
         start_date: ds.created_at,
         end_date: null,
-        vehicle_id: null,
         created_at: ds.created_at,
-        type: "direct_sale"
+        type: "direct_sale" as const,
+        vehicle_id: null // Ensure this is explicitly null for DirectSaleItem
       }
     })
 
@@ -426,7 +434,7 @@ export async function getUserDirectSales(userId: number) {
   }
 }
 
-export async function getUserStatistics(userId: number) {
+export async function getUserStatistics(userId: number): Promise<StatisticsResponse> {
   try {
     // 1. Fetch all user's direct sales with details (excluding views to avoid type error)
     // We cast to any for the select because direct_sale_photos might also be missing in types if out of sync
@@ -489,7 +497,7 @@ export async function getUserStatistics(userId: number) {
       const contacts = await prisma.direct_sales_contacts.groupBy({
         by: ["direct_sale_id"],
         where: {
-          direct_sale_id: { in: directSaleIds.map((id: number) => BigInt(id)) },
+          direct_sale_id: { in: directSaleIds },
         },
         _count: { direct_sale_id: true },
       });

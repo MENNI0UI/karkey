@@ -1,22 +1,31 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { match } from "@formatjs/intl-localematcher";
-import Negotiator from "negotiator";
 import { canonicalizeParams, parseParams } from "@/lib/filter-utils";
-
 const locales = ["en", "fr", "ar", "es"];
 const defaultLocale = "en";
 const COOKIE_NAME = "karkey:lang";
 
 function getLocale(request: NextRequest): string {
-  const headers = { "accept-language": request.headers.get("accept-language") || "" };
-  const languages = new Negotiator({ headers }).languages();
+  // Simple, lightweight locale detection
+  const acceptLanguage = request.headers.get("accept-language");
+  if (!acceptLanguage) return defaultLocale;
 
-  try {
-    return match(languages, locales, defaultLocale);
-  } catch (error) {
-    return defaultLocale;
+  // Example header: "en-US,en;q=0.9,ar;q=0.8"
+  // 1. Split by comma
+  const preferredLocales = acceptLanguage.split(",");
+
+  for (const langStr of preferredLocales) {
+    // 2. Clean up (remove q=... and whitespace)
+    const [langTag] = langStr.split(";");
+    const lang = langTag.trim().split("-")[0].toLowerCase(); // "en-US" -> "en"
+
+    // 3. Check if supported
+    if (locales.includes(lang)) {
+      return lang;
+    }
   }
+
+  return defaultLocale;
 }
 
 export function middleware(request: NextRequest) {

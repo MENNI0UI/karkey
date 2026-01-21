@@ -18,7 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
-import { parsePhoneNumberFromString, CountryCode } from "libphonenumber-js"
+// import { parsePhoneNumberFromString, CountryCode } from "libphonenumber-js/mobile" // Removed for lazy loading
 
 // Country data sorted alphabetically with Morocco first
 // maxLength values represent the National Significant Number (NSN) - digits after country code
@@ -269,25 +269,36 @@ export function PhoneInput({
 
   const { country: selectedCountry, number: phoneNumber } = parsePhoneValue(value)
 
-  // Real-time validation using libphonenumber-js
+  // Real-time validation using libphonenumber-js (Dynamically Imported)
   React.useEffect(() => {
+    let active = true;
+
     if (!phoneNumber || phoneNumber.length < 4) {
       setValidationStatus('idle')
       return
     }
 
-    try {
-      const fullNumber = selectedCountry.dialCode + phoneNumber
-      const parsed = parsePhoneNumberFromString(fullNumber, selectedCountry.code as CountryCode)
+    const validate = async () => {
+      try {
+        const { parsePhoneNumberFromString } = await import("libphonenumber-js/mobile");
+        if (!active) return;
 
-      if (parsed && parsed.isValid()) {
-        setValidationStatus('valid')
-      } else {
-        setValidationStatus('invalid')
+        const fullNumber = selectedCountry.dialCode + phoneNumber
+        const parsed = parsePhoneNumberFromString(fullNumber, selectedCountry.code as any)
+
+        if (parsed && parsed.isValid()) {
+          setValidationStatus('valid')
+        } else {
+          setValidationStatus('invalid')
+        }
+      } catch {
+        if (active) setValidationStatus('invalid')
       }
-    } catch {
-      setValidationStatus('invalid')
     }
+
+    validate();
+
+    return () => { active = false; }
   }, [phoneNumber, selectedCountry])
 
   const handleCountrySelect = (country: Country) => {
@@ -393,10 +404,15 @@ export function PhoneInput({
   )
 }
 
-// Helper function to get normalized E.164 phone number
-export function getNormalizedPhone(phone: string, countryCode: string): string | null {
+// function removed or unused elsewhere found.
+// Keeping it but making it async to support lazy loading if needed in future
+// However, since grep showed no usage, and it relies on the library, 
+// I will convert it to async.
+
+export async function getNormalizedPhone(phone: string, countryCode: string): Promise<string | null> {
   try {
-    const parsed = parsePhoneNumberFromString(phone, countryCode as CountryCode)
+    const { parsePhoneNumberFromString } = await import("libphonenumber-js/mobile")
+    const parsed = parsePhoneNumberFromString(phone, countryCode as any)
     if (parsed && parsed.isValid()) {
       return parsed.number // E.164 format: +212612345678
     }

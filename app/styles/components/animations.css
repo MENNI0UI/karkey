@@ -1,0 +1,136 @@
+@layer components {
+  /* AFCON 2025: Custom Premium Animations */
+  @keyframes heartbeat {
+    0% {
+      transform: scale(1.1) translateY(-4px);
+    }
+
+    25% {
+      transform: scale(1.12) translateY(-4px);
+    }
+
+    50% {
+      transform: scale(1.1) translateY(-4px);
+    }
+
+    75% {
+      transform: scale(1.12) translateY(-4px);
+    }
+
+    100% {
+      transform: scale(1.1) translateY(-4px);
+    }
+  }
+
+  .animate-heartbeat {
+    animation: heartbeat 1.5s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  /* Heart Pop Animation - SUPER EXPLOSIVE */
+  @keyframes heart-pop {
+    0% {
+      transform: scale(1);
+    }
+
+    40% {
+      transform: scale(3.5) rotate(15deg);
+    }
+
+    60% {
+      transform: scale(3.5) rotate(-15deg);
+    }
+
+    80% {
+      transform: scale(2.0);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .animate-heart-pop {
+    animation: heart-pop 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+    /* Faster, punchier easing */
+  }
+
+  /* Sparkles Explosion Animation - BIGGER RADIUS */
+  @keyframes sparkles {
+    0% {
+      box-shadow: 0 0 0 #B8071C;
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    100% {
+      box-shadow:
+        -32px -32px 0 rgba(184, 7, 28, 0),
+        32px -32px 0 rgba(184, 7, 28, 0),
+        -32px 32px 0 rgba(184, 7, 28, 0),
+        32px 32px 0 rgba(184, 7, 28, 0),
+        0 -45px 0 rgba(184, 7, 28, 0),
+        0 45px 0 rgba(184, 7, 28, 0),
+        -45px 0 0 rgba(184, 7, 28, 0),
+        45px 0 0 rgba(184, 7, 28, 0);
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(1.5);
+    }
+  }
+
+  /* Attach sparkles to the saved button */
+  .watchlist-btn--saved::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    background: transparent;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: -1;
+    box-shadow:
+      -16px -16px 0 #B8071C,
+      16px -16px 0 #B8071C,
+      -16px 16px 0 #B8071C,
+      16px 16px 0 #B8071C,
+      0 -22px 0 #B8071C,
+      0 22px 0 #B8071C,
+      -22px 0 0 #B8071C,
+      22px 0 0 #B8071C;
+    animation: sparkles 0.6s ease-out forwards;
+  }
+
+  @keyframes shine-slow {
+    0% {
+      left: -100%;
+    }
+
+    100% {
+      left: 100%;
+    }
+  }
+
+  .animate-shine-slow {
+    position: absolute;
+    animation: shine-slow 3s infinite;
+  }
+
+  @keyframes glow-pulse {
+
+    0%,
+    100% {
+      box-shadow: 0 0 15px rgba(0, 166, 81, 0.4);
+    }
+
+    50% {
+      box-shadow: 0 0 30px rgba(0, 166, 81, 0.8);
+    }
+  }
+
+  .animate-glow-green {
+    animation: glow-pulse 3s infinite ease-in-out;
+  }
+}

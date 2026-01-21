@@ -3,22 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n-context";
-
-type Listing = {
-  id: number;
-  title: string;
-  description?: string;
-  starting_price: number | null;
-  current_price?: number | null;
-  image_url?: string;
-  status: string;
-  end_date?: string;
-  type?: "auction" | "direct_sale";
-  created_at?: string;
-};
+import { ListingItem } from "./types";
 
 type Props = {
-  auctions: Listing[] | undefined;
+  auctions: ListingItem[] | undefined;
   mode?: "listings" | "watchlist"; // render behavior for watchlist vs my listings
   initialSubTab?: "all" | "auction" | "direct_sale";
 };

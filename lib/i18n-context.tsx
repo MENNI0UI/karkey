@@ -1,7 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useLayoutEffect } from "react";
-import { translations, Language, TranslationKey } from "./translations";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { loadTranslations } from "./locales/loader";
+import { en } from "./locales/en";
+import type { Language, TranslationKey } from "./locales/index";
 
 type I18nContextType = {
   language: Language;
@@ -15,57 +17,78 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 const LANGUAGE_STORAGE_KEY = "karkey:lang";
 
-// Helper to get initial language synchronously (for SSR consistency)
-function getInitialLanguage(): Language {
-  if (typeof window === "undefined") return "en";
-  try {
-    const stored = (localStorage.getItem(LANGUAGE_STORAGE_KEY) || "").toLowerCase();
-    if (stored === "fr") return "fr";
-    if (stored === "ar") return "ar";
-    if (stored === "es") return "es";
-  } catch { }
-  return "en";
-}
-
 export function I18nProvider({ children, lang }: { children: React.ReactNode; lang?: Language }) {
-  // Initialize with provided lang or "en"
   const [language, setLanguageState] = useState<Language>(lang || "en");
+  // Store loaded translations instead of importing the huge object
+  const [currentTranslations, setCurrentTranslations] = useState<any>(en);
   const [isReady, setIsReady] = useState(false);
 
   // Sync with prop if it changes (URL change)
   useEffect(() => {
     if (lang && lang !== language) {
-      setLanguageState(lang);
+      changeLanguage(lang);
     }
   }, [lang]);
 
-  // Use useLayoutEffect to match document attributes
-  useLayoutEffect(() => {
-    // If we have a lang from URL, we trust it. We can sync to localStorage.
-    if (lang) {
-      document.documentElement.lang = lang;
-      document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
-      localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+  // Initial load
+  useEffect(() => {
+    const init = async () => {
+      // If lang provided via props, use it. Otherwise check localStorage or default to en.
+      let targetLang = lang;
+      if (!targetLang && typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+          if (stored && ['en', 'fr', 'ar', 'es'].includes(stored)) {
+            targetLang = stored as Language;
+          }
+        } catch { }
+      }
+      targetLang = targetLang || 'en';
+
+      if (targetLang !== 'en') {
+        // Load translations for the target language
+        const loaded = await loadTranslations(targetLang);
+        setCurrentTranslations(loaded);
+      }
+
+      setLanguageState(targetLang);
+      document.documentElement.lang = targetLang;
+      document.documentElement.dir = targetLang === "ar" ? "rtl" : "ltr";
+      setIsReady(true);
+    };
+
+    init();
+  }, []);
+
+  const changeLanguage = async (newLang: Language) => {
+    // 1. Optimistically update state
+    setLanguageState(newLang);
+    document.documentElement.lang = newLang;
+    document.documentElement.dir = newLang === "ar" ? "rtl" : "ltr";
+
+    // 2. Persist preference
+    try {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, newLang);
       const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? ';Secure' : '';
-      document.cookie = `${LANGUAGE_STORAGE_KEY}=${lang};path=/;max-age=31536000${secure}`;
+      document.cookie = `${LANGUAGE_STORAGE_KEY}=${newLang};path=/;max-age=31536000${secure}`;
+    } catch { }
+
+    // 3. Load translation file dynamically
+    if (newLang === 'en') {
+      setCurrentTranslations(en);
+    } else {
+      const loaded = await loadTranslations(newLang);
+      setCurrentTranslations(loaded);
     }
-    setIsReady(true);
-  }, [lang]);
+  };
 
   const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-    try {
-      localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
-      document.documentElement.lang = lang;
-      document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
-      // Also set as cookie for potential SSR usage
-      const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? ';Secure' : '';
-      document.cookie = `${LANGUAGE_STORAGE_KEY}=${lang};path=/;max-age=31536000${secure}`;
-    } catch { }
+    changeLanguage(lang);
   };
 
   const t = (key: TranslationKey, params?: Record<string, string | number>): string => {
-    let text = translations[language][key] || translations["en"][key] || key;
+    // Fallback to English if key missing in current language
+    let text = currentTranslations[key] || en[key as keyof typeof en] || key;
     if (params) {
       Object.entries(params).forEach(([k, v]) => {
         text = text.replace(`{${k}}`, String(v));
@@ -76,7 +99,7 @@ export function I18nProvider({ children, lang }: { children: React.ReactNode; la
 
   const dir = language === "ar" ? "rtl" : "ltr";
 
-  // Don't render children until language is loaded to prevent flash
+  // Don't render children until we've attempted initial setup
   if (!isReady) {
     return null;
   }

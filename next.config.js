@@ -64,7 +64,24 @@ const nextConfig = {
     optimizePackageImports: [
       'lucide-react',
       '@radix-ui/react-icons',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-select',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-toast',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-switch',
+      '@radix-ui/react-radio-group',
+      '@radix-ui/react-slider',
+      '@radix-ui/react-scroll-area',
       'recharts',
+      'framer-motion',
+      'react-day-picker',
+      'embla-carousel-react',
+      'cmdk',
+      'sonner',
     ],
     serverActions: {
       bodySizeLimit: '30mb',
@@ -133,4 +150,8 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   skipWaiting: true,
 });
 
-module.exports = withPWA(nextConfig);
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
+module.exports = withPWA(withBundleAnalyzer(nextConfig));

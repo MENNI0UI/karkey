@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, HTMLMotionProps, Variants } from "framer-motion";
+import { m, HTMLMotionProps, Variants } from "framer-motion";
 import React from "react";
 
 // ------------------------------------------------------------------
@@ -84,7 +84,7 @@ interface MotionWrapperProps extends HTMLMotionProps<"div"> {
  */
 export function FadeIn({ children, className, delay = 0, ...props }: MotionWrapperProps) {
     return (
-        <motion.div
+        <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-50px" }}
@@ -94,7 +94,7 @@ export function FadeIn({ children, className, delay = 0, ...props }: MotionWrapp
             {...props}
         >
             {children}
-        </motion.div>
+        </m.div>
     );
 }
 
@@ -103,7 +103,7 @@ export function FadeIn({ children, className, delay = 0, ...props }: MotionWrapp
  */
 export function Reveal({ children, className, delay = 0, ...props }: MotionWrapperProps) {
     return (
-        <motion.div
+        <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
@@ -113,7 +113,7 @@ export function Reveal({ children, className, delay = 0, ...props }: MotionWrapp
             {...props}
         >
             {children}
-        </motion.div>
+        </m.div>
     );
 }
 
@@ -122,7 +122,7 @@ export function Reveal({ children, className, delay = 0, ...props }: MotionWrapp
  */
 export function SlideDown({ children, className, delay = 0, ...props }: MotionWrapperProps) {
     return (
-        <motion.div
+        <m.div
             initial="hidden"
             animate="visible"
             variants={slideDownVariants}
@@ -131,7 +131,7 @@ export function SlideDown({ children, className, delay = 0, ...props }: MotionWr
             {...props}
         >
             {children}
-        </motion.div>
+        </m.div>
     );
 }
 
@@ -141,7 +141,7 @@ export function SlideDown({ children, className, delay = 0, ...props }: MotionWr
  */
 export function SlideUp({ children, className, delay = 0, ...props }: MotionWrapperProps) {
     return (
-        <motion.div
+        <m.div
             initial="hidden"
             animate="visible"
             variants={slideUpVariants}
@@ -150,7 +150,7 @@ export function SlideUp({ children, className, delay = 0, ...props }: MotionWrap
             {...props}
         >
             {children}
-        </motion.div>
+        </m.div>
     );
 }
 
@@ -160,7 +160,7 @@ export function SlideUp({ children, className, delay = 0, ...props }: MotionWrap
  */
 export function StaggerContainer({ children, className, once = true, ...props }: MotionWrapperProps & { once?: boolean }) {
     return (
-        <motion.div
+        <m.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once, margin: "-100px" }}
@@ -169,7 +169,7 @@ export function StaggerContainer({ children, className, once = true, ...props }:
             {...props}
         >
             {children}
-        </motion.div>
+        </m.div>
     );
 }
 
@@ -182,13 +182,13 @@ export function StaggerItem({ children, className, skipAnimation = false, ...pro
         return <div className={className}>{children}</div>;
     }
     return (
-        <motion.div
+        <m.div
             variants={staggerItemVariants}
             className={className}
             {...props}
         >
             {children}
-        </motion.div>
+        </m.div>
     );
 }
 
@@ -197,14 +197,14 @@ export function StaggerItem({ children, className, skipAnimation = false, ...pro
  */
 export function ScaleButton({ children, className, whileHover, whileTap, ...props }: HTMLMotionProps<"button">) {
     return (
-        <motion.button
+        <m.button
             whileHover={whileHover || { scale: 1.05 }}
             whileTap={whileTap || { scale: 0.95 }}
             className={className}
             {...props}
         >
             {children}
-        </motion.button>
+        </m.button>
     );
 }
 
@@ -232,7 +232,7 @@ export function SplittingText({
     const items = isArabic ? text.split(/(\s+)/) : text.split("");
 
     return (
-        <motion.span
+        <m.span
             initial="hidden"
             whileInView="visible"
             viewport={{ once }}
@@ -247,16 +247,15 @@ export function SplittingText({
             className={`inline-block ${className}`}
         >
             {items.map((item, i) => (
-                <motion.span
+                <m.span
                     key={i}
                     variants={textRevealVariants}
                     className="inline-block py-3"
                     style={{ whiteSpace: "pre" }}
                 >
                     {item}
-                </motion.span>
+                </m.span>
             ))}
-        </motion.span>
+        </m.span>
     );
 }
-

@@ -8,6 +8,7 @@ import FetchGuard from "@/components/fetch-guard"
 import { Toaster } from "@/components/ui/toaster"
 import BackButton, { saveLastNonProfilePage } from "@/app/[lang]/profile/back-button";
 import { SessionProvider } from "next-auth/react"
+import { LazyMotion, domAnimation } from "framer-motion"
 
 export default function ClientLayout({ children, isLoggedIn }: { children: React.ReactNode; isLoggedIn?: boolean }) {
   const pathname = usePathname() || "/"
@@ -113,32 +114,34 @@ export default function ClientLayout({ children, isLoggedIn }: { children: React
     <SessionProvider>
       <FetchGuard />
       <AuthProvider>
-        {!shouldHideHeaderFooter ? (
-          <Header initialLoggedIn={isLoggedIn} />
-        ) : null}
+        <LazyMotion features={domAnimation}>
+          {!shouldHideHeaderFooter ? (
+            <Header initialLoggedIn={isLoggedIn} />
+          ) : null}
 
-        {/* Always reserve header space unless hidden */}
-        {!shouldHideHeaderFooter ? (
-          <div aria-hidden="true" style={{ height: "var(--site-header-height, 76px)" }} />
-        ) : null}
+          {/* Always reserve header space unless hidden */}
+          {!shouldHideHeaderFooter ? (
+            <div aria-hidden="true" style={{ height: "var(--site-header-height, 76px)" }} />
+          ) : null}
 
-        {pageLoading && !pathname.startsWith("/admin") && (
-          /* make loading overlay non-white to avoid white flash on refresh/hydration */
-          <div
-            className="fixed inset-0 z-[100001] flex items-center justify-center bg-transparent backdrop-blur-sm pointer-events-none"
-            aria-hidden="true"
-          >
-            <div className="animate-spin rounded-full h-10 w-10 border-4 border-gray-200 border-t-[#B8071C]" />
-          </div>
-        )}
+          {pageLoading && !pathname.startsWith("/admin") && (
+            /* make loading overlay non-white to avoid white flash on refresh/hydration */
+            <div
+              className="fixed inset-0 z-[100001] flex items-center justify-center bg-transparent backdrop-blur-sm pointer-events-none"
+              aria-hidden="true"
+            >
+              <div className="animate-spin rounded-full h-10 w-10 border-4 border-gray-200 border-t-[#B8071C]" />
+            </div>
+          )}
 
-        <main>{children}</main>
+          <main>{children}</main>
 
-        {!shouldHideHeaderFooter ? (
-          <Footer />
-        ) : null}
+          {!shouldHideHeaderFooter ? (
+            <Footer />
+          ) : null}
 
-        <Toaster />
+          <Toaster />
+        </LazyMotion>
       </AuthProvider>
     </SessionProvider>
   )
