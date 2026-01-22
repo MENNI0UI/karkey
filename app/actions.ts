@@ -265,80 +265,72 @@ async function searchAuctions(filters?: {
 
 /* ---------------- getApprovedVehicles ---------------- */
 // 🆕 النظام الجديد: يستخدم direct_sales مع auction_mode = true
-export async function getApprovedVehicles(limit = 200) {
-  try {
-    const limitVal = Number.isSafeInteger(limit) && limit > 0 ? limit : 200;
-
-    // Query active auctions from direct_sales with auction_mode = true
-    const items = await prisma.direct_sales.findMany({
-      where: {
-        verification_status: 'approved',
-        auction_mode: true,
-        auction_status: 'active',
-        auction_end_date: { gt: new Date() }
-      },
-      include: {
-        users_direct_sales_user_idTousers: {
-          select: { id: true, username: true, first_name: true, last_name: true, profile_picture: true }
-        },
-        direct_sale_photos: {
-          select: { photo_url: true },
-          orderBy: { position_order: 'asc' }
-        }
-      },
-      orderBy: { created_at: 'desc' },
-      take: limitVal
-    });
-
-    const enriched = items.map((item) => {
-      const photos = item.direct_sale_photos.map(p => normalizePhotoUrl(p.photo_url)).filter(Boolean) as string[];
-      const starting_price_num = item.auction_starting_price ? Number(item.auction_starting_price) : null;
-
-      return {
-        id: item.id,
-        auction_id: item.id, // In new system, auction_id = direct_sale id
-        make: item.make,
-        model: item.model,
-        year: item.year,
-        mileage: item.mileage,
-        transmission: item.transmission,
-        fuel_type: item.fuel_type,
-        vehicle_condition: item.vehicle_condition,
-        location: item.location,
-        description: item.description,
-        price: item.price ? Number(item.price) : null,
-        starting_price: starting_price_num,
-        startingPrice: starting_price_num,
-        current_bid: item.auction_current_bid ? Number(item.auction_current_bid) : null,
-        auction_start_date: item.auction_start_date ? new Date(item.auction_start_date).toISOString() : null,
-        auction_end_date: item.auction_end_date ? new Date(item.auction_end_date).toISOString() : null,
-        photos,
-        image: photos.length > 0 ? photos[0] : null,
-        seller: item.users_direct_sales_user_idTousers ? {
-          id: item.users_direct_sales_user_idTousers.id,
-          name: item.users_direct_sales_user_idTousers.username ?? item.users_direct_sales_user_idTousers.first_name ?? null,
-          avatar: item.users_direct_sales_user_idTousers.profile_picture ?? null,
-        } : null,
-        engine_size: item.engine_size ? Number(item.engine_size) : null,
-        doors: item.doors ? Number(item.doors) : null,
-        created_at: item.created_at,
-      };
-    });
-
-    // cache best-effort
+export const getApprovedVehicles = unstable_cache(
+  async (limit = 200) => {
     try {
-      await writeCache(enriched as any[]);
-    } catch { }
+      const limitVal = Number.isSafeInteger(limit) && limit > 0 ? limit : 200;
+      const items = await prisma.direct_sales.findMany({
+        where: {
+          verification_status: 'approved',
+          auction_mode: true,
+          auction_status: 'active',
+          auction_end_date: { gt: new Date() }
+        },
+        include: {
+          users_direct_sales_user_idTousers: {
+            select: { id: true, username: true, first_name: true, last_name: true, profile_picture: true }
+          },
+          direct_sale_photos: {
+            select: { photo_url: true },
+            orderBy: { position_order: 'asc' }
+          }
+        },
+        orderBy: { created_at: 'desc' },
+        take: limitVal
+      });
 
-
-    return JSON.parse(JSON.stringify({ success: true, vehicles: enriched, server_time: new Date().toISOString() }));
-  } catch (err) {
-    logError("[app/actions] Error in getApprovedVehicles:", err);
-    const cached = await readCache();
-    if (cached && cached.length) return { success: true, vehicles: cached, source: "cache" };
-    return { success: false, vehicles: [] };
-  }
-}
+      const enriched = items.map((item) => {
+        const photos = item.direct_sale_photos.map(p => normalizePhotoUrl(p.photo_url)).filter(Boolean) as string[];
+        const starting_price_num = item.auction_starting_price ? Number(item.auction_starting_price) : null;
+        return {
+          id: item.id,
+          auction_id: item.id,
+          make: item.make,
+          model: item.model,
+          year: item.year,
+          mileage: item.mileage,
+          transmission: item.transmission,
+          fuel_type: item.fuel_type,
+          vehicle_condition: item.vehicle_condition,
+          location: item.location,
+          description: item.description,
+          price: item.price ? Number(item.price) : null,
+          starting_price: starting_price_num,
+          startingPrice: starting_price_num,
+          current_bid: item.auction_current_bid ? Number(item.auction_current_bid) : null,
+          auction_start_date: item.auction_start_date ? new Date(item.auction_start_date).toISOString() : null,
+          auction_end_date: item.auction_end_date ? new Date(item.auction_end_date).toISOString() : null,
+          photos,
+          image: photos.length > 0 ? photos[0] : null,
+          seller: item.users_direct_sales_user_idTousers ? {
+            id: item.users_direct_sales_user_idTousers.id,
+            name: item.users_direct_sales_user_idTousers.username ?? item.users_direct_sales_user_idTousers.first_name ?? null,
+            avatar: item.users_direct_sales_user_idTousers.profile_picture ?? null,
+          } : null,
+          engine_size: item.engine_size ? Number(item.engine_size) : null,
+          doors: item.doors ? Number(item.doors) : null,
+          created_at: item.created_at,
+        };
+      });
+      return { success: true, vehicles: JSON.parse(JSON.stringify(enriched)), server_time: new Date().toISOString() };
+    } catch (err) {
+      logError("[app/actions] Error in getApprovedVehicles:", err);
+      return { success: false, vehicles: [] };
+    }
+  },
+  ["approved-vehicles"],
+  { revalidate: 60, tags: ["vehicles", "auctions"] }
+);
 
 /* ---------------- getFilterOptions ---------------- */
 // 🆕 النظام الجديد: يستخدم direct_sales مع auction_mode = true
@@ -979,92 +971,83 @@ export async function searchDirectSales(filters?: {
   }
 }
 
-export async function getApprovedKarkeyCars(limit = 10) {
-  try {
-    const take = typeof limit === 'number' && limit > 0 ? limit : 10;
-
-    // Fetch active Karkey cars
-    const cars = await prisma.karkey_cars.findMany({
-      where: {
-        is_active: true
-      },
-      include: {
-        photos: {
-          orderBy: { position_order: "asc" },
-        },
-      },
-      orderBy: { created_at: "desc" },
-      take
-    })
-
-    const formattedCars = cars.map(car => ({
-      ...car,
-      price: car.price ? Number(car.price) : null,
-      tax_cost: (car as any).tax_cost ? Number((car as any).tax_cost) : 0,
-    }))
-
-    // Deep-cleanse any remaining objects (like Date vs string, or missed Decimals)
-    return JSON.parse(JSON.stringify({ success: true, cars: formattedCars, server_time: new Date().toISOString() }));
-  } catch (err) {
-    console.error("Error fetching approved Karkey cars:", err);
-    return { success: false, cars: [], error: "Failed to fetch cars" };
-  }
-}
-
-export async function getHomeCitiesData() {
-  const cities = ["Casablanca", "Rabat", "Marrakech", "Tangier", "Agadir", "Fes", "Meknes", "Oujda"];
-  const cityData = [];
-
-  try {
-    for (const city of cities) {
-      // Find latest approved direct_sale (live auction OR standard sale) in this city
-      const latestDirectSale = await prisma.direct_sales.findFirst({
-        where: {
-          location: { contains: city },
-          verification_status: "approved" as const,
-          // Removed auction_mode: true to allow Showing ANY valid car from the city as cover
-        },
+export const getApprovedKarkeyCars = unstable_cache(
+  async (limit = 10) => {
+    try {
+      const take = typeof limit === 'number' && limit > 0 ? limit : 10;
+      const cars = await prisma.karkey_cars.findMany({
+        where: { is_active: true },
+        include: { photos: { orderBy: { position_order: "asc" } } },
         orderBy: { created_at: "desc" },
-        include: { direct_sale_photos: { orderBy: { position_order: "asc" }, take: 1 } }
-      });
-
-      // Find latest active karkey car in this city
-      const latestKarkey = await prisma.karkey_cars.findFirst({
-        where: {
-          location: { contains: city },
-          is_active: true
-        },
-        orderBy: { created_at: "desc" },
-        include: { photos: { orderBy: { position_order: "asc" }, take: 1 } }
-      });
-
-      let imageUrl = "/placeholder.svg";
-
-      const directSaleDate = latestDirectSale?.created_at ? new Date(latestDirectSale.created_at).getTime() : 0;
-      const karkeyDate = latestKarkey?.created_at ? new Date(latestKarkey.created_at).getTime() : 0;
-
-      if (directSaleDate > 0 || karkeyDate > 0) {
-        if (directSaleDate >= karkeyDate && latestDirectSale?.direct_sale_photos?.[0]) {
-          imageUrl = normalizePhotoUrl(latestDirectSale.direct_sale_photos[0].photo_url) || "/placeholder.svg";
-        } else if (latestKarkey?.photos?.[0]) {
-          const photo = latestKarkey.photos[0].photo_url;
-          if (photo.startsWith("http") || photo.startsWith("/")) {
-            imageUrl = photo;
-          } else {
-            imageUrl = `/api/uploads/karkey-cars/${photo.split("/").pop()}`;
-          }
-        }
-      }
-
-      cityData.push({ city, image: imageUrl });
+        take
+      })
+      const formattedCars = cars.map(car => ({
+        ...car,
+        price: car.price ? Number(car.price) : null,
+        tax_cost: (car as any).tax_cost ? Number((car as any).tax_cost) : 0,
+      }))
+      return { success: true, cars: JSON.parse(JSON.stringify(formattedCars)), server_time: new Date().toISOString() };
+    } catch (err) {
+      console.error("Error fetching approved Karkey cars:", err);
+      return { success: false, cars: [], error: "Failed to fetch cars" };
     }
+  },
+  ["approved-karkey-cars"],
+  { revalidate: 300, tags: ["karkey-cars"] }
+);
 
-    return { success: true, cities: cityData };
-  } catch (err) {
-    console.error("Error fetching homepage cities data:", err);
-    return { success: false, cities: [] };
-  }
-}
+export const getHomeCitiesData = unstable_cache(
+  async () => {
+    const cities = ["Casablanca", "Rabat", "Marrakech", "Tangier", "Agadir", "Fes", "Meknes", "Oujda"];
+    try {
+      const cityPromises = cities.map(async (city) => {
+        const [latestDirectSale, latestKarkey] = await Promise.all([
+          prisma.direct_sales.findFirst({
+            where: {
+              location: { contains: city },
+              verification_status: "approved" as const,
+            },
+            orderBy: { created_at: "desc" },
+            include: { direct_sale_photos: { orderBy: { position_order: "asc" }, take: 1 } }
+          }),
+          prisma.karkey_cars.findFirst({
+            where: {
+              location: { contains: city },
+              is_active: true
+            },
+            orderBy: { created_at: "desc" },
+            include: { photos: { orderBy: { position_order: "asc" }, take: 1 } }
+          })
+        ]);
+
+        let cityImage = null;
+        if (latestKarkey?.photos?.[0]?.photo_url) {
+          const s = String(latestKarkey.photos[0].photo_url).trim();
+          let filename = s;
+          if (s.includes("/")) filename = s.split("/").pop() || s;
+          cityImage = `/api/uploads/karkey-cars/${filename}`;
+        } else if (latestDirectSale?.direct_sale_photos?.[0]?.photo_url) {
+          cityImage = normalizePhotoUrl(latestDirectSale.direct_sale_photos[0].photo_url);
+        }
+
+        return {
+          city: city,
+          name: city,
+          image: cityImage || "/images/cities/default.webp",
+          count: 0
+        };
+      });
+
+      const cityData = await Promise.all(cityPromises);
+      return { success: true, cities: JSON.parse(JSON.stringify(cityData)) };
+    } catch (err) {
+      console.error("Error fetching home cities data:", err);
+      return { success: false, cities: [] };
+    }
+  },
+  ["home-cities-data"],
+  { revalidate: 3600, tags: ["cities", "vehicles", "karkey-cars"] }
+);
 
 /* ---------------- searchShowroom ---------------- */
 export async function searchShowroom(filters?: {

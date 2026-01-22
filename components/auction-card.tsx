@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import BoxedCountdown from "@/components/boxed-countdown";
 import { useTranslation } from "@/lib/i18n-context";
+import { useAuth } from "@/lib/auth-context";
 import { MapPin, Heart, ChevronLeft, ChevronRight, Zap, Fuel, Car } from "lucide-react";
 import { CarCardImageSlider } from "@/components/ui/car-card/card-image-slider";
 import { CarSpecsGrid } from "@/components/ui/car-card/card-specs";
@@ -124,12 +125,12 @@ function AuctionCard({ data, priority = false, initialIsWatched }: { data: any, 
     return () => { try { if (id) clearTimeout(id); } catch { } };
   }, [saved]);
   const [saving, setSaving] = useState<boolean>(false);
-  // persist per-user to avoid showing saved hearts to other users on same device
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  // Track if owner check is complete to prevent heart from appearing then disappearing
-  const [ownerCheckDone, setOwnerCheckDone] = useState<boolean>(false);
-  // Check if current user is the owner of this auction
-  const isAuctionOwner = Boolean(ownerUserId && currentUserId && Number(ownerUserId) === Number(currentUserId));
+  // Use Auth Context instead of fetching in each card
+  const { currentUserId, isLoaded: authLoaded } = useAuth();
+  // Owner check - show buttons by default, hide only when CONFIRMED owner
+  // This prevents delay for non-owners while still hiding for owners
+  const confirmedOwner = !!(authLoaded && currentUserId && ownerUserId && Number(currentUserId) === Number(ownerUserId));
+  // Deprecated: old isAuctionOwner logic removed to prevent confusion
   // disable visual transitions during initial hydration to avoid a blink
   const [transitionsDisabled, setTransitionsDisabled] = useState<boolean>(true);
   // localStorage key helper for persistence across re-renders / navigation
@@ -137,12 +138,12 @@ function AuctionCard({ data, priority = false, initialIsWatched }: { data: any, 
   // cached UI key for instant feedback across navigations (per-browser)
   const cachedKey = auctionId ? `watchlist_cached:${String(auctionId)}` : null;
 
-  // fetch current auth user id once and use it to scope localStorage keys
+  // Fetch watchlist state when auth is loaded and user is authenticated
   useEffect(() => {
-    // New: robustly resolve currentUserId and react to auth changes
+    if (!authLoaded) return;
     let mounted = true;
 
-    const resolveCurrentUser = async () => {
+    const resolveWatchlist = async () => {
       // show instant cached saved state (if present) to avoid flicker when coming back to page
       try {
         if (cachedKey) {
@@ -154,95 +155,44 @@ function AuctionCard({ data, priority = false, initialIsWatched }: { data: any, 
       } catch { }
 
       try {
-        // Ask server for authoritative session (will return user/profile when cookie exists)
-        const r = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" });
-        if (!mounted) return;
-        if (!r.ok) {
-          // unauthenticated -> ensure we clear any scoped local state
-          setCurrentUserId(null);
-          safeSetSaved(false);
-          return;
-        }
-        const j = await r.json().catch(() => ({}));
-        const uid = (j?.user?.id ?? j?.user?.userId ?? j?.userId) ?? null;
-        if (uid && Number(uid) > 0) {
-          setCurrentUserId(Number(uid));
-          // once we know user id, attempt to restore saved from per-user local cache OR server
-          // prefer server canonical check (best-effort)
-          try {
-            const check = await fetch(`/api/direct-sales-watchlist/check?direct_sale_id=${encodeURIComponent(String(auctionId))}`, {
-              credentials: "include",
-              cache: "no-store",
-            });
-            if (check.ok) {
-              const cj = await check.json().catch(() => null);
-              if (cj && cj.saved) {
-                safeSetSaved(true);
-                // update cached UI key for instant restore next time
-                try { if (cachedKey) localStorage.setItem(cachedKey, "1"); } catch { }
-                return;
-              }
-              // if server says not saved, clear the cached UI key
+        if (currentUserId) {
+          // Only fetch watchlist if user is authenticated
+          const check = await fetch(`/api/direct-sales-watchlist/check?direct_sale_id=${encodeURIComponent(String(auctionId))}`, {
+            credentials: "include",
+            cache: "no-store",
+          });
+          if (check.ok) {
+            const cj = await check.json().catch(() => null);
+            if (cj && cj.saved) {
+              safeSetSaved(true);
+              try { if (cachedKey) localStorage.setItem(cachedKey, "1"); } catch { }
+            } else {
               try { if (cachedKey) localStorage.setItem(cachedKey, "0"); } catch { }
             }
-          } catch { }
-          // fallback: local per-user key
-          try {
-            const key = watchlistKey ? `watchlist:${String(uid)}:${String(auctionId)}` : null;
-            if (key) {
-              const v = localStorage.getItem(key);
-              safeSetSaved(v === "1");
-              // keep cached UI in sync
-              try { if (cachedKey) localStorage.setItem(cachedKey, v === "1" ? "1" : "0"); } catch { }
-            }
-          } catch { }
+          }
         } else {
-          setCurrentUserId(null);
           safeSetSaved(false);
           try { if (cachedKey) localStorage.setItem(cachedKey, "0"); } catch { }
         }
-      } catch (err) {
-        if (!mounted) return;
-        setCurrentUserId(null);
-        safeSetSaved(false);
-        try { if (cachedKey) localStorage.setItem(cachedKey, "0"); } catch { }
-      }
-      // allow transitions after the initial resolution to avoid a visual blink
+      } catch { }
+      // allow transitions after the initial resolution
       try { setTransitionsDisabled(false); } catch { }
-      // Mark owner check as complete
-      try { setOwnerCheckDone(true); } catch { }
     };
 
-    void resolveCurrentUser();
-    // Fallback: ensure transitions are re-enabled after a short delay in case server checks stall.
+    void resolveWatchlist();
+
+    // Fallback: ensure transitions are re-enabled after a short delay
     let fallbackTimeout: any = null;
     try {
       fallbackTimeout = setTimeout(() => { try { setTransitionsDisabled(false); } catch { } }, 700);
     } catch { }
 
-    // Listen for auth events and storage changes (cross-tab)
-    function onAuthChanged(e: Event) {
-      try {
-        const d = (e as CustomEvent)?.detail ?? {};
-        if (d?.action === "logout") {
-          // immediate cleanup on logout
-          safeSetSaved(false);
-          setCurrentUserId(null);
-        } else if (d?.action === "login" || d?.action === "profile-update" || d?.action === "profile-sync") {
-          // re-resolve user and saved state
-          void resolveCurrentUser();
-        }
-      } catch { }
-    }
-
+    // Listen for storage changes (cross-tab)
     function onStorage(e: StorageEvent) {
       try {
         if (e.key === "auth_token" && e.newValue === null) {
-          // token removed in another tab -> clear saved
           safeSetSaved(false);
-          setCurrentUserId(null);
         }
-        // if per-user watchlist changed for this auction and belongs to currentUserId, update saved
         if (e.key && e.key.startsWith("watchlist:")) {
           const parts = e.key.split(":");
           if (parts.length >= 3) {
@@ -256,16 +206,14 @@ function AuctionCard({ data, priority = false, initialIsWatched }: { data: any, 
       } catch { }
     }
 
-    window.addEventListener("auth:changed", onAuthChanged as EventListener);
     window.addEventListener("storage", onStorage);
 
     return () => {
       mounted = false;
       try { if (fallbackTimeout) clearTimeout(fallbackTimeout); } catch { }
-      window.removeEventListener("auth:changed", onAuthChanged as EventListener);
       window.removeEventListener("storage", onStorage as EventListener);
     };
-  }, []);
+  }, [authLoaded, currentUserId, auctionId, cachedKey]);
 
   // On mount / when auctionId or currentUserId changes: restore state only when we can scope by user,
   // otherwise rely on server check (which is user-specific via credentials).
@@ -723,7 +671,7 @@ function AuctionCard({ data, priority = false, initialIsWatched }: { data: any, 
           )
         }
         overlay={
-          !isAuctionOwner && (
+          !confirmedOwner && (
             <div className="flex flex-col items-end gap-2">
               {bubbleOpen && (
                 <div

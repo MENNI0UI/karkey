@@ -5,7 +5,7 @@ import { isRateLimited, getIp, RATE_LIMITS } from "@/lib/rate-limiter"
 
 export async function GET(request: NextRequest) {
   const ip = getIp(request)
-  if (isRateLimited(`check:username:${ip}`, RATE_LIMITS.SEARCH)) { // Reuse SEARCH limit (30/min)
+  if (await isRateLimited(`check:username:${ip}`, RATE_LIMITS.SEARCH)) { // Reuse SEARCH limit (30/min)
     return NextResponse.json({ error: "Too many requests" }, { status: 429 })
   }
 

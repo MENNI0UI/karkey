@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n-context";
 import {
@@ -149,7 +150,7 @@ export default function ProfileMenu({
             [isRTL ? 'right' : 'left']: `calc(19rem + 16px)`
           } as React.CSSProperties}
         >
-          {isRTL ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+          {isRTL ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="h-4 w-4" />}
         </button>
 
         <div className="flex flex-col items-center py-8 px-4 space-y-8 flex-1 relative h-full">
@@ -158,7 +159,14 @@ export default function ProfileMenu({
             <div className="relative">
               <Avatar className="w-16 h-16 ring-2 ring-[#fecaca]/60 shadow-md">
                 {profilePicture ? (
-                  <AvatarImage src={profilePicture} alt={username || "User"} />
+                  <Image
+                    src={profilePicture}
+                    alt={username || "User"}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                    priority
+                  />
                 ) : (
                   <AvatarFallback className="bg-[#B8071C] text-white font-bold">
                     {username?.charAt(0)?.toUpperCase() || "U"}

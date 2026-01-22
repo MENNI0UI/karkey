@@ -392,7 +392,7 @@ export default function SearchBar({ className = "", options }: Props) {
 
 
     const fullInner = (
-        <div className="searchbar-grid-main px-3 py-1.5 relative">
+        <div className="searchbar-grid-main px-3 py-2.5 relative">
             <div className="sb-cell">
                 <CustomMultiSelect
                     label={t("filters.make")}
@@ -512,7 +512,7 @@ export default function SearchBar({ className = "", options }: Props) {
 
     // COMPACT inner used only for pinned copy
     const compactInner = (
-        <div className="searchbar-grid-main px-3 py-1">
+        <div className="searchbar-grid-main px-3 py-2.5">
             <div className="sb-cell">
                 <CustomMultiSelect
                     label={t("filters.make")}
@@ -875,7 +875,7 @@ export default function SearchBar({ className = "", options }: Props) {
                 <button
                     type="button"
                     onClick={handleMobileSearch}
-                    className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                    className="w-10 h-10 rounded-full bg-[#00A651] text-white flex items-center justify-center shadow-lg shadow-[#00A651]/20 hover:scale-105 active:scale-95 transition-all"
                 >
                     <svg aria-hidden="true" focusable="false" className="search-icon-svg" viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" fill="none" />
@@ -896,7 +896,7 @@ export default function SearchBar({ className = "", options }: Props) {
                 <SlideUp
                     ref={wrapperRef}
                     data-role="main-search"
-                    className={`searchbar-floating ${className} main-search`}
+                    className={`searchbar-floating py-2 ${className} main-search`}
                     data-pinned={isPinnedState ? "true" : "false"}
                     aria-hidden={isPinnedState}
                     delay={0.2}
@@ -952,7 +952,7 @@ export default function SearchBar({ className = "", options }: Props) {
                             {mobileQuery && (
                                 <button type="button" onClick={() => setMobileQuery("")} className="w-7 h-7 rounded-full border border-[#e2e8f0] text-[#475569] text-xs">✕</button>
                             )}
-                            <button type="button" onClick={handleMobileSearch} className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+                            <button type="button" onClick={handleMobileSearch} className="w-9 h-9 rounded-full bg-[#00A651] text-white flex items-center justify-center shadow-lg shadow-[#00A651]/20 hover:scale-105 active:scale-95 transition-all">
                                 <svg aria-hidden="true" focusable="false" className="search-icon-svg" viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
                                     <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.6" fill="none" />
                                     <line x1="20.5" y1="20.5" x2="16.65" y2="16.65" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -975,7 +975,7 @@ export default function SearchBar({ className = "", options }: Props) {
                         opacity: !isNavbarVisible ? 0 : 1,
                     }}
                 >
-                    <div className="searchbar-floating px-3 py-1.5 pointer-events-auto shadow-2xl">
+                    <div className="searchbar-floating px-3 py-2 pointer-events-auto shadow-2xl">
                         {compactInner}
                     </div>
                 </div>

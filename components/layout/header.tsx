@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import React from "react";
 import { useTranslation } from "@/lib/i18n-context";
 import { LuxuryLoader } from "@/components/ui/luxury-loader";
@@ -176,16 +177,17 @@ function HeaderContent({ initialLoggedIn }: HeaderProps) {
 			>
 				<div className="w-full px-6 lg:px-12 xl:px-20 2xl:px-28">
 					<div className="flex items-center h-[76px] w-full lg:hidden">
-						<div className="flex items-center justify-between w-full">
-							<div className="flex-shrink-0">
+						<div className="grid grid-cols-[1fr_auto_1fr] items-center w-full relative">
+							{/* Left Slot: Menu */}
+							<div className="flex items-center justify-start">
 								<button
-									className="p-3 rounded-md text-[#1e2a5e] hover:text-[#B8071C] hover:bg-[#f8fafc] transition-colors w-11 h-11"
+									className="p-3 -ms-3 md:-ms-4 rounded-md text-[#1e2a5e] hover:text-[#B8071C] hover:bg-[#f8fafc] transition-colors w-13 h-13 md:w-18 md:h-18 flex items-center justify-center"
 									aria-label="Menu"
 									aria-expanded={menuOpen}
 									type="button"
 									onClick={() => setMenuOpen(true)}
 								>
-									<svg width="20" height="16" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+									<svg viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-5 md:w-9 md:h-7">
 										<rect x="0" y="1" width="20" height="2" rx="1" fill="currentColor" />
 										<rect x="0" y="7" width="20" height="2" rx="1" fill="currentColor" />
 										<rect x="0" y="13" width="20" height="2" rx="1" fill="currentColor" />
@@ -193,23 +195,35 @@ function HeaderContent({ initialLoggedIn }: HeaderProps) {
 								</button>
 							</div>
 
-							<Link href={`/${language}`} className="flex items-center justify-center flex-1">
-								<span className="font-logo text-[24px] font-bold leading-none tracking-tight text-[#B8071C] select-none whitespace-nowrap">
-									Karkey
-								</span>
+							{/* Center Slot: Logo */}
+							<Link href={`/${language}`} className="flex items-center justify-center pointer-events-auto h-20 w-auto">
+								<Image
+									src="/logo.png"
+									alt="Karkey Logo"
+									width={240}
+									height={80}
+									className="h-20 w-auto object-contain scale-[1.8] md:scale-[2.4] translate-y-3.5 md:translate-y-5.5"
+									priority
+								/>
 							</Link>
 
-							<div className="flex-shrink-0" suppressHydrationWarning>
+							{/* Right Slot: Auth/Profile */}
+							<div className="flex items-center justify-end" suppressHydrationWarning>
 								{showAuthenticatedUI ? ProfileSlot : GuestContent}
 							</div>
 						</div>
 					</div>
 
 					<div className="hidden lg:flex items-center h-[76px] w-full">
-						<Link href={`/${language}`} className="flex items-center">
-							<span className="font-logo text-[28px] md:text-[32px] font-bold leading-none tracking-tight text-[#B8071C] select-none whitespace-nowrap">
-								Karkey
-							</span>
+						<Link href={`/${language}`} className="flex items-center group transition-transform hover:scale-110 duration-300">
+							<Image
+								src="/logo.png"
+								alt="Karkey Logo"
+								width={320}
+								height={120}
+								className="h-28 w-auto object-contain scale-[1.35] translate-y-2.5"
+								priority
+							/>
 						</Link>
 
 						<DesktopNav

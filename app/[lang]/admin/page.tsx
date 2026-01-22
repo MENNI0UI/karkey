@@ -57,6 +57,7 @@ import Link from "next/link"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PlatformStats } from "./components/platform-stats"
 import dynamic from "next/dynamic"
+import Image from "next/image"
 import { VerificationHistorySection, StatsPeriod } from "./components/verification-history"
 import { KarkeyCarsManager, KarkeyInquiriesList } from "./components/karkey-cars-manager"
 import { DiagnosticTools } from "./components/diagnostic-tools"
@@ -574,11 +575,17 @@ function VerificationSection({
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3 mb-3">
                       {ds.photos && ds.photos.length > 0 ? (
-                        <img
-                          src={formatImageSrc(ds.photos[0]) || "/placeholder.svg"}
-                          alt={`${ds.make} ${ds.model}`}
-                          className="w-20 h-20 object-cover rounded-lg"
-                        />
+                        <div className="relative w-20 h-20 shrink-0">
+                          <Image
+                            src={formatImageSrc(ds.photos[0]) || "/placeholder.svg"}
+                            alt={`${ds.make} ${ds.model}`}
+                            fill
+                            className="object-cover rounded-lg"
+                            sizes="80px"
+                            priority={true}
+                            unoptimized
+                          />
+                        </div>
                       ) : (
                         <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
                           <DollarSign className="w-8 h-8 text-gray-400" />
@@ -728,16 +735,20 @@ function VerificationSection({
                       selectedDirectSale.photos.map((photo, index) => (
                         <div
                           key={index}
-                          className="relative group cursor-pointer rounded-lg overflow-hidden border-2 border-gray-200 hover:border-[#B8071C] transition-all"
+                          className="relative group cursor-pointer rounded-lg overflow-hidden border-2 border-gray-200 hover:border-[#B8071C] transition-all h-32"
                           onClick={() => {
                             setFitToScreen(true)
                             setViewingImage(formatImageSrc(photo))
                           }}
                         >
-                          <img
+                          <Image
                             src={formatImageSrc(photo) || "/placeholder.svg"}
                             alt={`Vehicle photo ${index + 1}`}
-                            className="w-full h-32 object-cover"
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            priority={index < 4}
+                            unoptimized
                           />
                         </div>
                       ))
@@ -763,16 +774,19 @@ function VerificationSection({
                 <CardContent className="p-6">
                   {selectedDirectSale.carte_grise_url ? (
                     <div
-                      className="relative group cursor-pointer rounded-lg overflow-hidden border-2 border-gray-200 hover:border-[#B8071C] transition-all max-w-md"
+                      className="relative group cursor-pointer rounded-lg overflow-hidden border-2 border-gray-200 hover:border-[#B8071C] transition-all max-w-md h-48"
                       onClick={() => {
                         setFitToScreen(true)
                         setViewingImage(formatImageSrc(selectedDirectSale.carte_grise_url))
                       }}
                     >
-                      <img
+                      <Image
                         src={formatImageSrc(selectedDirectSale.carte_grise_url) || "/placeholder.svg"}
                         alt="Carte Grise"
-                        className="w-full h-48 object-cover"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                        unoptimized
                       />
                     </div>
                   ) : (

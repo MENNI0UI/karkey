@@ -189,9 +189,10 @@ export function CarCardImageSlider({
                     alt={alt}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, (max-width: 1536px) 25vw, 20vw"
                     priority={priority && photoIndex === 0}
                     loading={priority ? "eager" : "lazy"}
+                    unoptimized
                 />
             </Link>
         </div>

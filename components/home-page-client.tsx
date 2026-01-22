@@ -14,47 +14,13 @@ const ParticlesCursor = dynamic(() => import("@/components/ui/particles-cursor")
 	ssr: false,
 })
 
-function chooseFuelIcon(fuel: string | null | undefined) {
-	const fk = String(fuel ?? "").toLowerCase()
-	if (fk.includes("electric")) return "/icons/electric-fuel.png"
-	return "/icons/fuel.png"
-}
-
-// helper: single-letter avatar when no image is available
-function getInitial(name?: string | null) {
-	try {
-		const s = String(name ?? "").trim()
-		if (!s) return "U"
-		return s.charAt(0).toUpperCase()
-	} catch {
-		return "U"
-	}
-}
-
-// add helper near the top (below getInitial)
-function getFirstNameFrom(value?: any) {
-	try {
-		if (!value) return null
-		const s = String(value).trim()
-		if (!s) return null
-		// prefer first_name-like values passed directly
-		return s.split(/\s+/)[0]
-	} catch {
-		return null
-	}
-}
-
 type Props = {
-	initialVehicles?: any[]
 	initialKarkeyCars?: any[]
-	initialServerTime?: string | null
 	initialCities?: any[]
 }
 
 export default function HomePageClient({
-	initialVehicles = [],
 	initialKarkeyCars = [],
-	initialServerTime = null,
 	initialCities = [],
 }: Props) {
 	const { t } = useTranslation()
@@ -62,29 +28,8 @@ export default function HomePageClient({
 	const language = String(lang || "en")
 
 	// Local state
-	// Auctions
-	const [auctionItems, setAuctionItems] = useState<any[]>(initialVehicles || [])
-	// Karkey Cars
 	const [karkeyItems, setKarkeyItems] = useState<any[]>(initialKarkeyCars || [])
-
 	const [loading, setLoading] = useState(false)
-
-	// track currently displayed image index per vehicle (reactive so UI updates)
-	const [imgIndexMap, setImgIndexMap] = useState<Record<string, number>>({})
-
-	// init/reset indexes when items change
-	React.useEffect(() => {
-		// ensure items is an array before iterating (defensive)
-		const list = Array.isArray(auctionItems) ? auctionItems : []
-		const map: Record<string, number> = {}
-		list.forEach((it: any) => {
-			// prefer auction id (if present) as the unique key; fallback to vehicle id or a JSON key
-			const rawKey = it?.auction_id ?? it?.auctionId ?? it?.id ?? JSON.stringify(it ?? {})
-			const idKey = String(rawKey)
-			map[idKey] = 0
-		})
-		setImgIndexMap(map)
-	}, [auctionItems])
 
 	// Listen for Search events emitted by SearchBar
 	useEffect(() => {
@@ -99,13 +44,13 @@ export default function HomePageClient({
 				});
 				const data = await res.json().catch(() => null);
 				if (data?.success && Array.isArray(data.vehicles)) {
-					setAuctionItems(data.vehicles);
+					setKarkeyItems(data.vehicles);
 				} else {
-					setAuctionItems([]);
+					setKarkeyItems([]);
 				}
 			} catch (err) {
 				console.error("[HomePageClient] search error:", err);
-				setAuctionItems([]);
+				setKarkeyItems([]);
 			} finally {
 				setLoading(false);
 			}
@@ -116,9 +61,9 @@ export default function HomePageClient({
 			try {
 				const data = (e as CustomEvent)?.detail ?? null
 				if (data?.success && Array.isArray(data.vehicles)) {
-					setAuctionItems(data.vehicles)
+					setKarkeyItems(data.vehicles)
 				} else if (data && data.success === false) {
-					setAuctionItems([])
+					setKarkeyItems([])
 				}
 			} catch {
 				// ignore
@@ -127,7 +72,7 @@ export default function HomePageClient({
 
 		const onReset = () => {
 			// restore initial vehicles when reset is emitted
-			setAuctionItems(initialVehicles || []);
+			setKarkeyItems(initialKarkeyCars || []);
 		};
 
 		window.addEventListener("karkey:search", onSearch as EventListener);
@@ -138,114 +83,9 @@ export default function HomePageClient({
 			window.removeEventListener("karkey:search:results", onSearchResults as EventListener);
 			window.removeEventListener("karkey:search:reset", onReset);
 		};
-	}, [initialVehicles])
+	}, [initialKarkeyCars])
 
-	// helper that returns index for a vehicle id
-	const getIndex = (id: string | number) => {
-		const key = String(id)
-		return imgIndexMap[key] ?? 0
-	}
-
-	// add helper near component top
-	const formatPrice = (p: any) => {
-		// accept number or numeric string
-		if (p === null || p === undefined || p === "") return null
-		const n = Number(p)
-		if (!Number.isFinite(n) || n <= 0) return null
-		return new Intl.NumberFormat("en-US").format(n) + " MAD"
-	}
-
-	// advance to next image for a vehicle
-	const nextImage = (id: string | number, photos: string[] = []) => {
-		const key = String(id)
-		const idx = getIndex(id)
-		const next = photos.length ? (idx + 1) % photos.length : 0
-		setImgIndexMap((prev) => ({ ...prev, [key]: next }))
-	}
-	const prevImage = (id: string | number, photos: string[] = []) => {
-		const key = String(id)
-		setImgIndexMap((prev) => {
-			const cur = Number(prev[key] ?? 0)
-			const len = (photos?.length) || 1
-			const prevIdx = (cur - 1 + len) % Math.max(len, 1)
-			return { ...prev, [key]: prevIdx }
-		})
-	}
-	const setImageIndex = (id: string | number, idx: number) => {
-		const key = String(id)
-		setImgIndexMap((prev) => ({ ...prev, [key]: idx }))
-	}
-
-	// compute a conservative initial offset from server_time if provided
-	const initialOffsetMs = typeof initialServerTime === "string" ? (Date.now() - Date.parse(initialServerTime)) : null
-	// state holds the best offset measured (clientNow - serverNow)
-	const [serverOffsetMs, setServerOffsetMs] = useState<number | null>(initialOffsetMs)
-
-	// RTT-based sync effect (keeps setServerOffsetMs from earlier)
-	useEffect(() => {
-		let mounted = true
-		let periodicId: ReturnType<typeof setInterval> | null = null
-
-		const syncWithServer = async (attempts = 5, url = "/api/time") => {
-			try {
-				const samples: Array<{ rtt: number; offset: number }> = []
-				for (let i = 0; i < attempts; i++) {
-					const t0 = Date.now()
-					const res = await fetch(url, { cache: "no-store" })
-					const t1 = Date.now()
-					if (!res.ok) continue
-					const data = await res.json().catch(() => null)
-					if (!data || !data.server_time) continue
-					const serverTs = Date.parse(data.server_time)
-					if (Number.isNaN(serverTs)) continue
-					const rtt = t1 - t0
-					const midClient = Math.round((t0 + t1) / 2)
-					const offset = midClient - serverTs
-					samples.push({ rtt, offset })
-					// small delay between pings
-					await new Promise((r) => setTimeout(r, 120))
-				}
-				if (!mounted || samples.length === 0) return
-				samples.sort((a, b) => a.rtt - b.rtt)
-				const best = samples[0]
-				setServerOffsetMs((prev) => {
-					if (prev == null) return best.offset
-					const diff = Math.abs(best.offset - prev)
-					if (diff > 3000) return best.offset
-					return Math.round(prev * 0.7 + best.offset * 0.3)
-				})
-			} catch {
-				// keep existing offset
-			}
-		}
-
-		// initial sync
-		void syncWithServer(5, "/api/time")
-
-		// periodic resync every 10 minutes
-		periodicId = setInterval(() => void syncWithServer(3, "/api/time"), 10 * 60 * 1000)
-
-		// resync on visibility/focus
-		const onVis = () => {
-			if (document.visibilityState === "visible") void syncWithServer(3, "/api/time")
-		}
-		const onFocus = () => void syncWithServer(2, "/api/time")
-
-		document.addEventListener("visibilitychange", onVis)
-		window.addEventListener("focus", onFocus)
-
-		return () => {
-			mounted = false
-			if (periodicId) clearInterval(periodicId)
-			document.removeEventListener("visibilitychange", onVis)
-			window.removeEventListener("focus", onFocus)
-		}
-	}, [])
-
-	// DIAG: show serverOffsetMs at mount / when it changes
-	useEffect(() => {
-
-	}, [serverOffsetMs, initialServerTime])
+	// Shared logic removed (moved to components)
 
 	// NEW: userId state for watchlist hearts
 	const [userId, setUserId] = useState<number | null>(null);
@@ -264,9 +104,9 @@ export default function HomePageClient({
 	// NEW: track saved state for each auction (watchlist heart)
 	const [savedMap, setSavedMap] = useState<Record<string, boolean>>({});
 	useEffect(() => {
-		if (!userId || !Array.isArray(auctionItems)) return;
+		if (!userId || !Array.isArray(karkeyItems)) return;
 		const map: Record<string, boolean> = {};
-		auctionItems.forEach((it) => {
+		karkeyItems.forEach((it) => {
 			const auctionId = it.auction_id ?? it.auctionId ?? it.id;
 			if (!auctionId) return;
 			try {
@@ -275,7 +115,7 @@ export default function HomePageClient({
 			} catch { }
 		});
 		setSavedMap(map);
-	}, [userId, auctionItems]);
+	}, [userId, karkeyItems]);
 
 	// Listen for watchlist:changed and storage events to update hearts live
 	useEffect(() => {
@@ -303,55 +143,7 @@ export default function HomePageClient({
 		};
 	}, [userId]);
 
-	// helper: normalize a variety of API item shapes into the shape expected by AuctionCard
-	function normalize(item: any) {
-		// be defensive: support multiple possible field names
-		const id = item?.id ?? item?.auction_id ?? item?.vehicle_id ?? item?.vehicle?.id ?? null
-		const photos = Array.isArray(item?.photos)
-			? item.photos
-			: Array.isArray(item?.images)
-				? item.images
-				: item?.image
-					? [item.image]
-					: item?.photos_urls
-						? item.photos_urls
-						: []
-
-		const make = item?.make ?? item?.manufacturer ?? item?.brand ?? ""
-		const model = item?.model ?? item?.title ?? ""
-		const year = item?.year ?? item?.manufacture_year ?? null
-		const location = item?.location ?? item?.city ?? "—"
-		const mileage = item?.mileage ?? item?.mileage_km ?? "—"
-		const transmission = item?.transmission ?? item?.trans ?? "—"
-		const fuel_type = item?.fuel_type ?? item?.fuelType ?? item?.fuel ?? "—"
-		const vehicle_condition = item?.vehicle_condition ?? item?.condition ?? null
-		const engine_size = item?.engine_size ?? item?.engineSize ?? item?.engine ?? null
-		const doors = item?.doors ?? item?.num_doors ?? item?.number_of_doors ?? null
-		const starting_price = item?.starting_price ?? item?.startingPrice ?? item?.price ?? null
-
-		return {
-			id,
-			auction_id: item?.auction_id ?? null,
-			auction_start_date: item?.auction_start_date ?? item?.auction?.start_date ?? null,
-			auction_end_date: item?.auction_end_date ?? item?.auction?.end_date ?? null,
-			photos,
-			image: photos.length ? photos[0] : null,
-			make,
-			model,
-			year,
-			location,
-			mileage,
-			transmission,
-			fuel_type,
-			vehicle_condition,
-			engine_size,
-			doors,
-			starting_price,
-			displayPrice: item?.displayPrice ?? (starting_price != null ? String(starting_price) : null),
-			// keep original payload for any future needs
-			_raw: item,
-		}
-	}
+	// Logic descent enabled: KarkeyCarCard manages its own state
 	if (loading) {
 		return (
 			<div className="text-center py-20 flex flex-col items-center justify-center gap-6">
@@ -412,12 +204,13 @@ export default function HomePageClient({
 
 					{/* 4x2 Premium Grid with Staggered Scroll Reveal */}
 					<StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-						{initialCities.map((cityObj: any) => (
+						{initialCities.map((cityObj: any, idx: number) => (
 							<StaggerItem key={cityObj.city}>
 								<HomeCityCard
 									city={cityObj.city}
 									image={cityObj.image}
 									language={language}
+									priority={idx < 4}
 								/>
 							</StaggerItem>
 						))}

@@ -8,11 +8,18 @@ interface HomeCityCardProps {
     city: string
     image: string
     language: string
+    priority?: boolean
 }
 
-export default function HomeCityCard({ city, image, language }: HomeCityCardProps) {
+export default function HomeCityCard({ city, image, language, priority = false }: HomeCityCardProps) {
     const { t } = useTranslation()
-    const hasImage = Boolean(image && image.trim().length > 0 && !image.includes("No Image") && !image.includes("placeholder"))
+    const hasImage = Boolean(
+        image &&
+        image.trim().length > 0 &&
+        !image.includes("default.webp") &&
+        !image.includes("placeholder") &&
+        !image.includes("No Image")
+    )
 
     const categories = [
         { label: t("nav.auctions") || "Auctions", href: `/${language}/auctions?location=${encodeURIComponent(city)}` },
@@ -32,6 +39,8 @@ export default function HomeCityCard({ city, image, language }: HomeCityCardProp
                         fill
                         className="object-cover group-hover:scale-110 transition-transform duration-700"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                        unoptimized
+                        priority={priority}
                     />
                     {/* Dark Overlay - lighter by default, stronger on hover */}
                     <div className="absolute inset-0 bg-black/40 group-hover:bg-black/70 transition-colors duration-500" />

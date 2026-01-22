@@ -169,6 +169,34 @@ export const ProfileUpdateSchema = z.object({
 });
 export type ProfileUpdateInput = z.infer<typeof ProfileUpdateSchema>;
 
+/**
+ * Direct Sale creation schema.
+ */
+export const CreateDirectSaleSchema = z.object({
+    make: z.string().min(1, "Make is required"),
+    model: z.string().min(1, "Model is required"),
+    year: z.coerce.number().int().min(1900).max(new Date().getFullYear() + 1),
+    mileage: z.coerce.number().int().nonnegative(),
+    transmission: z.string(), // We'll map this in the action
+    fuel_type: z.string(),    // We'll map this in the action
+    engine_size: z.string().optional().or(z.literal("")),
+    doors: z.string().optional().or(z.literal("")),
+    interior_color: z.string().optional().or(z.literal("")),
+    exterior_color: z.string().optional().or(z.literal("")),
+    is_original_paint: z.string().optional(), // "true" or "false" from FormData
+    condition: z.string(),    // We'll map this in the action
+    location: z.string().min(1, "Location is required"),
+    description: z.string().optional().or(z.literal("")),
+    special_features: z.string().optional().or(z.literal("")),
+    price: z.coerce.number().positive().min(10000, "Price must be at least 10,000 MAD"),
+
+    // Auction consent fields
+    auction_consent: z.string().optional(), // "true" or "false"
+    auction_starting_price: z.coerce.number().positive().optional(),
+    auction_reserve_price: z.coerce.number().positive().optional(),
+});
+export type CreateDirectSaleInput = z.infer<typeof CreateDirectSaleSchema>;
+
 // ============================================
 // Admin Schemas
 // ============================================

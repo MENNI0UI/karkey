@@ -210,6 +210,7 @@ export default function UnifiedCarLayout({
                                             fill
                                             className="object-contain object-center bg-gray-100"
                                             priority
+                                            unoptimized
                                             sizes="(max-width: 768px) 100vw, 800px"
                                         />
                                     </div>
@@ -264,6 +265,7 @@ export default function UnifiedCarLayout({
                                             alt=""
                                             fill
                                             className="object-cover"
+                                            unoptimized
                                             sizes="80px"
                                         />
                                     </button>
@@ -353,6 +355,8 @@ export default function UnifiedCarLayout({
                                             width={40}
                                             height={40}
                                             className="w-full h-full object-cover"
+                                            unoptimized
+                                            priority
                                         />
                                     </div>
                                     <div>

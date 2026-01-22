@@ -64,7 +64,7 @@ async function main() {
     await addIndex('direct_sales', 'idx_ds_price_loc', 'price, location');
 
     // Status & Filtering
-    await addIndex('direct_sales', 'idx_ds_status_composite', 'sale_status, verification_status, is_active'); // assuming is_active might exist or derived
+    await addIndex('direct_sales', 'idx_ds_status_composite', 'sale_status, verification_status');
     await addIndex('direct_sales', 'idx_ds_verification', 'verification_status');
     await addIndex('direct_sales', 'idx_ds_sale_status', 'sale_status');
 
@@ -109,4 +109,7 @@ async function main() {
 }
 
 // Run the script
-await main();
+main().catch((err) => {
+  console.error('❌ Fatal Error:', err);
+  process.exit(1);
+});

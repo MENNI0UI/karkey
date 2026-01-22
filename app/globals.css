@@ -395,14 +395,13 @@
       backdrop-filter: none !important;
     }
 
-    /* images: prefer compositing & avoid layout thrash while scrolling */
+    /* images: allow browser to optimize without forcing excessive layer creation */
     body.is-scrolling img,
     body.is-scrolling picture,
     body.is-scrolling video {
-      will-change: transform, opacity;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
-      /* Removed filter: none !important to preserve colored icons that use CSS filters */
+      will-change: auto !important;
     }
 
     /* keep minimal transition for focus accessibility even when scrolling */

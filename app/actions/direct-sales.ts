@@ -4,6 +4,7 @@ import path from "path"
 import prisma from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/mysql-auth"
 import { maybeApplyWatermark, getContentTypeFromExt } from "@/lib/image-processing"
+import { parseOrThrow, CreateDirectSaleSchema } from "@/lib/schemas"
 import { Prisma } from "@prisma/client"
 import { revalidateTag } from "next/cache"
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
@@ -53,27 +54,21 @@ export async function createDirectSale(prevState: any, formData: FormData) {
 
         const userId = Number(user.userId)
 
-        const make = String(formData.get("make") ?? "")
-        const model = String(formData.get("model") ?? "")
-        const year = Number(formData.get("year") ?? null) || null
-        const mileage = Number(formData.get("mileage") ?? null) || null
-        const transmission = String(formData.get("transmission") ?? "")
-        const fuel_type = String(formData.get("fuel_type") ?? "")
-        const engine_size = String(formData.get("engine_size") ?? "") || null
-        const doors = String(formData.get("doors") ?? "") || null
-        const interior_color = String(formData.get("interior_color") ?? "") || null
-        const exterior_color = String(formData.get("exterior_color") ?? "") || null
-        const is_original_paint = formData.get("is_original_paint") === "true"
-        const vehicle_condition = String(formData.get("condition") ?? "")
-        const location = String(formData.get("location") ?? "")
-        const description = String(formData.get("description") ?? "")
-        const special_features = String(formData.get("special_features") ?? "") || null
-        const price = Number(formData.get("price") ?? null) || null
+        // Validate data using Zod
+        const rawData = Object.fromEntries(formData)
+        // Handle fields that might be missing in Object.fromEntries if empty
+        const validatedData = parseOrThrow(CreateDirectSaleSchema, rawData)
 
-        // Auction consent fields
-        const auction_consent = formData.get("auction_consent") === "true"
-        const auction_starting_price = auction_consent ? Number(formData.get("auction_starting_price") ?? null) || null : null
-        const auction_reserve_price = auction_consent ? Number(formData.get("auction_reserve_price") ?? null) || null : null
+        const {
+            make, model, year, mileage, transmission, fuel_type,
+            engine_size, doors, interior_color, exterior_color,
+            is_original_paint, condition, location, description,
+            special_features, price,
+            auction_consent, auction_starting_price, auction_reserve_price
+        } = validatedData
+
+        const isOriginalPaint = is_original_paint === "true"
+        const hasAuctionConsent = auction_consent === "true"
 
         // optional docs
         const carteGriseFile = formData.get("carte_grise") as File | null
@@ -87,13 +82,13 @@ export async function createDirectSale(prevState: any, formData: FormData) {
             return { success: false, error: "At least 5 photos are required" }
         }
 
-        if (!price || price < 10000) {
-            return { success: false, error: "Price must be at least 10,000 MAD" }
+        // basic server-side validation (already handled by Zod partially, but keeping file checks)
+        if (!photos || photos.length < 5) {
+            return { success: false, error: "At least 5 photos are required" }
         }
 
-        if (!year || !mileage) {
-            return { success: false, error: "Year and mileage are required" }
-        }
+        // Price check is now handled by Zod (min 10000)
+        // Year/Mileage checks are handled by Zod
 
         // save carte grise if present
         let carte_grise_url: string | null = null
@@ -136,26 +131,26 @@ export async function createDirectSale(prevState: any, formData: FormData) {
                 user_id: userId,
                 make,
                 model,
-                year: year!,
-                mileage: mileage!,
+                year,
+                mileage,
                 transmission: mapTransmission(transmission),
                 fuel_type: mapFuelType(fuel_type),
-                engine_size,
-                doors,
-                interior_color,
-                exterior_color,
-                is_original_paint,
-                vehicle_condition: mapCondition(vehicle_condition),
+                engine_size: engine_size || null,
+                doors: doors || null,
+                interior_color: interior_color || null,
+                exterior_color: exterior_color || null,
+                is_original_paint: isOriginalPaint,
+                vehicle_condition: mapCondition(condition),
                 location,
-                description,
-                special_features,
+                description: description || "",
+                special_features: special_features || null,
                 price: new Prisma.Decimal(price),
                 carte_grise_url,
                 service_history_url,
                 verification_status: "pending",
                 sale_status: "available",
                 // Auction consent fields
-                auction_consent,
+                auction_consent: hasAuctionConsent,
                 auction_starting_price: auction_starting_price ? new Prisma.Decimal(auction_starting_price) : null,
                 auction_reserve_price: auction_reserve_price ? new Prisma.Decimal(auction_reserve_price) : null,
             }

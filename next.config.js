@@ -63,6 +63,9 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: [
       'lucide-react',
+      '@tsparticles/react',
+      '@tsparticles/slim',
+      '@tsparticles/engine',
       '@radix-ui/react-icons',
       '@radix-ui/react-dialog',
       '@radix-ui/react-dropdown-menu',

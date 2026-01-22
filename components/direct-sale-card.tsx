@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from "react"
 import Link from "next/link"
 import { MapPin, Heart } from "lucide-react"
 import { useTranslation } from "@/lib/i18n-context"
+import { useAuth } from "@/lib/auth-context"
 import { CarCardImageSlider } from "@/components/ui/car-card/card-image-slider"
 import { CarSpecsGrid } from "@/components/ui/car-card/card-specs"
 import { emit } from "@/lib/events"
@@ -52,13 +53,18 @@ export function DirectSaleCard({
         ? photos.map(normalizePhotoUrl)
         : ["/placeholder.svg"]
 
+    // Use Auth Context instead of fetching in each card
+    const { currentUserId, isLoaded: authLoaded } = useAuth()
+
     // Watchlist State
     const [saved, setSaved] = useState(false)
     const [stableSaved, setStableSaved] = useState(false)
     const [saving, setSaving] = useState(false)
-    const [currentUserId, setCurrentUserId] = useState<number | null>(null)
     const [showContactModal, setShowContactModal] = useState(false)
-    const isOwner = !!(currentUserId && user_id && Number(currentUserId) === Number(user_id))
+
+    // Owner check - show buttons by default, hide only when CONFIRMED owner
+    // This prevents delay for non-owners while still hiding for owners
+    const confirmedOwner = !!(authLoaded && currentUserId && user_id && Number(currentUserId) === Number(user_id))
 
     // Bubble State
     const [bubbleOpen, setBubbleOpen] = useState(false)
@@ -122,10 +128,13 @@ export function DirectSaleCard({
         setBubbleText(null)
     }
 
+    // Fetch watchlist state only when auth is loaded and user is authenticated
     useEffect(() => {
-        const resolveUser = async () => {
+        if (!authLoaded) return
+
+        const resolveWatchlist = async () => {
             try {
-                // Try cached UI first
+                // Try cached UI first for instant feedback
                 if (cachedKey) {
                     const cv = localStorage.getItem(cachedKey)
                     if (cv === "1") {
@@ -134,12 +143,8 @@ export function DirectSaleCard({
                     }
                 }
 
-                const res = await fetch("/api/auth/me")
-                const data = await res.json()
-                if (data.success && data.user) {
-                    const uid = data.user.id
-                    setCurrentUserId(uid)
-
+                if (currentUserId) {
+                    // Only fetch watchlist if user is authenticated
                     const checkRes = await fetch(`/api/direct-sales-watchlist/check?direct_sale_id=${id}`)
                     const checkData = await checkRes.json()
                     const isSaved = !!checkData.saved
@@ -147,16 +152,14 @@ export function DirectSaleCard({
                     setStableSaved(isSaved)
                     if (cachedKey) localStorage.setItem(cachedKey, isSaved ? "1" : "0")
                 } else {
-                    setCurrentUserId(null)
                     setSaved(false)
                     setStableSaved(false)
                     if (cachedKey) localStorage.setItem(cachedKey, "0")
                 }
             } catch { }
         }
-        resolveUser()
+        resolveWatchlist()
 
-        const onAuthChanged = () => resolveUser()
         const onBubbleOpened = (e: Event) => {
             const detail = (e as CustomEvent).detail
             if (detail && detail.id !== `direct-${id}`) hideBubble()
@@ -171,16 +174,14 @@ export function DirectSaleCard({
             }
         }
 
-        window.addEventListener("auth:changed", onAuthChanged)
         window.addEventListener("watchlist:bubble-opened", onBubbleOpened)
         window.addEventListener("watchlist:changed", onWatchlistChanged)
 
         return () => {
-            window.removeEventListener("auth:changed", onAuthChanged)
             window.removeEventListener("watchlist:bubble-opened", onBubbleOpened)
             window.removeEventListener("watchlist:changed", onWatchlistChanged)
         }
-    }, [id, cachedKey])
+    }, [id, cachedKey, authLoaded, currentUserId])
 
     useEffect(() => {
         if (!bubbleOpen) return
@@ -201,7 +202,7 @@ export function DirectSaleCard({
     const handleToggleFavorite = async (e: React.MouseEvent) => {
         e.preventDefault()
         e.stopPropagation()
-        if (isOwner) return
+        if (confirmedOwner) return
         if (saving) return
 
         if (!currentUserId) {
@@ -316,7 +317,7 @@ export function DirectSaleCard({
                 alt={vehicleLabel}
                 priority={priority}
                 overlay={
-                    !isOwner && <div className="flex flex-col items-end">
+                    !confirmedOwner && <div className="flex flex-col items-end">
                         {bubbleOpen && (
                             <div
                                 ref={bubbleRef}
@@ -418,7 +419,7 @@ export function DirectSaleCard({
                     >
                         {t("common.view")}
                     </Link>
-                    {!isOwner && (
+                    {!confirmedOwner && (
                         <button
                             onClick={() => setShowContactModal(true)}
                             className="w-full bg-[#B8071C] hover:bg-[#910515] hover:border hover:border-[#DEB735] text-white font-medium font-serif py-2.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md group-hover:shadow-lg active:scale-[0.98] whitespace-nowrap uppercase text-sm"

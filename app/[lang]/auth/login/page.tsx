@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useTranslation } from "@/lib/i18n-context";
@@ -73,10 +74,15 @@ export default function LoginPage() {
 	return (
 		// use full viewport, ensure no extra top gap and allow slight vertical breathing on small screens
 		<div className="min-h-screen flex items-center justify-center px-4 py-6 relative bg-[#f8fafc]">
-			<Link href="/" aria-label="Karkey home" className="absolute top-8 left-8 md:left-20 z-50 transition-transform hover:scale-105 active:scale-95 duration-300">
-				<span className="font-logo text-[32px] md:text-[36px] font-bold leading-none tracking-tight text-[#B8071C] select-none whitespace-nowrap drop-shadow-sm">
-					Karkey
-				</span>
+			<Link href="/" className="absolute top-8 left-8 md:left-20 z-50 transition-transform hover:scale-110 active:scale-95 duration-300">
+				<Image
+					src="/logo.png"
+					alt="Karkey Logo"
+					width={320}
+					height={120}
+					className="h-28 w-auto object-contain drop-shadow-sm scale-[1.6] md:scale-[1.35]"
+					priority
+				/>
 			</Link>
 
 			{/* Container with shadow - Wavy top, Square bottom */}

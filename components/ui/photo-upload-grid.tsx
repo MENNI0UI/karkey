@@ -55,8 +55,18 @@ export function PhotoUploadGrid({
 
             const remainingSlots = maxPhotos - photos.length;
             const filesToAdd = validFiles.slice(0, remainingSlots);
+
             if (filesToAdd.length > 0) {
-                onChange([...photos, ...filesToAdd]);
+                // Compress files before adding
+                Promise.all(filesToAdd.map(file => import("@/lib/client-image-compression").then(mod => mod.compressImage(file))))
+                    .then(compressedFiles => {
+                        onChange([...photos, ...compressedFiles]);
+                    })
+                    .catch(err => {
+                        console.error("Compression failed:", err);
+                        // Fallback to original files if compression fails
+                        onChange([...photos, ...filesToAdd]);
+                    });
             }
         },
         [photos, maxPhotos, onChange, t]

@@ -1,10 +1,11 @@
 "use client"
 import React from "react"
 
-import { useSession, signIn, signOut } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
 
 export type AuthContextShape = {
 	readonly user: any | null
+	readonly currentUserId: number | null
 	setUser: (u: any | null) => void
 	login: (token: string, user?: any) => Promise<void>
 	logout: () => Promise<void>
@@ -13,7 +14,7 @@ export type AuthContextShape = {
 
 const AuthContext = React.createContext<AuthContextShape | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { readonly children: React.ReactNode }) {
 	const { data: session, status } = useSession()
 	const [user, setUser] = React.useState<any | null>(null)
 
@@ -40,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			// but we handle the promise to ensure it attempt to clear the server session
 			await signOut({ redirect: false, callbackUrl: "/" })
 
-			if (typeof window !== "undefined") {
+			if (typeof globalThis.window !== "undefined") {
 				// Clear tokens and metadata
 				localStorage.removeItem("auth_token")
 				localStorage.removeItem("auth_profile_picture")
@@ -51,15 +52,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		} catch (e) {
 			console.error("[AuthContext] logout error:", e)
 			// Fallback: force redirect if programmatic logout fails
-			if (typeof window !== "undefined") {
-				window.location.href = "/"
+			if (typeof globalThis.window !== "undefined") {
+				globalThis.window.location.href = "/"
 			}
 		}
 	}, [])
 
 	const isLoaded = status !== "loading"
 
-	const value = React.useMemo(() => ({ user, setUser, login, logout, isLoaded }), [user, login, logout, isLoaded])
+	// Compute currentUserId from user data
+	const currentUserId = React.useMemo(() => {
+		if (!user) return null
+		const id = user.id ?? user.userId ?? user.user_id
+		return id ? Number(id) : null
+	}, [user])
+
+	const value = React.useMemo(() => ({ user, currentUserId, setUser, login, logout, isLoaded }), [user, currentUserId, login, logout, isLoaded])
 	return (
 		<AuthContext.Provider value={value}>
 			{children}

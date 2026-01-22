@@ -72,6 +72,8 @@ export default async function RootLayout({
         <html lang={lang} dir={lang === 'ar' ? 'rtl' : 'ltr'} className={`${dmSans.variable} ${notoSansArabic.variable} ${dmSerif.variable} ${amiri.variable}`}>
             <head>
                 <meta name="viewport" content="width=device-width,initial-scale=1" />
+                <link rel="preconnect" href="https://img.karkey.space" crossOrigin="anonymous" />
+                <link rel="dns-prefetch" href="https://img.karkey.space" />
             </head>
             <body>
                 <I18nProvider lang={lang as Language}>

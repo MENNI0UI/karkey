@@ -14,7 +14,7 @@ const MAX_ATTEMPTS = 5;
 
 export async function POST(request: NextRequest) {
   const ip = getIp(request);
-  if (isRateLimited(`verify:code:${ip}`, RATE_LIMITS.AUTH_LOGIN)) { // Rigid limit
+  if (await isRateLimited(`verify:code:${ip}`, RATE_LIMITS.AUTH_LOGIN)) { // Rigid limit
     return NextResponse.json({ success: false, error: 'Too many attempts. Please try again later.' }, { status: 429 });
   }
 

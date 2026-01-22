@@ -22,7 +22,7 @@ export const ParticlesBackground = () => {
                 value: "#ffffff",
             },
         },
-        fpsLimit: 120,
+        fpsLimit: 60,
         interactivity: {
             events: {
                 onHover: {
@@ -30,7 +30,7 @@ export const ParticlesBackground = () => {
                     mode: "repulse",
                 },
                 onClick: {
-                    enable: true,
+                    enable: false,
                     mode: "push",
                 },
                 resize: {
@@ -75,6 +75,9 @@ export const ParticlesBackground = () => {
                     height: 1080,
                 },
                 value: 150,
+                limit: {
+                    value: 200,
+                },
             },
             opacity: {
                 value: 0.5,

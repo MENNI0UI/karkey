@@ -63,7 +63,15 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                 className={`absolute top-0 ${isRTL ? "right-0" : "left-0"} bottom-0 w-[440px] max-w-[85vw] bg-white shadow-2xl flex flex-col transition-transform duration-300 transform translate-x-0`}>
                 {/* Header Area */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                    <span className="font-logo text-[24px] font-extrabold text-[#B8071C]">Karkey</span>
+                    <Link href={`/${language}`} onClick={() => setMenuOpen(false)} className="py-2">
+                        <Image
+                            src="/logo.png"
+                            alt="Karkey Logo"
+                            width={240}
+                            height={80}
+                            className="h-20 w-auto object-contain scale-[1.7]"
+                        />
+                    </Link>
                     <button
                         onClick={() => setMenuOpen(false)}
                         className="p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -197,7 +205,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                                     if (hasRealPic) {
                                         return (
                                             <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-white">
-                                                <Image src={picToShow as string} alt="Profile" width={40} height={40} className="object-cover w-10 h-10" unoptimized />
+                                                <Image src={picToShow as string} alt="Profile" width={40} height={40} className="object-cover w-10 h-10" unoptimized priority />
                                             </div>
                                         )
                                     }

@@ -59,6 +59,7 @@
     "framer-motion": "^12.23.26",
     "geist": "1.5.1",
     "input-otp": "^1.4.2",
+    "ioredis": "^5.9.2",
     "jose": "6.1.0",
     "libphonenumber-js": "^1.12.33",
     "lucide-react": "^0.562.0",

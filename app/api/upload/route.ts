@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     // 2. Rate Limiting
     const ip = getIp(request)
-    if (isRateLimited(`upload:${ip}`, RATE_LIMITS.UPLOAD)) {
+    if (await isRateLimited(`upload:${ip}`, RATE_LIMITS.UPLOAD)) {
       return NextResponse.json({ success: false, error: "Too many upload requests" }, { status: 429 })
     }
 
@@ -81,7 +81,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, url })
   } catch (err: unknown) {
     console.error("[api/upload] upload error:", err)
-    return NextResponse.json({ success: false, error: (err as Error)?.message || "Upload failed" }, { status: 500 })
+    return NextResponse.json({
+      success: false,
+      error: "Upload failed. Please try again."
+    }, { status: 500 })
   }
 }
 

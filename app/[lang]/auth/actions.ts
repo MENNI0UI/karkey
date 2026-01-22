@@ -48,7 +48,7 @@ export async function registerUser(formData: {
   const headersList = await headers()
   const ip = headersList.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1"
 
-  if (isRateLimited(`auth:register:${ip}`, RATE_LIMITS.AUTH_REGISTER)) {
+  if (await isRateLimited(`auth:register:${ip}`, RATE_LIMITS.AUTH_REGISTER)) {
     warn(`[auth] Rate limit exceeded for register from ${ip}`)
     return { success: false, error: "Too many registration attempts. Please try again later." }
   }
@@ -186,7 +186,7 @@ export async function loginUser(formData: { email: string; password: string }) {
   const headersList = await headers()
   const ip = headersList.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1"
 
-  if (isRateLimited(`auth:login:${ip}`, RATE_LIMITS.AUTH_LOGIN)) {
+  if (await isRateLimited(`auth:login:${ip}`, RATE_LIMITS.AUTH_LOGIN)) {
     warn(`[auth] Rate limit exceeded for login from ${ip}`)
     return { success: false, error: "Too many login attempts. Please try again later." }
   }

@@ -2,28 +2,34 @@
 
 import { CheckCircle } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/i18n-context"
 
 export default function RegistrationSuccessPage() {
   const { t } = useTranslation()
-  const router = useRouter()
 
   const handleGoHome = () => {
     // Just navigate to home, user is already logged in
-    window.location.href = "/"
+    globalThis.location.href = "/"
   }
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         {/* Logo */}
-        <Link href="/">
-          <h1 className="text-4xl font-bold text-[#B8071C] mb-8 text-center hover:text-[#910515] transition-colors cursor-pointer">
-            Karkey
-          </h1>
-        </Link>
+        <div className="flex justify-center mb-12">
+          <Link href="/" className="transition-transform hover:scale-110 duration-300">
+            <Image
+              src="/logo.png"
+              alt="Karkey Logo"
+              width={320}
+              height={120}
+              className="h-28 w-auto object-contain scale-[1.6] md:scale-[1.35]"
+            />
+          </Link>
+        </div>
 
         {/* Card */}
         <div className="bg-white border border-[#EBEBEB] rounded-2xl p-8 text-center">

@@ -111,11 +111,12 @@ export default function DirectSalesWatchlistSection({ initialItems }: DirectSale
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <DirectSaleCard
           key={item.id}
           item={item}
           linkPrefix="/direct-sales"
+          priority={index < 4}
         />
       ))}
     </div>

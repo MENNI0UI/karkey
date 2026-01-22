@@ -132,7 +132,7 @@ export default function PersonalInfoSection({ profile, userId, successFlag }: Pr
           <div className="flex flex-col items-center justify-center">
             <div className="relative w-28 h-28 rounded-full overflow-hidden shadow-lg border-4 border-[#d1f2e1] bg-white mx-auto">
               {profile.profile_picture ? (
-                <Image src={profile.profile_picture} alt={profile.username} fill className="object-cover" />
+                <Image src={profile.profile_picture} alt={profile.username} fill className="object-cover" unoptimized priority />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-4xl font-bold bg-[#B8071C] text-white">
                   {profile.username?.charAt(0)?.toUpperCase() || "U"}
@@ -191,6 +191,8 @@ export default function PersonalInfoSection({ profile, userId, successFlag }: Pr
                   alt={profile.username}
                   fill
                   className="object-cover"
+                  unoptimized
+                  priority
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-white" style={{ backgroundColor: "#B8071C" }}>

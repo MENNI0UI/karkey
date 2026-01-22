@@ -422,10 +422,15 @@ export default function RegisterPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
         <div className="absolute bottom-0 left-0 p-12 text-white z-10">
-          <Link href="/" className="inline-block mb-6">
-            <span className="font-logo text-4xl font-bold leading-none tracking-tight text-white select-none">
-              Karkey
-            </span>
+          <Link href="/" className="inline-block mb-6 group transition-transform hover:scale-110 duration-300">
+            <Image
+              src="/logo.png"
+              alt="Karkey Logo"
+              width={320}
+              height={120}
+              className="h-28 w-auto object-contain brightness-0 invert scale-[1.35]"
+              priority
+            />
           </Link>
           <h2 className="text-3xl font-bold mb-4 leading-tight">
             Join the Future of <br /> Car Trading
@@ -444,10 +449,16 @@ export default function RegisterPage() {
 
         <div className="max-w-3xl mx-auto w-full my-auto">
           {/* Mobile Logo */}
-          <div className="lg:hidden mb-6 text-center">
-            <span className="font-logo text-3xl font-bold text-[#B8071C]">
-              Karkey
-            </span>
+          <div className="lg:hidden mb-12 text-center flex justify-center">
+            <Link href="/" className="inline-block transform active:scale-95 transition-transform">
+              <Image
+                src="/logo.png"
+                alt="Karkey Logo"
+                width={240}
+                height={80}
+                className="h-20 w-auto object-contain scale-[1.7]"
+              />
+            </Link>
           </div>
 
           <div className="mb-8">
