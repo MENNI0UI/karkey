@@ -349,7 +349,10 @@ export function AuctionFiltersSidebar({ options, className, mobile = false, save
     if (cached !== null) setResultCount(cached)
 
     const currentSnapshot = canonicalizeParams(searchParams ? new URLSearchParams(searchParams.toString()) : undefined)
-    if (paramString === currentSnapshot) return
+
+    // If URL already matches AND we have a result count, we can skip navigation & count fetch.
+    // But if resultCount is null (e.g. after reset), we MUST proceed to fetch it.
+    if (paramString === currentSnapshot && resultCount !== null) return
 
     // debounce navigation + prefetch to avoid too many requests while user types
     try {
@@ -378,9 +381,24 @@ export function AuctionFiltersSidebar({ options, className, mobile = false, save
     }
   }, [state])
 
+  // Sync Saved Toggle state
+  // Stay ACTIVE as long as a saved search exists, fulfilling user preference
+  // even if current filters don't match.
+  useEffect(() => {
+    if (!authChecked || !_isLoaded) return
+    const shouldBeActive = !!_savedParamsString
+    if (_isSavedActive) {
+      if (!shouldBeActive) _setIsSavedActive(false)
+    } else {
+      if (shouldBeActive) _setIsSavedActive(true)
+    }
+  }, [_savedParamsString, authChecked, _isLoaded])
+
   const resetFilters = () => {
     // Cancel any pending debounced navigation
     try { if (debounceRef.current) window.clearTimeout(debounceRef.current) } catch { }
+    // Force count refresh by setting to null
+    setResultCount(null)
     // Use client-side navigation instead of hard reload to keep history stack clean
     router.push(`/${language}/auctions?reset=true`)
   }

@@ -477,20 +477,20 @@ export default function AuctionsPageClient({
               onClick={() => setShowFiltersMobile(false)}
               aria-label="Close filters"
               title="Close filters"
-              className="absolute right-4 top-4 z-50 inline-flex items-center justify-center w-9 h-9 rounded-full bg-[#B8071C] text-white shadow-md"
+              className="absolute right-4 top-2.5 z-50 inline-flex items-center justify-center w-11 h-11 rounded-full bg-[#B8071C] text-white shadow-[0_4px_12px_rgba(184,7,28,0.3)] hover:bg-[#910515] active:scale-95 transition-all outline-none ring-2 ring-white/10"
             >
-              <X size={16} />
+              <X size={22} strokeWidth={2.5} />
             </button>
-            <div className="flex items-center justify-between px-4 py-3 border-b">
-              <div className="text-lg font-semibold">{t("auctions.filters")}</div>
+            <div className="flex items-center justify-between px-5 py-4 border-b bg-gray-50/50">
+              <div className="text-xl font-bold font-serif text-[#111827]">{t("auctions.filters")}</div>
               <div />
             </div>
             {/* Visible close action for accessibility: full-width button below header */}
-            <div className="px-4 py-4 border-b bg-white">
+            <div className="px-4 py-4 border-b bg-white shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
               <button
                 type="button"
                 onClick={() => setShowFiltersMobile(false)}
-                className="w-full inline-flex items-center justify-center bg-[#B8071C] hover:bg-[#910515] text-white rounded-lg h-12 text-base font-bold shadow-sm"
+                className="w-full inline-flex items-center justify-center bg-gradient-to-r from-[#B8071C] to-[#D31027] hover:from-[#910515] hover:to-[#B8071C] text-white rounded-xl h-14 text-lg font-bold shadow-[0_4px_15px_rgba(184,7,28,0.25)] active:scale-[0.98] transition-all"
               >
                 {t("auctions.close")}
               </button>

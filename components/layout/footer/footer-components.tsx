@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import React from "react";
+import Image from "next/image";
 
 interface FooterLinksGroupProps {
     title: string;
@@ -45,10 +46,14 @@ export function FooterLinksGroup({ title, links, language }: FooterLinksGroupPro
 export function FooterBrand({ language }: { language: string }) {
     return (
         <div className="col-span-2 md:col-span-3 lg:col-span-1 mb-4 lg:mb-0">
-            <Link href={`/${language}/`} className="inline-block mb-5">
-                <span className="font-display text-[26px] font-extrabold leading-none tracking-tight text-[#B8071C]">
-                    Karkey
-                </span>
+            <Link href={`/${language}/`} className="inline-block mb-3 transition-transform hover:scale-105 duration-300">
+                <Image
+                    src="/logo.png"
+                    alt="Karkey Logo"
+                    width={320}
+                    height={100}
+                    className="h-28 w-auto object-contain origin-left scale-110"
+                />
             </Link>
             <p className="text-[13px] text-[#9ca3af] leading-relaxed max-w-[240px]">
                 Morocco's premier marketplace for buying and selling quality vehicles through secure auctions.

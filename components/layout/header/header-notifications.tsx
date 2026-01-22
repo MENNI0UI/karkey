@@ -68,18 +68,27 @@ export const HeaderNotifications: React.FC<HeaderNotificationsProps> = ({
                 )}
             </button>
             {notifOpen && (
-                <React.Suspense fallback={<div />}>
-                    <DynamicNotificationsPanel
-                        ref={notifPanelRef}
-                        onClose={() => setNotifOpen(false)}
-                        language={language}
-                        notifications={notifications}
-                        loadingNotifs={loadingNotifs}
-                        unreadCount={unreadCount}
-                        markAsRead={markAsRead}
-                        markAllAsRead={markAllAsRead}
+                <>
+                    {/* Transparent overlay for outside clicks */}
+                    <div
+                        className="fixed z-[100001] bg-transparent"
+                        style={{ top: -2000, left: -2000, right: -2000, bottom: -2000 }}
+                        onClick={() => setNotifOpen(false)}
+                        aria-hidden="true"
                     />
-                </React.Suspense>
+                    <React.Suspense fallback={<div />}>
+                        <DynamicNotificationsPanel
+                            ref={notifPanelRef}
+                            onClose={() => setNotifOpen(false)}
+                            language={language}
+                            notifications={notifications}
+                            loadingNotifs={loadingNotifs}
+                            unreadCount={unreadCount}
+                            markAsRead={markAsRead}
+                            markAllAsRead={markAllAsRead}
+                        />
+                    </React.Suspense>
+                </>
             )}
         </div>
     );

@@ -1,14 +1,14 @@
 /* premium searchbar container */
 .searchbar-floating {
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(0, 0, 0, 0.03);
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-radius: 999px !important;
   box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 10px 30px -5px rgba(0, 0, 0, 0.1),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+    0 4px 6px -1px rgba(0, 166, 81, 0.02),
+    0 10px 30px -5px rgba(0, 166, 81, 0.04),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   transition:
     transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
     opacity 200ms ease,
@@ -55,17 +55,17 @@
   padding: 0.25rem 0 !important;
   border-radius: 1rem;
   background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 20px 50px rgba(0, 166, 81, 0.04);
 }
 
 .searchbar-floating[data-pinned="false"] {
   transform: translateY(0) scale(1.02);
-  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 30px 60px -12px rgba(0, 166, 81, 0.06);
 }
 
 .searchbar-floating:hover {
   background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 40px 80px -15px rgba(0, 166, 81, 0.08);
 }
 
 .sb-cell {
@@ -406,7 +406,7 @@ select option[value="All"] {
   -webkit-overflow-scrolling: touch;
   /* keep a visible background and slightly raised stacking context */
   background-color: #fff !important;
-  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+  box-shadow: 0 10px 30px rgba(0, 166, 81, 0.03);
 }
 
 /* reduce per-cell min width in pinned mode so more selects are visible */
@@ -664,7 +664,7 @@ select option[value="All"] {
   padding: 0.25rem 0.25rem !important;
   border-radius: 999px !important;
   /* more pill-like when compact */
-  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+  box-shadow: 0 10px 30px rgba(0, 166, 81, 0.03);
   background-color: #fff !important;
 }
 

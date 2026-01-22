@@ -848,7 +848,7 @@ export default function SearchBar({ className = "", options }: Props) {
 
     const mobileInlineInner = (
         <div className="w-full max-w-md mx-auto px-4 pb-2">
-            <div className="flex items-center gap-2 rounded-full border border-gray-100 bg-white/90 backdrop-blur-md shadow-xl px-4 py-3">
+            <div className="flex items-center gap-2 rounded-full border border-gray-100/20 bg-white/95 backdrop-blur-md shadow-[0_8px_32px_rgba(0,166,81,0.15)] px-4 py-3 transition-all">
                 <input
                     type="text"
                     value={mobileQuery}
@@ -935,7 +935,7 @@ export default function SearchBar({ className = "", options }: Props) {
                     }}
                 >
                     <div className="px-4" style={{ width: "min(420px, 94vw)", margin: "0 auto" }}>
-                        <div className="flex items-center gap-2 rounded-full border border-gray-100 bg-white/90 backdrop-blur-md shadow-2xl px-4 py-2">
+                        <div className="flex items-center gap-2 rounded-full border border-gray-100/20 bg-white/95 backdrop-blur-md shadow-[0_8px_32px_rgba(0,166,81,0.15)] px-4 py-2 transition-all">
                             <input
                                 type="text"
                                 value={mobileQuery}
@@ -975,7 +975,7 @@ export default function SearchBar({ className = "", options }: Props) {
                         opacity: !isNavbarVisible ? 0 : 1,
                     }}
                 >
-                    <div className="searchbar-floating px-3 py-2 pointer-events-auto shadow-2xl">
+                    <div className="searchbar-floating px-3 py-2 pointer-events-auto border-transparent shadow-[0_8px_32px_rgba(0,166,81,0.10)]">
                         {compactInner}
                     </div>
                 </div>

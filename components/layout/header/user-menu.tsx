@@ -85,10 +85,10 @@ export const UserMenu: React.FC<UserMenuProps> = ({
 
     // Helper for rendering avatar image or initial
     const renderAvatar = (size: "sm" | "md") => {
-        const dim = size === "sm" ? 40 : 40;
+        const dim = size === "sm" ? 48 : 56;
         if (hasRealPic) {
             return (
-                <div className={size === "sm" ? "w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-[#ececec] bg-[#fffdf8] overflow-hidden" : "w-10 h-10 rounded-full overflow-hidden ring-1 ring-gray-200"}>
+                <div className={size === "sm" ? "w-12 h-12 md:w-10 md:h-10 rounded-full border-2 border-[#DEB735] bg-[#fffdf8] overflow-hidden" : "w-10 h-10 rounded-full overflow-hidden ring-1 ring-gray-200"}>
                     <Image
                         src={picToShow as string}
                         alt="Profile"
@@ -104,13 +104,15 @@ export const UserMenu: React.FC<UserMenuProps> = ({
         }
         if (effectiveInitial) {
             return (
-                <div className={size === "sm" ? "w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#B8071C] text-white font-extrabold grid place-items-center md:text-xl" : "w-10 h-10 rounded-full bg-[#B8071C] text-white text-sm font-semibold grid place-items-center ring-1 ring-gray-200"}>
+                <div className={size === "sm" ? "w-12 h-12 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-[#B8071C] to-[#d60821] text-white font-black grid place-items-center text-lg shadow-sm border-2 border-[#DEB735]" : "w-10 h-10 rounded-full bg-[#B8071C] text-white text-sm font-semibold grid place-items-center ring-1 ring-gray-200"}>
                     {effectiveInitial}
                 </div>
             );
         }
         return (
-            <div className={size === "sm" ? "w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-200 text-gray-600 font-medium grid place-items-center" : "w-10 h-10 rounded-full bg-gray-200 ring-1 ring-gray-300"} />
+            <div className={size === "sm" ? "w-12 h-12 md:w-10 md:h-10 rounded-full bg-gray-50 text-gray-400 grid place-items-center border-2 border-[#DEB735]" : "w-10 h-10 rounded-full bg-gray-200 ring-1 ring-gray-300"}>
+                <User size={size === "sm" ? 22 : 18} strokeWidth={1.5} />
+            </div>
         );
     };
 

@@ -181,13 +181,13 @@ function HeaderContent({ initialLoggedIn }: HeaderProps) {
 							{/* Left Slot: Menu */}
 							<div className="flex items-center justify-start">
 								<button
-									className="p-3 -ms-3 md:-ms-4 rounded-md text-[#1e2a5e] hover:text-[#B8071C] hover:bg-[#f8fafc] transition-colors w-13 h-13 md:w-18 md:h-18 flex items-center justify-center"
+									className="p-3 -ms-3 md:-ms-4 rounded-md text-[#DEB735] hover:text-[#B8071C] hover:bg-gold/5 transition-colors w-16 h-16 md:w-22 md:h-22 flex items-center justify-center"
 									aria-label="Menu"
 									aria-expanded={menuOpen}
 									type="button"
 									onClick={() => setMenuOpen(true)}
 								>
-									<svg viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-5 md:w-9 md:h-7">
+									<svg viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-6 md:w-12 md:h-9">
 										<rect x="0" y="1" width="20" height="2" rx="1" fill="currentColor" />
 										<rect x="0" y="7" width="20" height="2" rx="1" fill="currentColor" />
 										<rect x="0" y="13" width="20" height="2" rx="1" fill="currentColor" />
@@ -285,6 +285,7 @@ function HeaderContent({ initialLoggedIn }: HeaderProps) {
 				setLanguage={setLanguage}
 				stablePicRef={stablePicRef}
 				localProfilePic={localProfilePic}
+				serverUser={serverUser}
 			/>
 		</>
 	);

@@ -73,6 +73,14 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
                 </span>
             </button>
 
+            {languageOpen && (
+                <div
+                    className="fixed z-[100001] bg-transparent"
+                    style={{ top: -2000, left: -2000, right: -2000, bottom: -2000 }}
+                    onClick={() => setLanguageOpen(false)}
+                    aria-hidden="true"
+                />
+            )}
             <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} top-full mt-2 w-[180px] bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-[100002] py-1 transition-all duration-200 ${isRTL ? 'origin-top-left' : 'origin-top-right'} ${languageOpen ? "opacity-100 visible scale-100 pointer-events-auto" : "opacity-0 invisible scale-95 pointer-events-none"}`}>
                 {languages.map((lang) => (
                     <button

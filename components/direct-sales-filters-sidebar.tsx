@@ -471,7 +471,9 @@ export function DirectSalesFiltersSidebar({ options, className, mobile = false, 
         finalParamString = "reset=true"
       }
 
-      if (finalParamString === currentParamStr) return
+      // If URL already matches AND we have a result count, we can skip navigation & count fetch.
+      // But if resultCount is null (e.g. after reset), we MUST proceed to fetch it.
+      if (finalParamString === currentParamStr && resultCount !== null) return
 
       setIsUpdating(true)
       markInProgress(finalParamString)
@@ -485,9 +487,22 @@ export function DirectSalesFiltersSidebar({ options, className, mobile = false, 
     }
   }, [state])
 
+  // Sync Saved Toggle state
+  // Stay ACTIVE as long as a saved search exists, fulfilling user preference
+  // even if current filters don't match.
+  useEffect(() => {
+    if (!authChecked || !_isLoaded) return
+    const shouldBeActive = !!_savedParamsString
+    if (_isSavedActive !== shouldBeActive) {
+      _setIsSavedActive(shouldBeActive)
+    }
+  }, [_savedParamsString, authChecked, _isLoaded])
+
   const resetFilters = () => {
     // Cancel any pending debounced navigation
     try { if (debounceRef.current) window.clearTimeout(debounceRef.current) } catch { }
+    // Force count refresh by setting to null
+    setResultCount(null)
     // Use client-side navigation instead of hard reload to keep history stack clean
     router.push(`/${language}/direct-sales?reset=true`)
   }

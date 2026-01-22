@@ -1,22 +1,17 @@
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
-import { verifyToken } from "@/lib/mysql-auth"
+import { auth } from "@/auth"
 import prisma from "@/lib/prisma"
 import { error as logError } from "@/lib/logger"
 
 export async function GET(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const tokenFromCookie = cookieStore.get("auth_token")?.value
-    const authHeader = request.headers.get("authorization") || ""
-    const token = tokenFromCookie ?? (authHeader.startsWith("Bearer ") ? authHeader.replace("Bearer ", "") : undefined)
-
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    const payload = await verifyToken(token)
-    if (!payload) return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+    const session = await auth()
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
     const user = await prisma.users.findUnique({
-      where: { email: payload.email as string }
+      where: { email: session.user.email }
     })
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
@@ -49,17 +44,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const tokenFromCookie = cookieStore.get("auth_token")?.value
-    const authHeader = request.headers.get("authorization") || ""
-    const token = tokenFromCookie ?? (authHeader.startsWith("Bearer ") ? authHeader.replace("Bearer ", "") : undefined)
-
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    const payload = await verifyToken(token)
-    if (!payload) return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+    const session = await auth()
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
     const user = await prisma.users.findUnique({
-      where: { email: payload.email as string }
+      where: { email: session.user.email }
     })
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
