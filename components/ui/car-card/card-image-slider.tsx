@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, Camera } from "lucide-react"
 import { useTranslation } from "@/lib/i18n-context"
 
 interface CarCardImageSliderProps {
-    photos: string[]
+    photos: (string | { url: string; blurhash?: string | null })[]
     alt: string
     href: string
     aspectRatioClass?: string
@@ -121,12 +121,14 @@ export function CarCardImageSlider({
         touchEndY.current = 0
     }, [handleNav, displayPhotos.length])
 
-    const currentPhoto = displayPhotos[photoIndex]
+    const currentPhotoItem = displayPhotos[photoIndex]
+    const currentSrc = typeof currentPhotoItem === 'string' ? currentPhotoItem : currentPhotoItem.url
+    const currentBlur = typeof currentPhotoItem === 'string' ? null : currentPhotoItem.blurhash
 
     return (
         <div
             ref={containerRef}
-            className={`relative bg-gray-100 overflow-hidden ${aspectRatioClass} group showroom-card-image`}
+            className={`relative bg-gray-100 overflow-hidden ${aspectRatioClass} group car-card-image`}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -185,7 +187,7 @@ export function CarCardImageSlider({
             {/* Main Image Link - Desktop: standard link behavior. Touch: default prevents link. */}
             <Link href={href} className="absolute inset-0 z-10 block" aria-label={alt}>
                 <Image
-                    src={currentPhoto || "/placeholder.svg"}
+                    src={currentSrc || "/placeholder.svg"}
                     alt={alt}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -193,6 +195,8 @@ export function CarCardImageSlider({
                     priority={priority && photoIndex === 0}
                     loading={priority ? "eager" : "lazy"}
                     unoptimized
+                    placeholder={currentBlur ? "blur" : "empty"}
+                    blurDataURL={currentBlur ?? undefined}
                 />
             </Link>
         </div>

@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { X, Home, Gavel, Car, Info, User, LogOut, LogIn, UserPlus, ChevronRight } from "lucide-react";
+import { X, Home, Gavel, Car, Info, User, LogOut, LogIn, UserPlus, ChevronRight, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { normalizePhotoUrl } from "./utils";
 import { HeaderUserSnapshot } from "./types";

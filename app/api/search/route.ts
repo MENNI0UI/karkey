@@ -34,6 +34,7 @@ export async function GET(request: Request) {
       "exteriorColor",
       "interiorColor",
       "originalPaint",
+      "type",
     ]) {
       if (multiFilterKeys.includes(k)) {
         const v = url.searchParams.getAll(k);

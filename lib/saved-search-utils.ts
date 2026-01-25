@@ -2,7 +2,7 @@
 
 /**
  * Shared utilities for managing saved search cookies across different pages.
- * This eliminates code duplication across showroom, direct-sales, and auction filter sidebars.
+ * This eliminates code duplication across direct-sales and auction filter sidebars.
  */
 
 export type SavedSearchType = 'direct-sales' | 'auctions';

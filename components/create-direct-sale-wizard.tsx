@@ -699,7 +699,10 @@ function StepCarDetails({ data, update, t, models }: any) {
             required
             value={data.location || ""}
             onChange={(e) => update({ location: e.target.value })}
-            options={locations.map((l) => ({ value: l, label: l }))}
+            options={locations.map((l) => ({
+              value: l,
+              label: translate(`location.city.${l.toLowerCase().replace(/\s+/g, '')}` as any) || l
+            }))}
             placeholder={t("select")}
           />
         </div>
@@ -755,7 +758,7 @@ function StepCarDetails({ data, update, t, models }: any) {
           label={t("specialFeatures")}
           value={data.special_features || ""}
           onChange={(e) => update({ special_features: e.target.value })}
-          placeholder="List any special features, upgrades, or unique selling points..."
+          placeholder={translate("wizard.fields.special_features_placeholder")}
           rows={3}
         />
       </WizardCard>
@@ -767,7 +770,7 @@ function StepCarDetails({ data, update, t, models }: any) {
           required
           value={data.description || ""}
           onChange={(e) => update({ description: e.target.value })}
-          placeholder="Describe your vehicle in detail..."
+          placeholder={translate("wizard.fields.description_placeholder")}
           rows={6}
           charCount={descriptionLength}
           minChars={20}
@@ -1004,7 +1007,7 @@ function StepPricing({ data, update, t }: any) {
             value={data.price || ""}
             onChange={(e) => update({ price: e.target.value })}
             placeholder="e.g. 50000"
-            suffix="MAD"
+            suffix={translate("common.mad")}
             hint={translate("wizard.pricing.min_price") || "Minimum 10,000 MAD"}
             error={priceTooLow ? translate("wizard.pricing.price_too_low") || "Price must be at least 10,000 MAD" : undefined}
           />
@@ -1062,7 +1065,7 @@ function StepPricing({ data, update, t }: any) {
                         value={data.auction_starting_price || ""}
                         onChange={(e) => update({ auction_starting_price: e.target.value })}
                         placeholder="e.g. 30000"
-                        suffix="MAD"
+                        suffix={translate("common.mad")}
                         hint={translate("auction.consent.starting_price_hint") || "Bidding starts at this price"}
                         error={auctionStartingPriceError}
                       />
@@ -1074,7 +1077,7 @@ function StepPricing({ data, update, t }: any) {
                         value={data.auction_reserve_price || ""}
                         onChange={(e) => update({ auction_reserve_price: e.target.value })}
                         placeholder="e.g. 45000"
-                        suffix="MAD"
+                        suffix={translate("common.mad")}
                         hint={translate("auction.consent.reserve_price_hint") || "Minimum price you'll accept"}
                         error={auctionReservePriceError}
                       />
@@ -1244,7 +1247,7 @@ function StepReview({ data, t }: any) {
                 </span>
               </div>
               <p className="text-3xl font-bold text-[#B8071C] mt-4">
-                {data.price ? `${Number(data.price).toLocaleString()} MAD` : "—"}
+                {data.price ? `${Number(data.price).toLocaleString()} ${translate('common.mad')}` : "—"}
               </p>
               <p className="text-sm text-gray-500">{t("askingPrice")}</p>
             </div>
@@ -1259,7 +1262,7 @@ function StepReview({ data, t }: any) {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={getIcon("mileage")} alt="" className="w-5 h-5 opacity-70" />
                     <span className="font-semibold text-[#103090]">
-                      {data.mileage ? `${Number(data.mileage).toLocaleString()} km` : "—"}
+                      {data.mileage ? `${Number(data.mileage).toLocaleString()} ${translate("unit.km")}` : "—"}
                     </span>
                   </div>
                 </div>

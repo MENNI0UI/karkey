@@ -45,14 +45,14 @@ export async function GET(request: Request) {
     let vehicleByType: any[] = []
     let topCities: any[] = []
 
-    // Auctions data
+    // Auctions data (from direct_sales with auction_mode=true)
     try {
       auctionDaily = await prisma.$queryRaw<any[]>`
         SELECT 
           DATE(created_at) as date,
           COUNT(*) as count
-        FROM auctions
-        WHERE created_at >= ${startDate}
+        FROM direct_sales
+        WHERE created_at >= ${startDate} AND auction_mode = true
         GROUP BY DATE(created_at)
         ORDER BY date ASC
       `
@@ -63,14 +63,13 @@ export async function GET(request: Request) {
     try {
       const result = await prisma.$queryRaw<any[]>`
         SELECT 
-          status,
+          COALESCE(auction_status, 'none') as status,
           COUNT(*) as count
-        FROM auctions
-        WHERE created_at >= ${startDate}
-        GROUP BY status
+        FROM direct_sales
+        WHERE created_at >= ${startDate} AND auction_mode = true
+        GROUP BY auction_status
       `
       auctionByStatus = Array.isArray(result) ? result : []
-      console.log("[Charts API] Auction byStatus raw result:", JSON.stringify(result))
     } catch (e) {
       console.log("Auction status query error:", e)
     }
@@ -78,12 +77,11 @@ export async function GET(request: Request) {
     try {
       topBrands = await prisma.$queryRaw<any[]>`
         SELECT 
-          v.make as brand,
+          make as brand,
           COUNT(*) as count
-        FROM auctions a
-        JOIN vehicles v ON a.vehicle_id = v.id
-        WHERE a.created_at >= ${startDate}
-        GROUP BY v.make
+        FROM direct_sales
+        WHERE created_at >= ${startDate} AND auction_mode = true
+        GROUP BY make
         ORDER BY count DESC
         LIMIT 10
       `
@@ -91,7 +89,7 @@ export async function GET(request: Request) {
       console.log("Top brands query error:", e)
     }
 
-    // Users data
+    // Users data (Unchanged)
     try {
       userDaily = await prisma.$queryRaw<any[]>`
         SELECT 
@@ -132,13 +130,14 @@ export async function GET(request: Request) {
       console.log("User status query error:", e)
     }
 
-    // Vehicles data
+    // Vehicles data (from direct_sales, potentially excluding auctions or including all)
+    // Let's include all direct sales (auction_mode = false or null) as 'standard vehicles'
     try {
       vehicleDaily = await prisma.$queryRaw<any[]>`
         SELECT 
           DATE(created_at) as date,
           COUNT(*) as count
-        FROM vehicles
+        FROM direct_sales
         WHERE created_at >= ${startDate}
         GROUP BY DATE(created_at)
         ORDER BY date ASC
@@ -150,11 +149,14 @@ export async function GET(request: Request) {
     try {
       vehicleByType = await prisma.$queryRaw<any[]>`
         SELECT 
-          COALESCE(listing_type, 'showroom') as type,
+          CASE 
+            WHEN auction_mode = true THEN 'auction'
+            ELSE 'direct_sale'
+          END as type,
           COUNT(*) as count
-        FROM vehicles
+        FROM direct_sales
         WHERE created_at >= ${startDate}
-        GROUP BY listing_type
+        GROUP BY type
       `
     } catch (e) {
       console.log("Vehicle type query error:", e)
@@ -165,7 +167,7 @@ export async function GET(request: Request) {
         SELECT 
           location as city,
           COUNT(*) as count
-        FROM vehicles
+        FROM direct_sales
         WHERE created_at >= ${startDate}
           AND location IS NOT NULL
           AND location != ''
@@ -242,7 +244,7 @@ export async function GET(request: Request) {
       vehicles: {
         daily: formatDailyData(vehicleDaily, days),
         byType: vehicleByType.map((t: any) => ({
-          type: t.type || "showroom",
+          type: t.type || "direct_sale",
           count: Number(t.count) || 0
         })),
         topCities: topCities.map((c: any) => ({
@@ -251,8 +253,6 @@ export async function GET(request: Request) {
         }))
       }
     }
-
-    console.log("[Charts API] Final byStatus data:", JSON.stringify(chartData.auctions.byStatus))
 
     return NextResponse.json({ success: true, data: chartData })
   } catch (error) {

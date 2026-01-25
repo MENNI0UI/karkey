@@ -1,6 +1,19 @@
 
 export type ConditionOption = { value: string; label: string }
 
+export type DirectSalesFilterOptions = {
+    makes?: string[]
+    models?: string[]
+    makeModels?: Record<string, string[]>
+    years?: Array<string | number>
+    fuelTypes?: Array<{ value: string; label: string } | string>
+    transmissions?: string[]
+    locations?: string[]
+    conditions?: Array<{ value: string; label: string } | string>
+    minPrice?: number
+    maxPrice?: number
+}
+
 // Type for raw condition input that could come from database
 interface RawConditionObject {
     value?: string | null
@@ -83,7 +96,7 @@ export const canonicalizeParams = (input?: URLSearchParams | Record<string, any>
     const entries: Array<[string, string]> = []
     if (input instanceof URLSearchParams) {
         input.forEach((value, key) => {
-            if (key === "reset" || (value !== undefined && value !== null && String(value) !== "All" && String(value) !== "")) {
+            if (key !== "reset" && value !== undefined && value !== null && String(value) !== "All" && String(value) !== "") {
                 entries.push([key, String(value)])
             }
         })
@@ -98,7 +111,7 @@ export const canonicalizeParams = (input?: URLSearchParams | Record<string, any>
                 })
             } else {
                 const str = String(value)
-                if ((!str || str === "All") && key !== "reset") return
+                if (!str || str === "All" || key === "reset") return
                 entries.push([key, str])
             }
         })
@@ -153,7 +166,8 @@ export const DEFAULTS = {
     makes: ["Renault", "Toyota", "Peugeot"],
     models: ["Clio", "208", "Corolla"],
     years: ["2024", "2023", "2022"],
-    transmissions: ["Automatic", "Manual"],
+    // Lowercase to match Prisma enum and URL params
+    transmissions: ["automatic", "manual"],
     locations: ["Casablanca", "Rabat", "Agadir"],
     conditions: DEFAULT_CONDITION_OPTIONS,
     doors: ["2", "3", "4", "5"],

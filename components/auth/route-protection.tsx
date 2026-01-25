@@ -8,7 +8,7 @@ import Link from "next/link";
 import { LogIn, UserPlus, ArrowLeft } from "lucide-react";
 
 interface RouteProtectionProps {
-    redirectType: 'auction' | 'showroom' | 'direct-sale';
+    redirectType: 'auction' | 'direct-sale';
 }
 
 export default function RouteProtection({ redirectType }: RouteProtectionProps) {
@@ -70,7 +70,7 @@ export default function RouteProtection({ redirectType }: RouteProtectionProps) 
                     {/* Action Buttons */}
                     <div className="space-y-3">
                         <Link
-                            href={`/${language}/auth/login?redirect=/${language}/${redirectType === 'direct-sale' ? 'direct-sales' : redirectType === 'auction' ? 'auctions' : 'showroom'}/create`}
+                            href={`/${language}/auth/login?redirect=/${language}/${redirectType === 'direct-sale' ? 'direct-sales' : 'auctions'}/create`}
                             className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#B8071C] text-white font-semibold rounded-xl hover:bg-[#910515] transition-colors shadow-lg shadow-[#B8071C]/20"
                         >
                             <LogIn className="w-5 h-5" />
@@ -78,7 +78,7 @@ export default function RouteProtection({ redirectType }: RouteProtectionProps) 
                         </Link>
 
                         <Link
-                            href={`/${language}/auth/register?redirect=/${language}/${redirectType === 'direct-sale' ? 'direct-sales' : redirectType === 'auction' ? 'auctions' : 'showroom'}/create`}
+                            href={`/${language}/auth/register?redirect=/${language}/${redirectType === 'direct-sale' ? 'direct-sales' : 'auctions'}/create`}
                             className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-white text-gray-700 font-semibold rounded-xl border-2 border-gray-200 hover:border-[#B8071C] hover:text-[#B8071C] transition-colors"
                         >
                             <UserPlus className="w-5 h-5" />

@@ -5,7 +5,8 @@ import { X } from "lucide-react"
 import { DirectSaleCard } from "@/components/direct-sale-card"
 import NewItemsNotifier from "@/components/NewItemsNotifier"
 import { useRouter as useNextRouter, useSearchParams } from "next/navigation"
-import { DirectSalesFiltersSidebar, type DirectSalesFilterOptions } from "@/components/direct-sales-filters-sidebar"
+import { DirectSalesFiltersSidebar, DirectSalesFiltersSidebarRef } from "@/components/direct-sales-filters-sidebar"
+import type { DirectSalesFilterOptions } from "@/lib/filter-utils"
 import { useTranslation } from "@/lib/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { DraggableFilterButton } from "@/components/DraggableFilterButton"
@@ -27,6 +28,12 @@ export default function DirectSalesPageClient({
   const { t, language } = useTranslation()
   const { toast } = useToast()
   const [showFiltersMobile, setShowFiltersMobile] = useState(false)
+  const filtersRef = useRef<DirectSalesFiltersSidebarRef>(null)
+
+  const handleCloseFilters = () => {
+    filtersRef.current?.applyFilters()
+    setShowFiltersMobile(false)
+  }
 
   // Scroll-lock for mobile filters
   useEffect(() => {
@@ -54,14 +61,11 @@ export default function DirectSalesPageClient({
   const searchParams = useSearchParams()
   const paramString = searchParams ? searchParams.toString() : ""
 
+  // Close mobile filters when URL changes (Apply clicked)
   useEffect(() => {
-    // initialSavedState is passed from server
-  }, [])
+    setShowFiltersMobile(false)
+  }, [searchParams])
 
-  // Shared saved-search state so desktop and mobile sidebars stay in sync
-  const [savedParamsString, setSavedParamsString] = useState<string | null>(initialSavedState?.paramsStr ?? null)
-  const [isSavedActive, setIsSavedActive] = useState<boolean>(!!initialSavedState?.savedId || !!initialSavedState?.isMatch)
-  const [isLoaded, setIsLoaded] = useState<boolean>(false)
   // Create refs for scroll handling
   const [globalFilters, setGlobalFilters] = useState<{ make: string; model: string; year: string | number }[]>([])
 
@@ -346,7 +350,7 @@ export default function DirectSalesPageClient({
       toast({
         title: t("common.error"),
         description: t("direct_sales.unverified_error"),
-        variant: "destructive",
+        variant: "error",
       })
       try {
         const url = new URL(window.location.href)
@@ -369,7 +373,7 @@ export default function DirectSalesPageClient({
         toast({
           title: t("common.error"),
           description: t("direct_sales.unverified_error"),
-          variant: "destructive",
+          variant: "error",
         })
         return
       }
@@ -388,15 +392,10 @@ export default function DirectSalesPageClient({
     <div className="min-h-screen bg-[#f8fafc] flex flex-col">
       <div className="w-full lg:px-0 lg:flex items-start flex-1">
         <DirectSalesFiltersSidebar
+          ref={filtersRef}
           options={dynamicFilterOptions}
           className="flex-shrink-0"
-          savedParamsString={savedParamsString}
-          setSavedParamsString={setSavedParamsString}
-          isSavedActive={isSavedActive}
-          setIsSavedActive={setIsSavedActive}
-          isLoaded={isLoaded}
-          setIsLoaded={setIsLoaded}
-          initialSavedId={initialSavedState?.savedId}
+          initialSavedState={initialSavedState}
         />
         <div className="flex-1 w-full min-w-0 px-4 lg:px-6 xl:px-8 pt-4">
           {loading ? (
@@ -465,13 +464,14 @@ export default function DirectSalesPageClient({
           <div id="filters-footer-sentinel" className="w-full h-px" aria-hidden="true" />
         </div>
       </div>
-      {/* Mobile filters panel */}
       {showFiltersMobile ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowFiltersMobile(false)} />
-          <div className="absolute inset-0 bg-white shadow-xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-[110000] lg:hidden">
+          {/* Backdrop - z-10 to be BEHIND the content panel */}
+          <div className="absolute inset-0 z-10 bg-black/50" onClick={handleCloseFilters} />
+          {/* Content panel - z-20 to be ABOVE the backdrop */}
+          <div className="absolute inset-0 z-20 bg-white shadow-xl flex flex-col overflow-hidden pointer-events-auto">
             <button
-              onClick={() => setShowFiltersMobile(false)}
+              onClick={handleCloseFilters}
               aria-label="Close filters"
               title="Close filters"
               className="absolute right-4 top-2.5 z-50 inline-flex items-center justify-center w-11 h-11 rounded-full bg-[#B8071C] text-white shadow-[0_4px_12px_rgba(184,7,28,0.3)] hover:bg-[#910515] active:scale-95 transition-all outline-none ring-2 ring-white/10"
@@ -485,14 +485,20 @@ export default function DirectSalesPageClient({
             <div className="px-4 py-4 border-b bg-white shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
               <button
                 type="button"
-                onClick={() => setShowFiltersMobile(false)}
+                onClick={handleCloseFilters}
                 className="w-full inline-flex items-center justify-center bg-gradient-to-r from-[#B8071C] to-[#D31027] hover:from-[#910515] hover:to-[#B8071C] text-white rounded-xl h-14 text-lg font-bold shadow-[0_4px_15px_rgba(184,7,28,0.25)] active:scale-[0.98] transition-all"
               >
                 {t("direct_sales.close")}
               </button>
             </div>
             <div className="p-0 flex-1 overflow-hidden">
-              <DirectSalesFiltersSidebar options={dynamicFilterOptions} mobile className="h-full" savedParamsString={savedParamsString} setSavedParamsString={setSavedParamsString} isSavedActive={isSavedActive} setIsSavedActive={setIsSavedActive} isLoaded={isLoaded} setIsLoaded={setIsLoaded} initialSavedId={initialSavedState?.savedId} />
+              <DirectSalesFiltersSidebar
+                ref={filtersRef}
+                options={dynamicFilterOptions}
+                mobile
+                className="h-full"
+                initialSavedState={initialSavedState}
+              />
             </div>
           </div>
         </div>

@@ -371,9 +371,8 @@ export default function AdminPlansClient({ initialPlans, adminInfo }: AdminPlans
               .map((plan) => (
                 <div
                   key={plan.id}
-                  className={`rounded-2xl p-6 transition-all shadow-sm ${
-                    plan.status === "inactive" ? "bg-gray-50 opacity-60" : "bg-white hover:shadow-md"
-                  } ${plan.popular ? "ring-2 ring-[#B8071C]" : "border border-gray-100"}`}
+                  className={`rounded-2xl p-6 transition-all shadow-sm ${plan.status === "inactive" ? "bg-gray-50 opacity-60" : "bg-white hover:shadow-md"
+                    } ${plan.popular ? "ring-2 ring-[#B8071C]" : "border border-gray-100"}`}
                 >
                   {/* Header: Icon + Name + Price */}
                   <div className="flex items-start justify-between gap-3 mb-4">
@@ -560,7 +559,7 @@ export default function AdminPlansClient({ initialPlans, adminInfo }: AdminPlans
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 🌐 Translations
               </h3>
-              
+
               {/* Arabic Translations */}
               <div className="bg-gray-50 rounded-lg p-4 mb-4">
                 <h4 className="font-medium text-gray-700 mb-3">العربية (Arabic)</h4>

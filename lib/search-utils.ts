@@ -39,13 +39,52 @@ function initReverseMap() {
 
     // Process Dictionary (Makes, Cities, Colors, etc.)
     Object.entries(SEARCH_DICTIONARY).forEach(([standard, variants]) => {
-        // Map standard term itself if needed (optional, assuming standard is target)
-        // reverseMap!.set(standard.toLowerCase(), standard);
-
         variants.forEach(v => {
             reverseMap!.set(String(v).toLowerCase().trim(), standard);
         });
     });
+}
+
+// 🔐 Strict Enum Definitions (Must match prisma/schema.prisma lowercase values)
+const ENUM_MAPS = {
+    fuel: {
+        gasoline: ["Petrol", "Gasoline", "Essence", "Benzine", "بنزين", "ايصانص", "Gasolina"],
+        diesel: ["Diesel", "Mazot", "Gazole", "ديزل", "كازوال", "Diésel", "Gasóleo"],
+        electric: ["Electric", "Electrique", "كهربائية", "كهرباء", "Eléctrico"],
+        hybrid: ["Hybrid", "Hybride", "هجينة", "هجين", "Híbrido"]
+    },
+    transmission: {
+        manual: ["Manual", "Manuelle", "boite", "manuel", "يدوي", "مانويل", "عادي"],
+        automatic: ["Automatic", "Automatique", "auto", "أوتوماتيك", "اوتوماتيك", "أتوماتيك", "اتوماتيك", "أوتو", "اوتو", "Automático"]
+    },
+    condition: {
+        excellent: ["Excellent", "Parfaite", "Neuve", "ممتازة", "نظيفة", "Excelente", "Perfecto"],
+        good: ["Good", "Bonne", "جيدة", "Bueno"],
+        fair: ["Fair", "Moyenne", "متوسطة", "Medio"],
+        poor: ["Poor", "Mauvaise", "سيئة", "Malo"]
+    }
+} as const;
+
+/**
+ * Returns valid Prisma Enum keys that "match" a query string (even partially).
+ * e.g. getEnumMatches("ب", "fuel") -> ["gasoline"] (matches "بنزين")
+ */
+export function getEnumMatches(query: string, category: keyof typeof ENUM_MAPS): string[] {
+    const q = query.toLowerCase().trim();
+    if (!q) return [];
+
+    const categoryMap = ENUM_MAPS[category];
+    const matches = new Set<string>();
+
+    Object.entries(categoryMap).forEach(([enumValue, synonyms]) => {
+        // Also check standard term variants (e.g. Petrol) and localized terms
+        const allTerms = [enumValue, ...synonyms];
+        if (allTerms.some(term => term.toLowerCase().includes(q))) {
+            matches.add(enumValue);
+        }
+    });
+
+    return Array.from(matches);
 }
 
 /**
@@ -70,6 +109,44 @@ export function getSearchTermVariants(term: string): string[] {
     // For now, let's stick to strict reverse mapping for stability.
 
     return Array.from(variants);
+}
+
+/**
+ * Returns the standard English DB value for any localized synonym.
+ * e.g. "essence" -> "Petrol", "تويوتا" -> "Toyota"
+ * Returns original if no mapping found.
+ */
+export function getStandardTerm(term: string): string {
+    if (!reverseMap) initReverseMap();
+    const normalized = term.toLowerCase().trim();
+
+    // 1. Initial synonym check (localized -> Standard name like "Petrol")
+    const result = reverseMap!.get(normalized) || term;
+
+    // 2. Final Enum mapping (Standard name -> lowercase DB value like "gasoline")
+    // This handles the gap between Dictionary (UI) and Prisma Schema (DB)
+    for (const category of Object.values(ENUM_MAPS)) {
+        for (const [enumValue, synonyms] of Object.entries(category)) {
+            const allTerms = [enumValue, ...synonyms].map(s => s.toLowerCase());
+            if (allTerms.includes(result.toLowerCase())) {
+                return enumValue; // e.g. "gasoline", "manual"
+            }
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Normalizes one or more search filters.
+ * e.g. "essence" -> "Petrol", ["essence", "diesel"] -> ["Petrol", "Diesel"]
+ */
+export function normalizeSearchFilter(val: string | string[] | undefined): any {
+    if (!val) return val;
+    if (Array.isArray(val)) {
+        return val.map(v => getStandardTerm(String(v)));
+    }
+    return getStandardTerm(String(val));
 }
 
 /**

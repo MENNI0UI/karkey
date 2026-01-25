@@ -3,7 +3,7 @@
 import path from "path"
 import prisma from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/mysql-auth"
-import { maybeApplyWatermark, getContentTypeFromExt } from "@/lib/image-processing"
+import { maybeApplyWatermark, getContentTypeFromExt, generateTinyPlaceholder } from "@/lib/image-processing"
 import { parseOrThrow, CreateDirectSaleSchema } from "@/lib/schemas"
 import { Prisma } from "@prisma/client"
 import { revalidateTag } from "next/cache"
@@ -162,7 +162,7 @@ export async function createDirectSale(prevState: any, formData: FormData) {
         // But we need the ID first for photos, so we create the record first.
 
         // Process photos sequentially to avoid server overload
-        const photoPaths: string[] = []
+        const photoPaths: { url: string; blurhash: string | null }[] = []
         console.log(`[direct-sales] Starting batched processing of ${photos.length} photos (concurrency: 3)`)
 
         // Process photos in batches of 3 to speed up but avoid crashing server
@@ -188,6 +188,9 @@ export async function createDirectSale(prevState: any, formData: FormData) {
                     const { data } = await maybeApplyWatermark(buffer, contentType, filename)
                     buffer = Buffer.from(data)
 
+                    // Generate Placeholder (BlurHash equivalent)
+                    const blurhash = await generateTinyPlaceholder(buffer)
+
                     await R2.send(new PutObjectCommand({
                         Bucket: process.env.R2_BUCKET_NAME,
                         Key: key,
@@ -197,7 +200,7 @@ export async function createDirectSale(prevState: any, formData: FormData) {
 
                     const url = `${process.env.R2_PUBLIC_DOMAIN}/${key}`
                     console.log(`[direct-sales] Photo ${globalIndex + 1} uploaded in ${Date.now() - startTime}ms`)
-                    return url
+                    return { url, blurhash }
                 } catch (e) {
                     console.warn(`[direct-sales] Photo ${globalIndex + 1} failed:`, e)
                     return null
@@ -205,8 +208,8 @@ export async function createDirectSale(prevState: any, formData: FormData) {
             })
 
             const batchResults = await Promise.all(batchPromises)
-            batchResults.forEach(url => {
-                if (url) photoPaths.push(url)
+            batchResults.forEach(res => {
+                if (res) photoPaths.push(res)
             })
         }
 
@@ -250,18 +253,31 @@ export async function createDirectSale(prevState: any, formData: FormData) {
         }
 
         // Save photos to DB
-        const validPhotos = photoPaths.filter(p => p !== null) as string[]
+        const validPhotos = photoPaths.filter(p => p !== null)
         const validServiceDocs = serviceDocPaths.filter(p => p !== null) as string[]
 
         const allPhotos = [...validPhotos, ...validServiceDocs]
 
         if (allPhotos.length > 0) {
             await prisma.direct_sale_photos.createMany({
-                data: allPhotos.map((url, index) => ({
-                    direct_sale_id: directSaleId,
-                    photo_url: url,
-                    position_order: index
-                }))
+                data: allPhotos.map((item, index) => {
+                    // Handle both string URLs (legacy/service docs) and object {url, blurhash}
+                    if (typeof item === 'string') {
+                        return {
+                            direct_sale_id: directSaleId,
+                            photo_url: item,
+                            position_order: index,
+                            blurhash: null
+                        }
+                    } else {
+                        return {
+                            direct_sale_id: directSaleId,
+                            photo_url: item.url,
+                            position_order: index,
+                            blurhash: item.blurhash
+                        }
+                    }
+                })
             })
         }
 

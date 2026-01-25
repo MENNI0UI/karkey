@@ -8,7 +8,7 @@ import { cookies } from "next/headers";
 import { I18nProvider } from "@/lib/i18n-context";
 import Script from "next/script";
 import { notFound } from "next/navigation";
-import { Language } from "@/lib/translations";
+import { Language, loadTranslations } from "@/lib/translations";
 import { DM_Sans, Noto_Sans_Arabic, DM_Serif_Display, Amiri } from "next/font/google";
 
 const dmSans = DM_Sans({
@@ -41,10 +41,78 @@ const amiri = Amiri({
     display: "swap",
 });
 
-export const metadata = {
-    title: "Karkey",
-    description: "Vehicle auctions and marketplace",
-};
+export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<any> {
+    const { lang } = await params;
+    const isAr = lang === 'ar';
+    const siteName = "Karkey";
+
+    // Core translation mapping for SEO
+    // We fetch these manually here to keep generateMetadata simple and fast
+    const seoData: Record<string, { title: string, description: string }> = {
+        en: {
+            title: "Karkey | Buy & Sell Cars in Morocco",
+            description: "Discover the finest selection of vehicles across Morocco. Join our exclusive auctions or buy directly from verified owners."
+        },
+        fr: {
+            title: "Karkey | Achat et Vente de Voitures au Maroc",
+            description: "Découvrez la meilleure sélection de véhicules à travers le Maroc. Rejoignez nos enchères exclusives ou achetez directement auprès de propriétaires vérifiés."
+        },
+        ar: {
+            title: "كاركي | بيع وشراء السيارات في المغرب",
+            description: "اكتشف أفضل مجموعة من السيارات في جميع أنحاء المغرب. انضم إلى مزاداتنا الحصرية أو اشترِ مباشرة من المالكين الموثوقين."
+        },
+        es: {
+            title: "Karkey | Compra y Vende Coches en Marruecos",
+            description: "Descubra la mejor selección de vehículos en todo Marruecos. Únase a nuestras subastas exclusivas o compre directamente a propietarios verificados."
+        }
+    };
+
+    const currentSeo = seoData[lang] || seoData.en;
+
+    return {
+        title: {
+            default: currentSeo.title,
+            template: `%s | ${siteName}`
+        },
+        description: currentSeo.description,
+        metadataBase: new URL("https://karkey.space"),
+        alternates: {
+            canonical: `/${lang}`,
+            languages: {
+                'en-US': '/en',
+                'fr-FR': '/fr',
+                'ar-MA': '/ar',
+                'es-ES': '/es',
+            },
+        },
+        openGraph: {
+            title: currentSeo.title,
+            description: currentSeo.description,
+            url: `https://karkey.space/${lang}`,
+            siteName: siteName,
+            locale: isAr ? 'ar_MA' : lang === 'fr' ? 'fr_FR' : 'en_US',
+            type: 'website',
+            images: [
+                {
+                    url: '/logo.png', // Assuming logo is the best fallback social image
+                    width: 800,
+                    height: 600,
+                    alt: siteName,
+                },
+            ],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: currentSeo.title,
+            description: currentSeo.description,
+            images: ['/logo.png'],
+        },
+        robots: {
+            index: true,
+            follow: true,
+        },
+    };
+}
 
 const locales = ["en", "fr", "ar", "es"];
 

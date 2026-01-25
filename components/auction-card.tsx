@@ -737,7 +737,7 @@ function AuctionCard({ data, priority = false, initialIsWatched }: { data: any, 
           <div className="mb-3 flex items-center gap-2">
             <MapPin className="w-5 h-5 text-[#B8071C]" />
             <span className="text-sm font-medium font-serif text-gray-500">
-              {location ?? t("common.unknown_location")}
+              {t(`location.city.${(location || "").toLowerCase().replace(/\s+/g, '')}` as any) || location || t("common.unknown_location")}
             </span>
           </div>
 
@@ -753,7 +753,7 @@ function AuctionCard({ data, priority = false, initialIsWatched }: { data: any, 
                   const parsed = Number(String(c).replace(/[^0-9.\-]/g, ""))
                   if (!Number.isNaN(parsed) && Number.isFinite(parsed)) { num = parsed; break }
                 }
-                if (num != null) return new Intl.NumberFormat(language === "ar" ? "ar-MA" : "fr-MA", { style: "decimal", maximumFractionDigits: 0 }).format(num) + " MAD"
+                if (num != null) return new Intl.NumberFormat(language === "ar" ? "ar-MA" : "fr-MA", { style: "decimal", maximumFractionDigits: 0 }).format(num) + " " + t('common.mad')
                 return String((data as any)?.displayPrice ?? (data as any)?.display_price ?? "—")
               })()}
             </div>
@@ -765,7 +765,7 @@ function AuctionCard({ data, priority = false, initialIsWatched }: { data: any, 
           {/* Specs Grid */}
           <CarSpecsGrid
             specs={[
-              { iconUrl: "/icons/mileage.png", label: "km", value: mileage ?? undefined },
+              { iconUrl: "/icons/mileage.png", label: t("unit.km"), value: mileage ?? undefined },
               { iconUrl: "/icons/transmission.png", label: "", value: transmission ? t(`vehicle.transmission.${transmission.toLowerCase()}` as any) : undefined },
               {
                 iconUrl: (fuel_type || "").toLowerCase().includes("electric") || (fuel_type || "").toLowerCase().includes("hybrid") ? undefined : (String(fuel_type ?? "").toLowerCase().includes("elect") ? "/icons/electric-fuel.png" : "/icons/fuel.png"),

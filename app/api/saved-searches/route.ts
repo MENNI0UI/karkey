@@ -3,6 +3,8 @@ import { auth } from "@/auth"
 import prisma from "@/lib/prisma"
 import { error as logError } from "@/lib/logger"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     const session = await auth()
@@ -29,7 +31,16 @@ export async function GET(request: Request) {
       },
       orderBy: { created_at: 'desc' }
     })
-    return NextResponse.json({ success: true, saved_searches: rows })
+    // Serialize to ensure compatibility and set no-cache headers
+    const serializedRows = rows.map(row => ({
+      ...row,
+      id: Number(row.id),
+      user_id: Number(row.user_id),
+    }))
+    return NextResponse.json(
+      { success: true, saved_searches: serializedRows },
+      { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+    )
   } catch (error) {
     logError("[SAVED SEARCHES][GET] Error:", error)
     return NextResponse.json({ error: "Failed to fetch saved searches" }, { status: 500 })

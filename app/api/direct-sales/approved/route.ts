@@ -28,10 +28,12 @@ export async function GET(req: NextRequest) {
     if (models.length > 0) where.model = { in: models }
 
     const fuels = getMultiVal('fuel')
-    if (fuels.length > 0) where.fuel_type = { in: fuels as any[] }
+    // Prisma enum is lowercase: gasoline, diesel, electric, hybrid
+    if (fuels.length > 0) where.fuel_type = { in: fuels.map(f => f.toLowerCase()) as any[] }
 
     const transmissions = getMultiVal('transmission')
-    if (transmissions.length > 0) where.transmission = { in: transmissions as any[] }
+    // Prisma enum is lowercase: manual, automatic
+    if (transmissions.length > 0) where.transmission = { in: transmissions.map(t => t.toLowerCase()) as any[] }
 
     const locations = getMultiVal('location')
     if (locations.length > 0) where.location = { in: locations }

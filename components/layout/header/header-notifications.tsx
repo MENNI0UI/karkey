@@ -55,7 +55,7 @@ export const HeaderNotifications: React.FC<HeaderNotificationsProps> = ({
                     setNotifOpen(next);
                     if (next) await fetchNotifications();
                 }}
-                className="relative p-2.5 rounded-full text-[#1e2a5e] hover:text-[#B8071C] hover:bg-[#faf5ef] transition-colors"
+                className="relative p-2.5 rounded-full text-[#1e2a5e] hover:text-[#103090] hover:bg-[#faf5ef] transition-colors"
                 aria-label="Notifications"
                 aria-expanded={notifOpen}
                 type="button"

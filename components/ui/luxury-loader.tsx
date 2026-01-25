@@ -97,14 +97,14 @@ export function LuxuryLoader({ size = "md", className = "", progress }: LuxuryLo
                     {/* Main Needle */}
                     <path
                         d="M 100 100 L 100 45"
-                        stroke="#B8071C"
+                        stroke="#103090"
                         strokeWidth="3.5"
                         strokeLinecap="round"
-                        className="drop-shadow-[0_0_10px_rgba(184,7,28,0.5)]"
+                        className="drop-shadow-[0_0_10px_rgba(16,48,144,0.5)]"
                     />
                     {/* Hub Cap */}
                     <circle cx="100" cy="100" r="12" fill="#0f172a" />
-                    <circle cx="100" cy="100" r="5" fill="#B8071C" className="animate-pulse" />
+                    <circle cx="100" cy="100" r="5" fill="#103090" className="animate-pulse" />
                 </m.g>
 
                 <defs>
@@ -128,7 +128,7 @@ export function LuxuryLoader({ size = "md", className = "", progress }: LuxuryLo
                     >
                         {progress !== undefined ? `${Math.round(progress)}%` : "KM/H"}
                     </span>
-                    <div className="h-[2px] w-4 bg-[#B8071C] mx-auto mt-0.5 rounded-full" />
+                    <div className="h-[2px] w-4 bg-[#103090] mx-auto mt-0.5 rounded-full" />
                 </m.div>
             </div>
         </div>

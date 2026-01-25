@@ -35,7 +35,7 @@ export default function HeroSection({ titleStart, titleEnd, subtitle, children }
             </div>
 
             {/* Hero Content Section */}
-            <section className="relative pt-12 pb-4 lg:pb-10 z-50">
+            <section className="relative pt-12 pb-4 lg:pb-10 z-10">
                 <div className="max-w-[1700px] mx-auto px-4 sm:px-6 flex flex-col lg:flex-col-reverse">
                     {/* Search Bar Area (passed as children) */}
                     {children}

@@ -80,14 +80,14 @@ const HeaderNotificationsPanel = forwardRef<HTMLDivElement, HeaderNotificationsP
     <div
       ref={ref}
       className="fixed mt-0 w-[360px] bg-white border border-gray-200 rounded-2xl shadow-2xl ring-1 ring-black/5 overflow-hidden"
-      style={{ top: `calc(var(--site-header-height, 76px) + 8px)`, right: isRTL ? "auto" : 48, left: isRTL ? 48 : "auto", zIndex: 70000 }}
+      style={{ top: `calc(var(--site-header-height, 76px) + 8px)`, right: isRTL ? "auto" : 48, left: isRTL ? 48 : "auto", zIndex: 100002 }}
       role="dialog"
       aria-modal={false}
       dir={isRTL ? "rtl" : "ltr"}
     >
       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
         <div className="flex items-center gap-2 text-[#103090]">
-          <Bell className="w-4 h-4 text-[#B8071C]" />
+          <Bell className="w-4 h-4 text-[#103090]" />
           <span className="text-sm font-bold font-serif">{t("notifications.title")}</span>
         </div>
         <div className="flex items-center gap-2">
@@ -100,7 +100,7 @@ const HeaderNotificationsPanel = forwardRef<HTMLDivElement, HeaderNotificationsP
           {unreadCount > 0 && (
             <button
               onClick={markAllAsRead}
-              className="text-xs font-semibold text-[#B8071C] hover:bg-[#B8071C]/10 bg-[#B8071C]/5 border border-[#B8071C]/20 px-3 py-1 rounded-full transition-colors"
+              className="text-xs font-semibold text-[#103090] hover:bg-[#103090]/10 bg-[#103090]/5 border border-[#103090]/20 px-3 py-1 rounded-full transition-colors"
             >
               {t("notifications.mark_all_read")}
             </button>
@@ -122,7 +122,7 @@ const HeaderNotificationsPanel = forwardRef<HTMLDivElement, HeaderNotificationsP
             {normalizedNotifications.map((n) => (
               <li
                 key={String(n.id)}
-                className={`px-4 py-4 transition-colors ${!n.is_read ? "bg-[#B8071C]/5" : "bg-white"}`}
+                className={`px-4 py-4 transition-colors ${!n.is_read ? "bg-[#103090]/5" : "bg-white"}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 text-[#103090]">
@@ -149,7 +149,7 @@ const HeaderNotificationsPanel = forwardRef<HTMLDivElement, HeaderNotificationsP
         <Link
           href={`/${language}/notifications`}
           onClick={onClose}
-          className="block text-center text-xs font-bold font-serif text-[#103090] hover:text-[#B8071C] transition-colors"
+          className="block text-center text-xs font-bold font-serif text-[#103090] hover:text-[#103090] transition-colors"
         >
           {t("notifications.view_all")}
         </Link>

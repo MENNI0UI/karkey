@@ -35,14 +35,14 @@ export const SellMegaMenu: React.FC<SellMegaMenuProps> = ({
                     <Link
                         href={sellNavItems.createHref}
                         onClick={() => setSellDropdownOpen(false)}
-                        className="text-[17px] font-serif text-[#1e2a5e] underline-offset-4 decoration-[1.5px] hover:underline hover:text-[#B8071C] transition-colors"
+                        className="text-[17px] font-serif text-[#1e2a5e] underline-offset-4 decoration-[1.5px] hover:underline hover:text-[#103090] transition-colors"
                     >
                         {sellNavItems.createLabel}
                     </Link>
                     <Link
                         href={sellNavItems.guideHref}
                         onClick={() => setSellDropdownOpen(false)}
-                        className="text-[17px] font-serif text-[#1e2a5e]/70 underline-offset-4 decoration-[1.5px] hover:underline hover:text-[#B8071C] transition-colors"
+                        className="text-[17px] font-serif text-[#1e2a5e]/70 underline-offset-4 decoration-[1.5px] hover:underline hover:text-[#103090] transition-colors"
                     >
                         {sellNavItems.guideLabel}
                     </Link>

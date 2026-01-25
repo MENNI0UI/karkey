@@ -54,7 +54,7 @@ export default function HomeCityCard({ city, image, language, priority = false }
             {/* Centered City Content - Animates Up on Hover */}
             <div className="absolute inset-0 flex flex-col items-center justify-center transition-all duration-500 group-hover:-translate-y-16">
                 <h3 className="text-white text-2xl md:text-4xl lg:text-5xl font-logo uppercase tracking-[0.1em] drop-shadow-2xl text-center px-4 mb-2">
-                    {city}
+                    {t(`location.city.${city.toLowerCase().replace(/\s+/g, '')}` as any) || city}
                 </h3>
                 {/* Decorative White Underline */}
                 <div className="w-24 md:w-32 h-[1px] bg-white/80 rounded-full transition-all duration-500 group-hover:w-40 shadow-sm" />

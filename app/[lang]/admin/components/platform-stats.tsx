@@ -4,12 +4,12 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { 
-  Users, 
-  Car, 
-  Gavel, 
-  Store, 
-  TrendingUp, 
+import {
+  Users,
+  Car,
+  Gavel,
+  Store,
+  TrendingUp,
   TrendingDown,
   Clock,
   AlertCircle,
@@ -71,15 +71,15 @@ interface PlatformStats {
 
 type TabType = "users" | "auctions" | "showroom"
 
-function StatCard({ 
-  title, 
-  value, 
-  icon: Icon, 
-  description, 
-  trend, 
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  description,
+  trend,
   trendValue,
   loading = false
-}: { 
+}: {
   title: string
   value: string | number
   icon: any
@@ -139,12 +139,12 @@ function StatCard({
   )
 }
 
-function MiniStatCard({ 
-  title, 
-  value, 
+function MiniStatCard({
+  title,
+  value,
   icon: Icon,
   loading = false
-}: { 
+}: {
   title: string
   value: string | number
   icon: any
@@ -175,11 +175,11 @@ function MiniStatCard({
   )
 }
 
-function TopList({ 
-  title, 
-  icon: Icon, 
-  items, 
-  loading 
+function TopList({
+  title,
+  icon: Icon,
+  items,
+  loading
 }: {
   title: string
   icon: any
@@ -233,9 +233,9 @@ function TopList({
                     <span className="text-xs font-medium text-gray-500">{item.count}</span>
                   </div>
                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full rounded-full bg-[#B8071C]"
-                      style={{ 
+                      style={{
                         width: `${(item.count / (items[0]?.count || 1)) * 100}%`,
                         opacity: 1 - (index * 0.12)
                       }}
@@ -275,11 +275,11 @@ export function PlatformStats() {
       setError(null)
       const res = await fetch("/api/admin/stats")
       const data = await res.json()
-      
+
       if (!data.success) {
         throw new Error(data.error || "Failed to fetch stats")
       }
-      
+
       setStats(data.stats)
     } catch (err: any) {
       setError(err.message || "An error occurred")
@@ -388,218 +388,218 @@ export function PlatformStats() {
           <div className="space-y-6">
             {/* Main Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              title="Total Users"
-              value={formatNumber(stats?.users.total || 0)}
-              icon={Users}
-              description={`+${stats?.users.newThisWeek || 0} this week`}
-              trend={getTrend(stats?.users.growth)}
-              trendValue={`${stats?.users.growth || 0}%`}
-              loading={loading}
-            />
-            <StatCard
-              title="Verified Users"
-              value={formatNumber(stats?.users.verified || 0)}
-              icon={UserCheck}
-              description={`${Math.round((stats?.users.verified || 0) / (stats?.users.total || 1) * 100)}% verification rate`}
-              loading={loading}
-            />
-            <StatCard
-              title="New Today"
-              value={stats?.users.newToday || 0}
-              icon={CalendarDays}
-              loading={loading}
-            />
-            <StatCard
-              title="New This Week"
-              value={stats?.users.newThisWeek || 0}
-              icon={TrendingUp}
-              loading={loading}
-            />
-          </div>
+              <StatCard
+                title="Total Users"
+                value={formatNumber(stats?.users.total || 0)}
+                icon={Users}
+                description={`+${stats?.users.newThisWeek || 0} this week`}
+                trend={getTrend(stats?.users.growth)}
+                trendValue={`${stats?.users.growth || 0}%`}
+                loading={loading}
+              />
+              <StatCard
+                title="Verified Users"
+                value={formatNumber(stats?.users.verified || 0)}
+                icon={UserCheck}
+                description={`${Math.round((stats?.users.verified || 0) / (stats?.users.total || 1) * 100)}% verification rate`}
+                loading={loading}
+              />
+              <StatCard
+                title="New Today"
+                value={stats?.users.newToday || 0}
+                icon={CalendarDays}
+                loading={loading}
+              />
+              <StatCard
+                title="New This Week"
+                value={stats?.users.newThisWeek || 0}
+                icon={TrendingUp}
+                loading={loading}
+              />
+            </div>
 
-          {/* Verifications */}
-          <Card className="border border-gray-100 shadow-sm bg-white">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                <div className="w-7 h-7 rounded-lg bg-slate-500/10 flex items-center justify-center">
-                  <ShieldCheck className="w-3.5 h-3.5 text-slate-600" />
+            {/* Verifications */}
+            <Card className="border border-gray-100 shadow-sm bg-white">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                  <div className="w-7 h-7 rounded-lg bg-slate-500/10 flex items-center justify-center">
+                    <ShieldCheck className="w-3.5 h-3.5 text-slate-600" />
+                  </div>
+                  Pending Verifications
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <MiniStatCard
+                    title="User Verifications"
+                    value={stats?.verifications.pendingUsers || 0}
+                    icon={Users}
+                    loading={loading}
+                  />
+                  <MiniStatCard
+                    title="Vehicle Verifications"
+                    value={stats?.verifications.pendingVehicles || 0}
+                    icon={Car}
+                    loading={loading}
+                  />
+                  <MiniStatCard
+                    title="Total Pending"
+                    value={stats?.verifications.total || 0}
+                    icon={Clock}
+                    loading={loading}
+                  />
                 </div>
-                Pending Verifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <MiniStatCard
-                  title="User Verifications"
-                  value={stats?.verifications.pendingUsers || 0}
-                  icon={Users}
-                  loading={loading}
-                />
-                <MiniStatCard
-                  title="Vehicle Verifications"
-                  value={stats?.verifications.pendingVehicles || 0}
-                  icon={Car}
-                  loading={loading}
-                />
-                <MiniStatCard
-                  title="Total Pending"
-                  value={stats?.verifications.total || 0}
-                  icon={Clock}
-                  loading={loading}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Auctions Tab */}
-      {activeTab === "auctions" && (
-        <div className="space-y-6">
-          {/* Main Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              title="Total Auctions"
-              value={formatNumber(stats?.auctions.total || 0)}
-              icon={Gavel}
-              description={`+${stats?.auctions.newThisWeek || 0} this week`}
-              trend={getTrend(stats?.auctions.growth)}
-              trendValue={`${stats?.auctions.growth || 0}%`}
-              loading={loading}
-            />
-            <StatCard
-              title="Active Auctions"
-              value={stats?.auctions.active || 0}
-              icon={Activity}
-              description={`${stats?.auctions.endingToday || 0} ending today`}
-              loading={loading}
-            />
-            <StatCard
-              title="Completed"
-              value={stats?.auctions.completed || 0}
-              icon={CheckCircle2}
-              loading={loading}
-            />
-            <StatCard
-              title="Auction Vehicles"
-              value={stats?.auctions.vehicles || 0}
-              icon={Car}
-              description={`${stats?.auctions.approvedVehicles || 0} approved`}
-              loading={loading}
-            />
+              </CardContent>
+            </Card>
           </div>
+        )}
 
-          {/* Bids Overview */}
-          <Card className="border border-gray-100 shadow-sm bg-white">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                <div className="w-7 h-7 rounded-lg bg-[#B8071C]/10 flex items-center justify-center">
-                  <Hammer className="w-3.5 h-3.5 text-[#B8071C]" />
+        {/* Auctions Tab */}
+        {activeTab === "auctions" && (
+          <div className="space-y-6">
+            {/* Main Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard
+                title="Total Auctions"
+                value={formatNumber(stats?.auctions.total || 0)}
+                icon={Gavel}
+                description={`+${stats?.auctions.newThisWeek || 0} this week`}
+                trend={getTrend(stats?.auctions.growth)}
+                trendValue={`${stats?.auctions.growth || 0}%`}
+                loading={loading}
+              />
+              <StatCard
+                title="Active Auctions"
+                value={stats?.auctions.active || 0}
+                icon={Activity}
+                description={`${stats?.auctions.endingToday || 0} ending today`}
+                loading={loading}
+              />
+              <StatCard
+                title="Completed"
+                value={stats?.auctions.completed || 0}
+                icon={CheckCircle2}
+                loading={loading}
+              />
+              <StatCard
+                title="Auction Vehicles"
+                value={stats?.auctions.vehicles || 0}
+                icon={Car}
+                description={`${stats?.auctions.approvedVehicles || 0} approved`}
+                loading={loading}
+              />
+            </div>
+
+            {/* Bids Overview */}
+            <Card className="border border-gray-100 shadow-sm bg-white">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                  <div className="w-7 h-7 rounded-lg bg-[#B8071C]/10 flex items-center justify-center">
+                    <Hammer className="w-3.5 h-3.5 text-[#B8071C]" />
+                  </div>
+                  Bids Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <MiniStatCard
+                    title="Total Bids"
+                    value={formatNumber(stats?.auctions.totalBids || 0)}
+                    icon={Hammer}
+                    loading={loading}
+                  />
+                  <MiniStatCard
+                    title="Bids Today"
+                    value={stats?.auctions.bidsToday || 0}
+                    icon={CalendarDays}
+                    loading={loading}
+                  />
+                  <MiniStatCard
+                    title="Avg Bids/Auction"
+                    value={stats?.auctions.avgBidsPerAuction || 0}
+                    icon={Activity}
+                    loading={loading}
+                  />
+                  <MiniStatCard
+                    title="Highest Bid Today"
+                    value={stats?.auctions.highestBidToday ? formatPrice(stats.auctions.highestBidToday) : "—"}
+                    icon={Award}
+                    loading={loading}
+                  />
                 </div>
-                Bids Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <MiniStatCard
-                  title="Total Bids"
-                  value={formatNumber(stats?.auctions.totalBids || 0)}
-                  icon={Hammer}
-                  loading={loading}
-                />
-                <MiniStatCard
-                  title="Bids Today"
-                  value={stats?.auctions.bidsToday || 0}
-                  icon={CalendarDays}
-                  loading={loading}
-                />
-                <MiniStatCard
-                  title="Avg Bids/Auction"
-                  value={stats?.auctions.avgBidsPerAuction || 0}
-                  icon={Activity}
-                  loading={loading}
-                />
-                <MiniStatCard
-                  title="Highest Bid Today"
-                  value={stats?.auctions.highestBidToday ? formatPrice(stats.auctions.highestBidToday) : "—"}
-                  icon={Award}
-                  loading={loading}
-                />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Top Brands & Cities */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <TopList
-              title="Top Brands"
-              icon={BarChart3}
-              items={stats?.auctions.topBrands || []}
-              loading={loading}
-            />
-            <TopList
-              title="Top Cities"
-              icon={MapPin}
-              items={stats?.auctions.topCities || []}
-              loading={loading}
-            />
+            {/* Top Brands & Cities */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <TopList
+                title="Top Brands"
+                icon={BarChart3}
+                items={stats?.auctions.topBrands || []}
+                loading={loading}
+              />
+              <TopList
+                title="Top Cities"
+                icon={MapPin}
+                items={stats?.auctions.topCities || []}
+                loading={loading}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Showroom Tab */}
-      {activeTab === "showroom" && (
-        <div className="space-y-6">
-          {/* Main Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              title="Total Listings"
-              value={formatNumber(stats?.showroom.total || 0)}
-              icon={Store}
-              description={`+${stats?.showroom.newThisWeek || 0} this week`}
-              trend={getTrend(stats?.showroom.growth)}
-              trendValue={`${stats?.showroom.growth || 0}%`}
-              loading={loading}
-            />
-            <StatCard
-              title="New Today"
-              value={stats?.showroom.newToday || 0}
-              icon={CalendarDays}
-              loading={loading}
-            />
-            <StatCard
-              title="New This Week"
-              value={stats?.showroom.newThisWeek || 0}
-              icon={TrendingUp}
-              loading={loading}
-            />
-            <StatCard
-              title="Total Interests"
-              value={formatNumber(stats?.showroom.interests || 0)}
-              icon={Eye}
-              description="User interest submissions"
-              loading={loading}
-            />
-          </div>
+        {/* Showroom Tab */}
+        {activeTab === "showroom" && (
+          <div className="space-y-6">
+            {/* Main Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard
+                title="Total Listings"
+                value={formatNumber(stats?.showroom.total || 0)}
+                icon={Store}
+                description={`+${stats?.showroom.newThisWeek || 0} this week`}
+                trend={getTrend(stats?.showroom.growth)}
+                trendValue={`${stats?.showroom.growth || 0}%`}
+                loading={loading}
+              />
+              <StatCard
+                title="New Today"
+                value={stats?.showroom.newToday || 0}
+                icon={CalendarDays}
+                loading={loading}
+              />
+              <StatCard
+                title="New This Week"
+                value={stats?.showroom.newThisWeek || 0}
+                icon={TrendingUp}
+                loading={loading}
+              />
+              <StatCard
+                title="Total Interests"
+                value={formatNumber(stats?.showroom.interests || 0)}
+                icon={Eye}
+                description="User interest submissions"
+                loading={loading}
+              />
+            </div>
 
-          {/* Top Brands & Cities */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <TopList
-              title="Top Brands"
-              icon={BarChart3}
-              items={stats?.showroom.topBrands || []}
-              loading={loading}
-            />
-            <TopList
-              title="Top Cities"
-              icon={MapPin}
-              items={stats?.showroom.topCities || []}
-              loading={loading}
-            />
+            {/* Top Brands & Cities */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <TopList
+                title="Top Brands"
+                icon={BarChart3}
+                items={stats?.showroom.topBrands || []}
+                loading={loading}
+              />
+              <TopList
+                title="Top Cities"
+                icon={MapPin}
+                items={stats?.showroom.topCities || []}
+                loading={loading}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   )

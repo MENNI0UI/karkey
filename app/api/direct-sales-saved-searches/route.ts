@@ -3,6 +3,8 @@ import { auth } from "@/auth"
 import prisma from "@/lib/prisma"
 import { error as logError } from "@/lib/logger"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     const session = await auth()
@@ -35,7 +37,10 @@ export async function GET(request: Request) {
       id: Number(row.id),
       user_id: Number(row.user_id),
     }))
-    return NextResponse.json({ success: true, saved_searches: serializedRows })
+    return NextResponse.json(
+      { success: true, saved_searches: serializedRows },
+      { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+    )
   } catch (error) {
     logError("[DIRECT-SALES SAVED SEARCHES][GET] Error:", error)
     return NextResponse.json({ error: "Failed to fetch direct-sales saved searches" }, { status: 500 })

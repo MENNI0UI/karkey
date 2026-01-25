@@ -153,7 +153,7 @@ export default function KarkeyInquiryModal({ car, isOpen, onClose, inline = fals
         return new Intl.NumberFormat(language === "ar" ? "ar-MA" : "fr-MA", {
             style: "decimal",
             maximumFractionDigits: 0,
-        }).format(numPrice) + " MAD"
+        }).format(numPrice) + " " + t('common.mad')
     }
 
     // Inline mode - renders as card overlay

@@ -40,18 +40,26 @@ export function DirectSaleCard({
     const vehicleLabel = make ? `${make} ${model}` : (model ?? "vehicle")
     const isRTL = language === "ar"
 
-    const normalizePhotoUrl = (p: any) => {
-        if (!p) return "/placeholder.svg"
+    const normalizePhotoUrl = (p: any): { url: string; blurhash?: string | null } => {
+        if (!p) return { url: "/placeholder.svg" }
         const s = typeof p === "string" ? p.trim() : (p.photo_url || p.url || "/placeholder.svg")
-        if (s.startsWith("data:") || s.startsWith("http://") || s.startsWith("https://")) return s
-        if (s.startsWith("/api/uploads/")) return s
-        if (s.startsWith("/uploads/")) return `/api${s}`
-        return `/api/uploads/vehicles/${s}`
+        let finalUrl = s
+        // Normalize logic
+        if (!s.startsWith("data:") && !s.startsWith("http://") && !s.startsWith("https://")) {
+            if (s.startsWith("/api/uploads/")) finalUrl = s
+            else if (s.startsWith("/uploads/")) finalUrl = `/api${s}`
+            else finalUrl = `/api/uploads/vehicles/${s}`
+        }
+
+        return {
+            url: finalUrl,
+            blurhash: (typeof p === 'object' && p.blurhash) ? p.blurhash : null
+        }
     }
 
     const normalizedPhotos = Array.isArray(photos) && photos.length > 0
         ? photos.map(normalizePhotoUrl)
-        : ["/placeholder.svg"]
+        : [{ url: "/placeholder.svg" }]
 
     // Use Auth Context instead of fetching in each card
     const { currentUserId, isLoaded: authLoaded } = useAuth()
@@ -313,7 +321,7 @@ export function DirectSaleCard({
 
             <CarCardImageSlider
                 photos={normalizedPhotos}
-                href={`${linkPrefix}/${id}`}
+                href={`/${language}${linkPrefix}/${id}`}
                 alt={vehicleLabel}
                 priority={priority}
                 overlay={
@@ -363,7 +371,7 @@ export function DirectSaleCard({
 
 
             <div className="p-4 flex flex-col flex-1 flex">
-                <Link href={`${linkPrefix}/${id}`} className="flex-1">
+                <Link href={`/${language}${linkPrefix}/${id}`} className="flex-1">
                     <div className="mb-2 flex items-center gap-2">
                         {make && (
                             <span className="text-[10px] font-medium font-serif text-white bg-[#B8071C] px-3 py-1 rounded-full shadow-sm uppercase">
@@ -381,7 +389,7 @@ export function DirectSaleCard({
 
                     <div className="mb-3 flex items-center gap-2">
                         <MapPin className="w-5 h-5 text-[#B8071C]" />
-                        <span className="text-sm font-medium font-serif text-gray-500">{location || t("common.unknown_location")}</span>
+                        <span className="text-sm font-medium font-serif text-gray-500">{t(`location.city.${(location || "").toLowerCase().replace(/\s+/g, '')}` as any) || location || t("common.unknown_location")}</span>
                     </div>
 
                     <div className="mb-4">
@@ -389,7 +397,7 @@ export function DirectSaleCard({
                             {new Intl.NumberFormat(language === "ar" ? "ar-MA" : "fr-MA", {
                                 style: "decimal",
                                 maximumFractionDigits: 0
-                            }).format(Number(price)) + " MAD"}
+                            }).format(Number(price)) + " " + t('common.mad')}
                         </div>
                     </div>
 
@@ -397,7 +405,7 @@ export function DirectSaleCard({
 
                     <CarSpecsGrid
                         specs={[
-                            { iconUrl: "/icons/mileage.png", label: "km", value: mileage },
+                            { iconUrl: "/icons/mileage.png", label: t("unit.km"), value: mileage },
                             { iconUrl: "/icons/transmission.png", label: "", value: transmission ? t(`vehicle.transmission.${transmission.toLowerCase()}` as any) : undefined },
                             { iconUrl: "/icons/fuel.png", label: "", value: fuel_type ? t(`vehicle.fuel.${fuel_type.toLowerCase()}` as any) : undefined },
                             { iconUrl: "/icons/car-door.png", label: t("vehicle.doors"), value: doors ?? undefined },
@@ -414,7 +422,7 @@ export function DirectSaleCard({
 
                 <div className="mt-4 space-y-2">
                     <Link
-                        href={`${linkPrefix}/${id}`}
+                        href={`/${language}${linkPrefix}/${id}`}
                         className="w-full bg-[#B8071C] hover:bg-[#910515] hover:border hover:border-[#DEB735] text-white font-medium font-serif py-2.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md group-hover:shadow-lg active:scale-[0.98] whitespace-nowrap uppercase text-sm"
                     >
                         {t("common.view")}

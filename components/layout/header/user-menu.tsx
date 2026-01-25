@@ -156,7 +156,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
                         onMouseDown={(e) => e.stopPropagation()}
                         onTouchStart={(e) => e.stopPropagation()}
                         onClick={(e) => e.stopPropagation()}
-                        className={`absolute ${isRTL ? 'left-0' : 'right-0'} top-full mt-1 w-[calc(100vw-2rem)] sm:w-[300px] bg-white rounded-xl shadow-lg border border-gray-200/80 overflow-hidden z-[100002]`}
+                        className={`absolute ${isRTL ? 'left-0' : 'right-0'} top-full mt-1 w-[calc(100vw-2rem)] sm:w-[300px] bg-white rounded-xl shadow-lg border border-gray-200/80 overflow-hidden z-[100002] pointer-events-auto`}
                     >
                         {/* User Info Header */}
                         <div className="px-4 py-3 bg-gray-50/50 border-b border-gray-200/60">

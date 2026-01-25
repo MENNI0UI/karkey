@@ -16,8 +16,7 @@
 
 export interface AppEventMap {
     "watchlist:updated": { vehicleId: number; status: boolean; userId: number | null };
-    "watchlist:changed": { auctionId?: number; showroomId?: number; direct_sale_id?: number; userId: number | null; action: "add" | "remove" };
-    "showroom:interest_updated": { id: number; status: "sent" };
+    "watchlist:changed": { auctionId?: number; direct_sale_id?: number; userId: number | null; action: "add" | "remove" };
     "auth:changed": { action: "login" | "logout" | "profile-update" | "profile-sync" };
     "notifications:updated": void;
     "saved_search:updated": { searchId?: number; name: string; isActive: boolean };

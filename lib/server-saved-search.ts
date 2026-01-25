@@ -116,11 +116,16 @@ export async function getSavedSearchState(
                 const savedParamsStr = canonicalizeParams(parseParams(latest.params));
                 const isMatch = !isReset && !!currentParamsStr && savedParamsStr === currentParamsStr;
                 return { isMatch, savedId: Number(latest.id), paramsStr: savedParamsStr };
+            } else {
+                // If user is logged in but has NO saved search in DB, 
+                // we should NOT fallback to the guest cookie, as that would cause
+                // cross-device sync issues (showing a saved search that was deleted on another device).
+                return { isMatch: false, savedId: null, paramsStr: null };
             }
         } catch { }
     }
 
-    // 2. Fallback to Guest Cookie
+    // 2. Fallback to Guest Cookie (Only if NOT logged in)
     if (guestSavedParamsStr && !isReset && currentParamsStr && guestSavedParamsStr === currentParamsStr) {
         return { isMatch: true, savedId: null, paramsStr: guestSavedParamsStr };
     }

@@ -5,7 +5,7 @@ import { verifyToken } from "@/lib/mysql-auth";
 import prisma from "@/lib/prisma";
 import path from "path";
 import { info, warn, error as logError } from "@/lib/logger";
-import { getSearchTermVariants, parseSmartQuery } from "@/lib/search-utils";
+import { getSearchTermVariants, parseSmartQuery, normalizeSearchFilter, getEnumMatches } from "@/lib/search-utils";
 import { createMetricsContext } from "@/lib/metrics";
 import { SearchFiltersSchema, PaginationSchema, safeParse } from "@/lib/schemas";
 import { errorResponse, normalizeError, ErrorCode } from "@/lib/errors";
@@ -35,9 +35,102 @@ const DIRECT_SALES_FILTER_CACHE_FILE = CACHE_FILES.directSalesFilterOptions;
 // Alias for existing usage pattern
 const writeCacheFile = writeCache;
 
-/* ---------------- searchVehicles ---------------- */
-// 🆕 النظام الجديد: يستخدم direct_sales مع auction_mode = true بدلاً من vehicles/auctions القديمة
-// هذه الدالة تستدعي searchAuctions الجديدة للحفاظ على التوافق مع الكود الموجود
+// 🆕 النظام الجديد: يستخدم direct_sales للبحث في كل السيارات (مزاد أو بيع مباشر)
+export async function unifiedSearch(filters?: {
+  q?: string;
+  limit?: number;
+  type?: "auction" | "direct_sale" | string;
+}): Promise<SearchResult<Vehicle>> {
+  const metrics = createMetricsContext();
+  metrics.start("unifiedSearch-total");
+  try {
+    const q = (filters?.q || "").trim().toLowerCase();
+    const limit = filters?.limit || 5;
+    const type = filters?.type;
+    const qAsNum = Number.parseInt(q, 10);
+
+    // Prisma doesn't support 'contains' on Enum fields. 
+    // We'll pre-filter valid enum values including aliases (smart mapping).
+    const fuelMatches = getEnumMatches(q, "fuel");
+    const transMatches = getEnumMatches(q, "transmission");
+    const condMatches = getEnumMatches(q, "condition");
+
+    // Expansion for free-form fields (Make, Model, Location)
+    const queryVariants = getSearchTermVariants(q);
+
+    const orClauses: any[] = [];
+
+    // 1. Generic Fields (Contains with variants)
+    queryVariants.forEach(v => {
+      const lowerV = v.toLowerCase();
+      orClauses.push({ make: { contains: lowerV } });
+      orClauses.push({ model: { contains: lowerV } });
+      orClauses.push({ location: { contains: lowerV } });
+    });
+
+    // 2. Strict Enum Fields (Exact 'in' match)
+    if (fuelMatches.length > 0) orClauses.push({ fuel_type: { in: fuelMatches } });
+    if (transMatches.length > 0) orClauses.push({ transmission: { in: transMatches } });
+    if (condMatches.length > 0) orClauses.push({ vehicle_condition: { in: condMatches } });
+
+    // Add year search if query is a valid number
+    if (!Number.isNaN(qAsNum) && qAsNum > 1900 && qAsNum < 2100) {
+      orClauses.push({ year: qAsNum });
+    }
+
+    const where: any = {
+      verification_status: 'approved',
+      OR: orClauses
+    };
+
+    // --- Mandatory Mode Filter ---
+    if (type === 'auction') {
+      where.auction_mode = true;
+    } else if (type === 'direct_sale') {
+      where.AND = [
+        ...(where.AND || []),
+        { OR: [{ auction_mode: false }, { auction_mode: null }] }
+      ];
+    }
+
+    const items = await prisma.direct_sales.findMany({
+      where,
+      include: {
+        direct_sale_photos: {
+          select: { photo_url: true },
+          orderBy: { position_order: 'asc' },
+          take: 1
+        }
+      },
+      orderBy: { created_at: 'desc' },
+      take: limit
+    });
+
+    const vehicles = items.map((item) => {
+      const photos = item.direct_sale_photos.map(p => normalizePhotoUrl(p.photo_url)).filter(Boolean) as string[];
+
+      return {
+        id: item.id,
+        make: item.make,
+        model: item.model,
+        year: item.year,
+        price: item.price ? Number(item.price) : null,
+        current_bid: item.auction_current_bid ? Number(item.auction_current_bid) : null,
+        starting_price: item.auction_starting_price ? Number(item.auction_starting_price) : null,
+        image: photos[0] || null,
+        type: item.auction_mode ? "auction" : "direct_sale",
+        location: item.location
+      } as any;
+    });
+
+    metrics.end("unifiedSearch-total");
+    return { success: true, vehicles };
+  } catch (err) {
+    console.error("unifiedSearch error", err);
+    return { success: false, vehicles: [] };
+  }
+}
+
 export async function searchVehicles(filters?: {
   make?: string | string[];
   model?: string | string[];
@@ -49,6 +142,7 @@ export async function searchVehicles(filters?: {
   transmission?: string | string[];
   location?: string | string[];
   q?: string;
+  type?: string;
   minMileage?: string;
   maxMileage?: string;
   minEngine?: string;
@@ -59,6 +153,14 @@ export async function searchVehicles(filters?: {
   interiorColor?: string | string[];
   originalPaint?: string;
 }, page = 1, limit = 50): Promise<SearchResult<Vehicle>> {
+  // If it's a simple query (like for suggestions), use unifiedSearch
+  // We now check if it's q OR type or both, and no other complex filters
+  const keys = Object.keys(filters || {});
+  const isSimple = keys.every(k => k === 'q' || k === 'type' || k === 'limit');
+
+  if (filters?.q && isSimple) {
+    return unifiedSearch({ q: filters.q, type: filters.type, limit });
+  }
   // Redirect to the new auction search which uses direct_sales with auction_mode
   return searchAuctions(filters, page, limit);
 }
@@ -115,13 +217,14 @@ async function searchAuctions(filters?: {
       }
     };
 
-    addInFilter('make', safeFilters.make);
-    addInFilter('model', safeFilters.model);
-    addInFilter('location', safeFilters.location);
-    // Fuel handling with Petrol/Gasoline aliasing
+    addInFilter('make', normalizeSearchFilter(safeFilters.make));
+    addInFilter('model', normalizeSearchFilter(safeFilters.model));
+    addInFilter('location', normalizeSearchFilter(safeFilters.location));
+    // Fuel handling with Multilingual Normalization
     const fuelVal = (safeFilters as any).fuel ?? (safeFilters as any).fuelType;
     if (!isAll(fuelVal)) {
-      const arr = Array.isArray(fuelVal) ? fuelVal : [String(fuelVal)];
+      const normalized = normalizeSearchFilter(fuelVal);
+      const arr = Array.isArray(normalized) ? normalized : [String(normalized)];
       const expanded = new Set<string>();
       arr.forEach(f => {
         const lower = f.toLowerCase();
@@ -131,10 +234,10 @@ async function searchAuctions(filters?: {
       });
       where.fuel_type = { in: Array.from(expanded) };
     }
-    addInFilter('transmission', safeFilters.transmission);
+    addInFilter('transmission', normalizeSearchFilter(safeFilters.transmission));
     addInFilter('doors', (safeFilters as any).doors);
     addInFilter('year', safeFilters.year, Number);
-    addInFilter('vehicle_condition', (safeFilters as any).condition, (v) => v.toLowerCase());
+    addInFilter('vehicle_condition', normalizeSearchFilter((safeFilters as any).condition), (v) => v.toLowerCase());
     addInFilter('exterior_color', (safeFilters as any).exteriorColor, (v) => v.toLowerCase());
     addInFilter('interior_color', (safeFilters as any).interiorColor, (v) => v.toLowerCase());
 
@@ -178,14 +281,45 @@ async function searchAuctions(filters?: {
     if ((safeFilters as any).originalPaint === 'yes') where.is_original_paint = true;
     else if ((safeFilters as any).originalPaint === 'no') where.is_original_paint = false;
 
-    // Free-text search
+    // Free-text search (q) Support
     if (safeFilters.q && String(safeFilters.q).trim() !== "") {
       const q = String(safeFilters.q).trim().toLowerCase();
-      where.OR = [
-        { make: { contains: q } },
-        { model: { contains: q } },
-        { location: { contains: q } },
-      ];
+      const qAsNum = Number.parseInt(q, 10);
+
+      const fuelMatches = getEnumMatches(q, "fuel");
+      const transMatches = getEnumMatches(q, "transmission");
+      const condMatches = getEnumMatches(q, "condition");
+
+      // Expansion for free-form fields
+      const queryVariants = getSearchTermVariants(q);
+
+      const qOR: any[] = [];
+
+      // 1. Strings (Contains with expansion)
+      queryVariants.forEach(v => {
+        const lowerV = v.toLowerCase();
+        qOR.push({ make: { contains: lowerV } });
+        qOR.push({ model: { contains: lowerV } });
+        qOR.push({ location: { contains: lowerV } });
+      });
+
+      // 2. Enums (Strict)
+      if (fuelMatches.length > 0) qOR.push({ fuel_type: { in: fuelMatches } });
+      if (transMatches.length > 0) qOR.push({ transmission: { in: transMatches } });
+      if (condMatches.length > 0) qOR.push({ vehicle_condition: { in: condMatches } });
+      if (!Number.isNaN(qAsNum) && qAsNum > 1900 && qAsNum < 2100) qOR.push({ year: qAsNum });
+
+      // Merge with existing where. If where.OR exists, we need to be careful.
+      if (where.OR) {
+        const existingOR = where.OR;
+        delete where.OR;
+        where.AND = [
+          { OR: existingOR },
+          { OR: qOR }
+        ];
+      } else {
+        where.OR = qOR;
+      }
     }
 
     const take = Math.min(200, Math.max(1, Number(limit)));
@@ -464,7 +598,7 @@ export const getFilterOptions = unstable_cache(
     }
   },
   ["auction-filter-options-v2"],
-  { revalidate: 300, tags: ["filters", "vehicles"] }
+  { revalidate: 3600, tags: ["filters", "vehicles"] }
 );
 
 
@@ -670,7 +804,7 @@ export const getDirectSalesFilterOptions = unstable_cache(
     }
   },
   ["direct-sales-filter-options-v2"], // v2 to force cache refresh
-  { revalidate: 300, tags: ["filters", "direct-sales"] }
+  { revalidate: 3600, tags: ["filters", "direct-sales"] }
 );
 
 /* ---------------- getApprovedDirectSales ---------------- */
@@ -785,6 +919,7 @@ export async function searchDirectSales(filters?: {
   originalPaint?: string;
   limit?: string | number;
   offset?: string | number;
+  q?: string;
 }) {
   const metrics = createMetricsContext();
   metrics.start("searchDirectSales-db");
@@ -835,9 +970,59 @@ export async function searchDirectSales(filters?: {
       });
       where.fuel_type = { in: Array.from(expanded) };
     }
-    addInFilter('transmission', safeFilters.transmission);
+    // Prisma enum is lowercase: manual, automatic
+    addInFilter('transmission', safeFilters.transmission, (v) => v.toLowerCase());
     addInFilter('doors', safeFilters.doors);
     addInFilter('year', safeFilters.year, Number);
+
+    // Text Search (q) Support
+    if (safeFilters.q && String(safeFilters.q).trim() !== "") {
+      const q = String(safeFilters.q).trim().toLowerCase();
+      const qAsNum = parseInt(q, 10);
+
+      const fuelMatches = Object.entries({
+        gasoline: ['gasoline', 'essence', 'petrol', 'بنزين', 'ايصانص', 'gasolina'],
+        diesel: ['diesel', 'gazole', 'مازوت', 'ديزل', 'كازوال', 'diésel', 'gasóleo'],
+        electric: ['electric', 'electrique', 'كهربائية', 'كهرباء', 'eléctrico'],
+        hybrid: ['hybrid', 'hybride', 'هجينة', 'híbrido']
+      }).filter(([_, terms]) => terms.some(t => t.includes(q))).map(([k]) => k);
+
+      const transMatches = Object.entries({
+        automatic: ['automatic', 'automatique', 'auto', 'أوتوماتيك', 'اوتوماتيك', 'automático'],
+        manual: ['manual', 'manuelle', 'boite', 'manuel', 'يدوي', 'مانويل', 'manual']
+      }).filter(([_, terms]) => terms.some(t => t.includes(q))).map(([k]) => k);
+
+      const condMatches = Object.entries({
+        excellent: ['excellent', 'parfaite', 'neuve', 'ممتازة', 'نظيفة', 'excelente', 'perfecto'],
+        good: ['good', 'bonne', 'جيدة', 'bueno'],
+        fair: ['fair', 'moyenne', 'متوسطة', 'medio'],
+        poor: ['poor', 'mauvaise', 'سيئة', 'malo']
+      }).filter(([_, terms]) => terms.some(t => t.includes(q))).map(([k]) => k);
+
+      const qOR: any[] = [
+        { make: { contains: q } },
+        { model: { contains: q } },
+        { location: { contains: q } },
+      ];
+
+      if (fuelMatches.length > 0) qOR.push({ fuel_type: { in: fuelMatches } });
+      if (transMatches.length > 0) qOR.push({ transmission: { in: transMatches } });
+      if (condMatches.length > 0) qOR.push({ vehicle_condition: { in: condMatches } });
+      if (!Number.isNaN(qAsNum) && qAsNum > 1900 && qAsNum < 2100) qOR.push({ year: qAsNum });
+
+      // Merge with existing where. If where.AND exists, add to it. Otherwise create it.
+      if (where.OR) {
+        // If there's already an OR (like for auction_mode), we need to wrap in AND
+        const existingOR = where.OR;
+        delete where.OR;
+        where.AND = [
+          { OR: existingOR },
+          { OR: qOR }
+        ];
+      } else {
+        where.OR = qOR;
+      }
+    }
 
     const cond = safeFilters.vehicle_condition ?? safeFilters.condition;
     if (cond) addInFilter('vehicle_condition', cond, (v) => v.toLowerCase());
@@ -1070,169 +1255,13 @@ export async function searchShowroom(filters?: {
   limit?: string | number;
   offset?: string | number;
 }) {
-  const metrics = createMetricsContext();
-  metrics.start("searchShowroom-db");
-  try {
-    const safeFilters = filters || {};
-    const where: any = {}
-
-    const isAll = (v?: string | string[]) => {
-      if (!v) return true;
-      if (Array.isArray(v)) return v.length === 0 || (v.length === 1 && String(v[0]).toLowerCase() === "all");
-      return String(v).trim() === "" || String(v).toLowerCase() === "all";
-    };
-
-    const addInFilter = (field: string, val: string | string[] | undefined, mapFn?: (v: string) => any) => {
-      if (isAll(val)) return;
-      const arr = Array.isArray(val) ? val : [String(val)];
-      const filtered = arr.filter(x => x && String(x).toLowerCase() !== "all");
-      if (filtered.length > 0) {
-        where[field] = { in: mapFn ? filtered.map(mapFn) : filtered };
-      }
-    };
-
-    addInFilter('make', safeFilters.make);
-    addInFilter('model', safeFilters.model);
-    addInFilter('location', safeFilters.location);
-    // Fuel handling with Petrol/Gasoline aliasing
-    const fuelVal = safeFilters.fuel_type ?? safeFilters.fuel;
-    if (!isAll(fuelVal)) {
-      const arr = Array.isArray(fuelVal) ? fuelVal : [String(fuelVal)];
-      const expanded = new Set<string>();
-      arr.forEach(f => {
-        const lower = f.toLowerCase();
-        expanded.add(lower);
-        if (lower === "gasoline") expanded.add("petrol");
-        if (lower === "petrol") expanded.add("gasoline");
-      });
-      where.fuel_type = { in: Array.from(expanded) };
-    }
-    addInFilter('transmission', safeFilters.transmission);
-    addInFilter('doors', safeFilters.doors, Number);
-    addInFilter('year', safeFilters.year, Number);
-
-    const cond = safeFilters.condition;
-    if (cond) addInFilter('condition', cond, (v) => v.toLowerCase());
-
-    const extColor = safeFilters.exteriorColor;
-    if (extColor) addInFilter('exterior_color', extColor, (v) => v.toLowerCase());
-
-    const intColor = safeFilters.interiorColor;
-    if (intColor) addInFilter('interior_color', intColor, (v) => v.toLowerCase());
-
-    const parseNum = (v?: string) => {
-      if (!v) return null;
-      const n = Number(v);
-      return isNaN(n) ? null : n;
-    }
-
-    const minM = parseNum(safeFilters.minMileage);
-    const maxM = parseNum(safeFilters.maxMileage);
-    if (minM !== null || maxM !== null) {
-      where.mileage_km = {};
-      if (minM !== null) where.mileage_km.gte = minM;
-      if (maxM !== null) where.mileage_km.lte = maxM;
-    }
-
-    const minE = parseNum(safeFilters.minEngine);
-    const maxE = parseNum(safeFilters.maxEngine);
-    if (minE !== null || maxE !== null) {
-      where.engine_size = {};
-      if (minE !== null) where.engine_size.gte = minE;
-      if (maxE !== null) where.engine_size.lte = maxE;
-    }
-
-    if (safeFilters.originalPaint === 'yes') where.is_original_paint = true;
-    else if (safeFilters.originalPaint === 'no') where.is_original_paint = false;
-
-    const limitVal = typeof safeFilters.limit === 'number' ? safeFilters.limit : Number(safeFilters.limit) || 12;
-    const offsetVal = typeof safeFilters.offset === 'number' ? safeFilters.offset : Number(safeFilters.offset) || 0;
-    const take = Math.max(1, Math.min(200, limitVal));
-    const skip = Math.max(0, offsetVal);
-
-    // Check user auth + interests if logged in
-    const interestsSet = new Set<number>();
-
-
-    // parallel count + query
-    const [totalCount, items] = await Promise.all([
-      prisma.showroom.count({ where }),
-      prisma.showroom.findMany({
-        where,
-        select: {
-          id: true,
-          user_id: true,
-          make: true,
-          model: true,
-          year: true,
-          mileage_km: true,
-          condition: true,
-          fuel_type: true,
-          engine_size: true,
-          doors: true,
-          transmission: true,
-          location: true,
-          description: true,
-          created_at: true,
-          updated_at: true,
-          showroom_photos: {
-            select: { photo_url: true },
-            orderBy: { created_at: 'asc' }
-          }
-        },
-        orderBy: { created_at: 'desc' },
-        take: take + 1, // ask for one more to check hasMore
-        skip
-      })
-    ]);
-
-    const hasMore = items.length > take;
-    const effectiveItems = items.slice(0, take);
-
-    const safeNumber = (v: any) => {
-      if (v === null || v === undefined || v === "") return null
-      try {
-        if (typeof v === 'object') {
-          if (typeof (v as any).toNumber === 'function') return Number((v as any).toNumber())
-          if (typeof (v as any).toString === 'function') return Number(String(v))
-        }
-        return Number(v)
-      } catch { return null }
-    }
-
-    const formattedItems = effectiveItems.map((r) => ({
-      id: Number(r.id),
-      user_id: Number(r.user_id),
-      make: r.make,
-      model: r.model,
-      year: safeNumber(r.year),
-      mileage_km: safeNumber(r.mileage_km),
-      condition: r.condition,
-      fuel_type: r.fuel_type,
-      engine_size: safeNumber(r.engine_size),
-      doors: safeNumber(r.doors),
-      transmission: r.transmission,
-      location: r.location,
-      description: r.description,
-      created_at: r.created_at ? new Date(r.created_at).toISOString() : null,
-      updated_at: r.updated_at ? new Date(r.updated_at).toISOString() : null,
-      photos: r.showroom_photos.map(p => p.photo_url || ""),
-      interest_sent: interestsSet.has(Number(r.id))
-    }))
-
-    metrics.end("searchShowroom-db");
-    return {
-      success: true,
-      showroom: formattedItems,
-      hasMore,
-      total: totalCount,
-      server_time: new Date().toISOString()
-    };
-  } catch (err) {
-    logError("[app/actions] Error in searchShowroom:", err);
-    // fallback to empty
-    return { success: false, showroom: [], error: String(err) };
-  }
+  return {
+    success: true,
+    showroom: [],
+    hasMore: false,
+    total: 0,
+    server_time: new Date().toISOString()
+  };
 }
 
 /* ---------------- getRecentAuctions ---------------- */

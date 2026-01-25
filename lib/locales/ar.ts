@@ -4,6 +4,7 @@ import type { en } from './en';
 export const ar: typeof en = {
   // Common
   "common.soon": "قريباً",
+  "common.search": "بحث...",
 
   // Colors
   "colors.white": "أبيض",
@@ -26,6 +27,28 @@ export const ar: typeof en = {
   "colors.metallic": "معدني",
   "colors.matte_black": "أسود مطفي",
   "colors.other": "أخرى",
+
+  // Footer
+  "footer.marketplace": "السوق",
+  "footer.company": "الشركة",
+  "footer.help": "المساعدة والمعلومات",
+  "footer.legal": "قانوني",
+  "footer.social": "التواصل الاجتماعي",
+  "footer.brand_desc": "أول سوق في المغرب لبيع وشراء السيارات عالية الجودة عبر مزادات آمنة.",
+  "footer.copyright": "جميع الحقوق محفوظة.",
+  "footer.how_it_works": "كيف يعمل",
+  "footer.careers": "وظائف",
+  "footer.contact": "اتصل بنا",
+  "footer.help_center": "مركز المساعدة",
+  "footer.faq": "الأسئلة الشائعة",
+  "footer.manage_listings": "إدارة الإعلانات",
+  "footer.account_settings": "إعدادات الحساب",
+  "footer.terms": "شروط الخدمة",
+  "footer.privacy": "سياسة الخصوصية",
+  "footer.cookies": "سياسة ملفات تعريف الارتباط",
+  "footer.licenses": "التراخيص",
+  "footer.site_map": "خريطة الموقع",
+  "footer.terms_of_use": "شروط الاستخدام",
 
   // Header
   "nav.auctions": "المزادات",
@@ -237,6 +260,7 @@ export const ar: typeof en = {
   "time.short_minutes": "دقيقة",
   "time.short_seconds": "ثانية",
   "unit.liter": "لتر",
+  "unit.km": "كم",
 
   // Auctions Page
   "auctions.title": "المزادات",
@@ -298,7 +322,7 @@ export const ar: typeof en = {
 
   // Filters
   "filters.title": "الفلاتر",
-  "filters.reset": "إعادة تعيين",
+  "filters.reset": "إعادة تعيين الكل",
   "filters.apply": "تطبيق",
   "filters.find_your_car": "ابحث عن سيارتك",
   "filters.location_label": "أين يجب أن تكون السيارة؟",
@@ -355,9 +379,31 @@ export const ar: typeof en = {
   "filters.exterior_color": "اللون الخارجي",
   "filters.interior_color": "اللون الداخلي",
   "filters.original_paint": "طلاء أصلي",
+
+  // Cities
+  "location.city.casablanca": "الدار البيضاء",
+  "location.city.rabat": "الرباط",
+  "location.city.marrakech": "مراكش",
+  "location.city.marrakesh": "مراكش",
+  "location.city.tangier": "طنجة",
+  "location.city.tanger": "طنجة",
+  "location.city.agadir": "أكادير",
+  "location.city.fes": "فاس",
+  "location.city.meknes": "مكناس",
+  "location.city.meknès": "مكناس",
+  "location.city.oujda": "وجدة",
+  "location.city.mohammedia": "المحمدية",
+  "location.city.kenitra": "القنيطرة",
+  "location.city.tetouan": "تطوان",
+  "location.city.sale": "سلا",
+  "location.city.salé": "سلا",
+  "location.city.eljadida": "الجديدة",
+  "location.city.nador": "الناظور",
+  "location.city.safi": "أسفي",
   "filters.yes": "نعم",
   "filters.no": "لا",
   "filters.selected": "تم اختيارها",
+  "filters.more_results": "+{count} المزيد... ابحث لتجد المزيد",
   "filters.clear_all": "مسح الكل",
   "nav.signin": "تسجيل الدخول",
   "nav.signup": "إنشاء حساب",
@@ -368,6 +414,7 @@ export const ar: typeof en = {
   "nav.search_placeholder": "ابحث عن الماركة، الموديل أو النوع",
   "searchbar.placeholder": "ابحث حسب الماركة، الموديل أو الموقع",
   "search": "بحث",
+  "nav.suggested_results": "النتائج المقترحة",
   "nav.notifications": "إشعارات",
   "nav.profile": "الملف الشخصي",
   "nav.settings": "الإعدادات",
@@ -477,6 +524,7 @@ export const ar: typeof en = {
   "common.no_results": "لم يتم العثور على نتائج",
   "common.try_adjusting_filters": "حاول تعديل الفلاتر",
   "common.see_all": "مشاهدة الكل",
+  "common.mad": "درهم",
 
   // Upcoming Auctions
   "auctions.upcoming.badge": "حدث حصري في عطلة نهاية الأسبوع",
@@ -595,6 +643,7 @@ export const ar: typeof en = {
   "wizard.fields.special_features": "مميزات خاصة",
   "wizard.fields.description": "الوصف",
   "wizard.fields.description_placeholder": "صف مركبتك...",
+  "wizard.fields.special_features_placeholder": "اذكر أي ميزات خاصة أو تحسينات أو نقاط بيع فريدة...",
   "wizard.fields.description_min_chars": "(20 حرفاً على الأقل)",
   "wizard.fields.select": "اختر",
 

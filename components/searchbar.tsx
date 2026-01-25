@@ -1,11 +1,11 @@
 "use client"
-
 import React, { useEffect, useRef, useState, useLayoutEffect, useMemo } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useTranslation } from "@/lib/i18n-context"
 import CustomSelect from "@/components/ui/custom-select"
 import CustomMultiSelect from "@/components/ui/custom-multi-select"
 import { ScaleButton, SlideUp } from "@/components/ui/motion-wrappers"
+import { SearchSuggestions } from "@/components/search/search-suggestions"
 
 type FilterOptions = {
     makes?: string[]
@@ -21,9 +21,36 @@ type FilterOptions = {
 
 type Props = { className?: string; options?: FilterOptions }
 
+// --- Stable Badge Component (Defined outside to prevent remount flickering) ---
+const SearchModeBadge = ({ mode, lang, onReset }: { mode: string | null, lang: string, onReset: () => void }) => {
+    if (!mode) return null
+    const isAuction = mode === 'auction'
+    return (
+        <div className={`flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${isAuction ? "bg-[#B8071C]/10 text-[#B8071C] border border-[#B8071C]/20" : "bg-emerald-100 text-emerald-700 border border-emerald-200"}`}>
+            <span>/ {isAuction ? (lang === 'ar' ? "مزاد" : "Auction") : (lang === 'ar' ? "بيع" : "Sale")}</span>
+            <button
+                type="button"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onReset();
+                }}
+                className="w-5 h-5 flex items-center justify-center -mr-1 hover:scale-110 active:scale-90 transition-all opacity-60 hover:opacity-100 rounded-full hover:bg-black/5"
+                title="Reset mode"
+            >
+                <svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" strokeWidth="3" fill="none">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+    )
+}
+
 export default function SearchBar({ className = "", options }: Props) {
     const { t } = useTranslation()
     const router = useRouter()
+    const pathname = usePathname() || ""
+    const currentLang = pathname.split('/')[1] || 'en'
     // refs + state
     const wrapperRef = useRef<HTMLDivElement | null>(null)
     const filterBtnRef = useRef<HTMLButtonElement | null>(null) // main search filter button
@@ -88,6 +115,25 @@ export default function SearchBar({ className = "", options }: Props) {
     const [minPrice, setMinPrice] = useState("")
     const [maxPrice, setMaxPrice] = useState("")
     const [mobileQuery, setMobileQuery] = useState("")
+    const [isFocused, setIsFocused] = useState(false)
+    const [searchMode, setSearchMode] = useState<"auction" | "direct_sale" | null>(null)
+
+    const inlineSearchRef = useRef<HTMLInputElement>(null)
+    const pinnedSearchRef = useRef<HTMLInputElement>(null)
+
+    // Auto-focus input when searchMode is selected
+    useEffect(() => {
+        if (searchMode) {
+            // small timeout to ensure suggestions are rendered or previous refs are stable
+            setTimeout(() => {
+                // Only auto-focus on desktop to prevent mobile scroll jumps
+                if (window.innerWidth > 640) {
+                    if (pinned && pinnedSearchRef.current) pinnedSearchRef.current.focus()
+                    else if (inlineSearchRef.current) inlineSearchRef.current.focus()
+                }
+            }, 100)
+        }
+    }, [searchMode, pinned])
 
     const conditionsList: Array<{ value: string; label: string }> = (options?.conditions && options.conditions.length ? options.conditions : defaultConditions).map((c) => {
         if (typeof c === "object" && c !== null && "value" in c) {
@@ -289,6 +335,7 @@ export default function SearchBar({ className = "", options }: Props) {
             minPrice: vals?.minPrice ?? minPrice,
             maxPrice: vals?.maxPrice ?? maxPrice,
             query: trimmedQuery && trimmedQuery.length ? trimmedQuery : undefined,
+            type: searchMode || undefined
         }
         const params = new URLSearchParams()
 
@@ -314,6 +361,7 @@ export default function SearchBar({ className = "", options }: Props) {
         if (v.minPrice) params.set("minPrice", String(v.minPrice))
         if (v.maxPrice) params.set("maxPrice", String(v.maxPrice))
         if (v.query) params.set("q", String(v.query))
+        if (v.type) params.set("type", String(v.type))
 
         const queryString = params.toString()
 
@@ -354,8 +402,15 @@ export default function SearchBar({ className = "", options }: Props) {
             }
         } catch { }
 
-        // use client-side navigation (faster, SPA style) to /direct-sales with query params
-        const target = queryString ? `/direct-sales?${queryString}` : `/direct-sales`
+        // SMART ROUTING: Determine target based on current pathname
+        let routeBase = `/${currentLang}/direct-sales`
+        if (pathname.includes('/auctions')) {
+            routeBase = `/${currentLang}/auctions`
+        } else if (pathname.includes('/karkey-cars')) {
+            routeBase = `/${currentLang}/karkey-cars`
+        }
+
+        const target = queryString ? `${routeBase}?${queryString}` : routeBase
         router.push(target)
     }
 
@@ -458,7 +513,10 @@ export default function SearchBar({ className = "", options }: Props) {
                     value={location}
                     onChange={setLocation}
                     options={[
-                        ...locationsList.map((l) => ({ value: l, label: l }))
+                        ...locationsList.map((l) => ({
+                            value: l,
+                            label: t(`location.city.${l.toLowerCase().replace(/\s+/g, '')}` as any) || l
+                        }))
                     ]}
                 />
             </div>
@@ -541,7 +599,10 @@ export default function SearchBar({ className = "", options }: Props) {
                     value={location}
                     onChange={setLocation}
                     options={[
-                        ...locationsList.map((l) => ({ value: l, label: l }))
+                        ...locationsList.map((l) => ({
+                            value: l,
+                            label: t(`location.city.${l.toLowerCase().replace(/\s+/g, '')}` as any) || l
+                        }))
                     ]}
                 />
             </div>
@@ -617,7 +678,7 @@ export default function SearchBar({ className = "", options }: Props) {
                                 className="w-full pl-2 pr-6 py-1.5 bg-white border border-gray-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-[#00A651]/10 focus:border-[#00A651] transition-all professional-font h-8"
                                 placeholder="0"
                             />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-gray-400 font-bold professional-font">MAD</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-gray-400 font-bold professional-font">{t('common.mad')}</span>
                         </div>
                     </div>
                     <div className="space-y-1">
@@ -629,7 +690,7 @@ export default function SearchBar({ className = "", options }: Props) {
                                 className="w-full pl-2 pr-6 py-1.5 bg-white border border-gray-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-[#00A651]/10 focus:border-[#00A651] transition-all professional-font h-8"
                                 placeholder="Any"
                             />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-gray-400 font-bold professional-font">MAD</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-gray-400 font-bold professional-font">{t('common.mad')}</span>
                         </div>
                     </div>
                 </div>
@@ -848,40 +909,57 @@ export default function SearchBar({ className = "", options }: Props) {
 
     const mobileInlineInner = (
         <div className="w-full max-w-md mx-auto px-4 pb-2">
-            <div className="flex items-center gap-2 rounded-full border border-gray-100/20 bg-white/95 backdrop-blur-md shadow-[0_8px_32px_rgba(0,166,81,0.15)] px-4 py-3 transition-all">
-                <input
-                    type="text"
-                    value={mobileQuery}
-                    onChange={(e) => setMobileQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                            e.preventDefault()
-                            handleMobileSearch()
-                        }
-                    }}
-                    placeholder={t("nav.search_placeholder") || "Search make, model, or type"}
-                    className="flex-1 bg-transparent text-base text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-                    aria-label={t("nav.search_placeholder")}
-                />
-                {mobileQuery && (
+            <div className="relative">
+                <label
+                    className="relative z-20 flex items-center flex-nowrap gap-2 rounded-full border border-gray-100/20 bg-white/95 backdrop-blur-md shadow-[0_12px_20px_-8px_rgba(180,140,29,0.25)] px-4 py-3 transition-all focus-within:shadow-[0_15px_25px_-5px_rgba(0,166,81,0.2)] cursor-text min-h-[50px]"
+                >
+                    <SearchModeBadge mode={searchMode} lang={currentLang} onReset={() => setSearchMode(null)} />
+                    <input
+                        ref={inlineSearchRef}
+                        type="text"
+                        value={mobileQuery}
+                        onChange={(e) => setMobileQuery(e.target.value)}
+                        onFocus={() => setIsFocused(true)}
+                        onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                e.preventDefault()
+                                handleMobileSearch()
+                            }
+                        }}
+                        placeholder={searchMode ? "" : (t("nav.search_placeholder") || "Search...")}
+                        className="flex-1 h-full bg-transparent text-base text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
+                        aria-label={t("nav.search_placeholder")}
+                    />
+                    {mobileQuery && (
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setMobileQuery(""); }}
+                            className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full text-[#475569] hover:bg-slate-100 relative z-30"
+                        >
+                            ✕
+                        </button>
+                    )}
                     <button
                         type="button"
-                        onClick={() => setMobileQuery("")}
-                        className="w-8 h-8 flex items-center justify-center rounded-full text-[#475569] hover:bg-slate-100"
+                        onClick={(e) => { e.stopPropagation(); handleMobileSearch(); }}
+                        className="w-10 h-10 flex-shrink-0 rounded-full bg-[#00A651] text-white flex items-center justify-center shadow-lg shadow-[#00A651]/20 hover:scale-105 active:scale-95 transition-all relative z-30"
                     >
-                        ✕
+                        <svg aria-hidden="true" focusable="false" className="search-icon-svg" viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" fill="none" />
+                            <line x1="20.5" y1="20.5" x2="16.65" y2="16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
                     </button>
+                </label>
+                {/* Smart Suggestions */}
+                {(isFocused || mobileQuery.length > 0) && (
+                    <SearchSuggestions
+                        query={mobileQuery}
+                        onClose={() => setMobileQuery("")}
+                        searchMode={searchMode}
+                        onSetMode={setSearchMode}
+                    />
                 )}
-                <button
-                    type="button"
-                    onClick={handleMobileSearch}
-                    className="w-10 h-10 rounded-full bg-[#00A651] text-white flex items-center justify-center shadow-lg shadow-[#00A651]/20 hover:scale-105 active:scale-95 transition-all"
-                >
-                    <svg aria-hidden="true" focusable="false" className="search-icon-svg" viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" fill="none" />
-                        <line x1="20.5" y1="20.5" x2="16.65" y2="16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                </button>
             </div>
         </div>
     )
@@ -914,7 +992,7 @@ export default function SearchBar({ className = "", options }: Props) {
 
             {/* Mobile Static (Initial) */}
             {isSmallScreen && !isPinnedState && (
-                <div className={`searchbar-floating ${className} main-search relative z-[10020]`}>
+                <div className={`searchbar-floating ${className} mobile-standalone-search relative z-[100002]`}>
                     {mobileInlineInner}
                 </div>
             )}
@@ -925,7 +1003,7 @@ export default function SearchBar({ className = "", options }: Props) {
 
             {isSmallScreen && isPinnedState && (
                 <div
-                    className="fixed left-1/2 z-[50000] w-full"
+                    className="fixed left-1/2 z-[100002] w-full"
                     style={{
                         top: `calc(var(--site-header-height, 76px) + 8px)`,
                         transform: "translateX(-50%)",
@@ -935,29 +1013,54 @@ export default function SearchBar({ className = "", options }: Props) {
                     }}
                 >
                     <div className="px-4" style={{ width: "min(420px, 94vw)", margin: "0 auto" }}>
-                        <div className="flex items-center gap-2 rounded-full border border-gray-100/20 bg-white/95 backdrop-blur-md shadow-[0_8px_32px_rgba(0,166,81,0.15)] px-4 py-2 transition-all">
-                            <input
-                                type="text"
-                                value={mobileQuery}
-                                onChange={(e) => setMobileQuery(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        e.preventDefault()
-                                        handleMobileSearch()
-                                    }
-                                }}
-                                placeholder={t("nav.search_placeholder")}
-                                className="flex-1 bg-transparent text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-                            />
-                            {mobileQuery && (
-                                <button type="button" onClick={() => setMobileQuery("")} className="w-7 h-7 rounded-full border border-[#e2e8f0] text-[#475569] text-xs">✕</button>
+                        <div className="relative">
+                            <label
+                                className="relative z-20 flex items-center flex-nowrap gap-2 rounded-full border border-gray-100/20 bg-white/95 backdrop-blur-md shadow-[0_12px_20px_-8px_rgba(180,140,29,0.25)] px-4 py-2 transition-all cursor-text min-h-[44px]"
+                            >
+                                <SearchModeBadge mode={searchMode} lang={currentLang} onReset={() => setSearchMode(null)} />
+                                <input
+                                    ref={pinnedSearchRef}
+                                    type="text"
+                                    value={mobileQuery}
+                                    onChange={(e) => setMobileQuery(e.target.value)}
+                                    onFocus={() => setIsFocused(true)}
+                                    onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            e.preventDefault()
+                                            handleMobileSearch()
+                                        }
+                                    }}
+                                    placeholder={searchMode ? "" : t("nav.search_placeholder")}
+                                    className="flex-1 h-full bg-transparent text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
+                                />
+                                {mobileQuery && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setMobileQuery(""); }}
+                                        className="w-7 h-7 flex-shrink-0 rounded-full border border-[#e2e8f0] text-[#475569] text-xs relative z-30"
+                                    >✕</button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleMobileSearch(); }}
+                                    className="w-9 h-9 flex-shrink-0 rounded-full bg-[#00A651] text-white flex items-center justify-center shadow-lg shadow-[#00A651]/20 hover:scale-105 active:scale-95 transition-all relative z-30"
+                                >
+                                    <svg aria-hidden="true" focusable="false" className="search-icon-svg" viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.6" fill="none" />
+                                        <line x1="20.5" y1="20.5" x2="16.65" y2="16.65" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                                    </svg>
+                                </button>
+                            </label>
+                            {/* Smart Suggestions */}
+                            {(isFocused || mobileQuery.length > 0) && (
+                                <SearchSuggestions
+                                    query={mobileQuery}
+                                    onClose={() => setMobileQuery("")}
+                                    searchMode={searchMode}
+                                    onSetMode={setSearchMode}
+                                />
                             )}
-                            <button type="button" onClick={handleMobileSearch} className="w-9 h-9 rounded-full bg-[#00A651] text-white flex items-center justify-center shadow-lg shadow-[#00A651]/20 hover:scale-105 active:scale-95 transition-all">
-                                <svg aria-hidden="true" focusable="false" className="search-icon-svg" viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.6" fill="none" />
-                                    <line x1="20.5" y1="20.5" x2="16.65" y2="16.65" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                                </svg>
-                            </button>
                         </div>
                     </div>
                 </div>

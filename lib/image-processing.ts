@@ -139,3 +139,35 @@ export function getContentTypeFromExt(ext: string | undefined): string {
         default: return 'application/octet-stream';
     }
 }
+
+export async function generateTinyPlaceholder(
+    body: Uint8Array | Buffer
+): Promise<string | null> {
+    try {
+        // dynamic import of sharp (reusing logic pattern)
+        let mod: any;
+        try {
+            mod = await import("sharp");
+        } catch (error) {
+            console.warn("[image-processing] Missing 'sharp' dependency. Skipping placeholder.", error);
+            return null;
+        }
+        const sharp = mod.default ?? mod;
+
+        const img = sharp(body);
+        const metadata = await img.metadata();
+
+        if (!metadata.width || !metadata.height) return null;
+
+        // Resize to tiny dimension (10px) keeping aspect ratio
+        const resizedBuffer = await img
+            .resize({ width: 10, fit: 'inside' })
+            .toFormat('jpeg', { quality: 60 }) // low quality jpeg is enough for blur
+            .toBuffer();
+
+        return `data:image/jpeg;base64,${resizedBuffer.toString('base64')}`;
+    } catch (err) {
+        console.warn("[image-processing] Placeholder generation failed:", err);
+        return null;
+    }
+}

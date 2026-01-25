@@ -119,7 +119,7 @@ export default function UnifiedCarLayout({
         return new Intl.NumberFormat(language === "ar" ? "ar-MA" : "fr-MA", {
             style: "decimal",
             maximumFractionDigits: 0,
-        }).format(numPrice) + " MAD"
+        }).format(numPrice) + " " + t("common.mad")
     }
 
     const nextPhoto = () => {
@@ -374,7 +374,7 @@ export default function UnifiedCarLayout({
                                 </span>
                                 <div className="flex items-center gap-1.5 text-gray-500 font-medium text-base">
                                     <MapPin className="w-5 h-5 text-[#B8071C]" />
-                                    {car.location}
+                                    {t(`location.city.${(car.location || "").toLowerCase().replace(/\s+/g, '')}` as any) || car.location}
                                 </div>
                             </div>
 
@@ -395,7 +395,7 @@ export default function UnifiedCarLayout({
                                         <div className="relative w-4 h-4">
                                             <Image src="/icons/mileage.png" alt="" fill className="object-contain" style={{ filter: 'invert(16%) sepia(95%) saturate(3500%) hue-rotate(348deg) brightness(85%) contrast(95%)' }} />
                                         </div>
-                                        <p className="text-lg font-bold text-[#103090]">{Number(car.mileage).toLocaleString()} km</p>
+                                        <p className="text-lg font-bold text-[#103090]">{Number(car.mileage).toLocaleString()} {t("unit.km")}</p>
                                     </div>
                                 </div>
                                 <div className="space-y-0.5">

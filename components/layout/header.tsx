@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import React from "react";
-import { useTranslation } from "@/lib/i18n-context";
 import { LuxuryLoader } from "@/components/ui/luxury-loader";
 
 // Components
@@ -196,7 +195,7 @@ function HeaderContent({ initialLoggedIn }: HeaderProps) {
 							</div>
 
 							{/* Center Slot: Logo */}
-							<Link href={`/${language}`} className="flex items-center justify-center pointer-events-auto h-20 w-auto">
+							<Link href={`/${language}`} className="flex items-center justify-center pointer-events-auto h-20 w-auto overflow-hidden">
 								<Image
 									src="/logo.png"
 									alt="Karkey Logo"
@@ -215,7 +214,7 @@ function HeaderContent({ initialLoggedIn }: HeaderProps) {
 					</div>
 
 					<div className="hidden lg:flex items-center h-[76px] w-full">
-						<Link href={`/${language}`} className="flex items-center group transition-transform hover:scale-110 duration-300">
+						<Link href={`/${language}`} className="flex items-center group transition-transform hover:scale-110 duration-300 overflow-hidden h-[76px]">
 							<Image
 								src="/logo.png"
 								alt="Karkey Logo"

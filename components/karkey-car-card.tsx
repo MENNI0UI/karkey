@@ -107,7 +107,7 @@ export default function KarkeyCarCard({ car, onContact, priority = false }: Kark
                         <div className="mb-3">
                             <span className="text-sm font-medium font-serif text-gray-500 flex items-center gap-2">
                                 <MapPin className="w-5 h-5 text-[#B8071C]" />
-                                {car.location}
+                                {t(`location.city.${car.location.toLowerCase().replace(/\s+/g, '')}` as any) || car.location}
                             </span>
                         </div>
 
@@ -116,7 +116,7 @@ export default function KarkeyCarCard({ car, onContact, priority = false }: Kark
                             {new Intl.NumberFormat(language === "ar" ? "ar-MA" : "fr-MA", {
                                 style: "decimal",
                                 maximumFractionDigits: 0,
-                            }).format(typeof car.price === "string" ? parseFloat(car.price) : car.price) + " MAD"}
+                            }).format(typeof car.price === "string" ? parseFloat(car.price) : car.price) + " " + t('common.mad')}
                         </div>
 
                         {/* Divider */}

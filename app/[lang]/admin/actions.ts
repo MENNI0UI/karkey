@@ -587,18 +587,18 @@ export async function checkDatabaseHealth() {
     const [
       usersCount,
       directSalesCount,
-      showroomCount,
+      // showroomCount,
       directSalePhotosCount,
-      showroomPhotosCount,
+      // showroomPhotosCount,
       notificationsCount,
       pendingDirectSales,
       activeAuctions
     ] = await Promise.all([
       prisma.users.count(),
       prisma.direct_sales.count(),
-      prisma.showroom.count(),
+      // prisma.showroom.count(), // Removed
       prisma.direct_sale_photos.count(),
-      prisma.showroom_photos.count(),
+      // prisma.showroom_photos.count(), // Removed
       prisma.notifications.count(),
       prisma.direct_sales.count({ where: { verification_status: "pending" } }),
       prisma.direct_sales.count({ where: { auction_mode: true, auction_status: "active" } })
@@ -620,9 +620,9 @@ export async function checkDatabaseHealth() {
         tables: {
           users: usersCount,
           directSales: directSalesCount,
-          showroom: showroomCount,
+          showroom: 0, // showroomCount,
           directSalePhotos: directSalePhotosCount,
-          showroomPhotos: showroomPhotosCount,
+          showroomPhotos: 0, // showroomPhotosCount,
           notifications: notificationsCount
         },
         pending: {

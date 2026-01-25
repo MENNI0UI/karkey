@@ -11,12 +11,11 @@ import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { useRouter as useNextRouter, useSearchParams } from "next/navigation"
 import { useTranslation } from "@/lib/i18n-context"
 import { useToast } from "@/hooks/use-toast"
+import { AuctionFiltersSidebar, AuctionFiltersSidebarRef, FilterOptions } from "@/components/auction-filters-sidebar"
 
-// --- Lazy loaded components ---
-const AuctionFiltersSidebar = dynamic(() => import("@/components/auction-filters-sidebar").then(mod => mod.AuctionFiltersSidebar), {
-  loading: () => <div className="w-64 h-screen bg-gray-50 animate-pulse" />
-})
-import type { FilterOptions } from "@/components/auction-filters-sidebar"
+// Removed dynamic import for Sidebar to ensure ref works reliably
+// const AuctionFiltersSidebar = dynamic(...)
+
 const NewItemsNotifier = dynamic(() => import("@/components/NewItemsNotifier"), { ssr: false })
 const UpcomingAuctionsPlaceholder = dynamic(() => import("@/components/upcoming-auction-placeholder"), { ssr: false })
 const DraggableFilterButton = dynamic(() => import("@/components/DraggableFilterButton").then(mod => mod.DraggableFilterButton), { ssr: false })
@@ -49,10 +48,18 @@ export default function AuctionsPageClient({
   const [showFiltersMobile, setShowFiltersMobile] = useState(false)
   const router = useNextRouter()
   const searchParams = useSearchParams()
-  // Shared saved-search state so desktop and mobile sidebars stay in sync
-  const [savedParamsString, setSavedParamsString] = useState<string | null>(initialSavedState?.paramsStr ?? null)
-  const [isSavedActive, setIsSavedActive] = useState<boolean>(!!initialSavedState?.savedId || !!initialSavedState?.isMatch)
-  const [isLoaded, setIsLoaded] = useState<boolean>(false)
+  const filtersRef = useRef<AuctionFiltersSidebarRef>(null)
+
+  const handleCloseFilters = () => {
+    filtersRef.current?.applyFilters()
+    setShowFiltersMobile(false)
+  }
+
+  // Close mobile filters when URL changes (Apply clicked)
+  useEffect(() => {
+    setShowFiltersMobile(false)
+  }, [searchParams])
+
   const [globalFilters, setGlobalFilters] = useState<{ make: string; model: string; year: string | number }[]>([])
   // determine a lightweight endpoint to poll for newest auction when no filters
   const paramString = searchParams ? searchParams.toString() : ""
@@ -179,7 +186,7 @@ export default function AuctionsPageClient({
       toast({
         title: t("common.error"),
         description: t("error.unverified_auction"),
-        variant: "destructive",
+        variant: "error",
       })
       // remove the query param without navigating
       try {
@@ -208,7 +215,7 @@ export default function AuctionsPageClient({
         toast({
           title: t("common.error"),
           description: t("error.unverified_auction"),
-          variant: "destructive",
+          variant: "error",
         })
         // do not navigate; leave the user on the page and show the message
         return
@@ -255,7 +262,7 @@ export default function AuctionsPageClient({
     if (!value || value === "Contact for price") return "Contact for price"
     const num = parseFloat(String(value).replace(/[^\d.-]/g, ""))
     if (isNaN(num)) return "—"
-    return new Intl.NumberFormat("fr-MA", { style: "currency", currency: "MAD", maximumFractionDigits: 0 }).format(num)
+    return new Intl.NumberFormat(language === "ar" ? "ar-MA" : "fr-MA", { style: "currency", currency: "MAD", maximumFractionDigits: 0 }).format(num)
   }
 
   const getNumericField = (obj: any, candidates: string[]) => {
@@ -444,15 +451,10 @@ export default function AuctionsPageClient({
         {/* Sidebar Filters (Desktop) - Only show if NOT showing placeholder */}
         {!isPlaceholderVisible && (
           <AuctionFiltersSidebar
+            ref={filtersRef}
             options={dynamicFilterOptions}
             className="flex-shrink-0"
-            savedParamsString={savedParamsString}
-            setSavedParamsString={setSavedParamsString}
-            isSavedActive={isSavedActive}
-            setIsSavedActive={setIsSavedActive}
-            isLoaded={isLoaded}
-            setIsLoaded={setIsLoaded}
-            initialSavedId={initialSavedState?.savedId}
+            initialSavedState={initialSavedState}
           />
         )}
 
@@ -469,12 +471,12 @@ export default function AuctionsPageClient({
       {/* Mobile filter drawer - Only allow opening if not placeholder */}
       {showFiltersMobile && !isPlaceholderVisible ? (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowFiltersMobile(false)} />
+          <div className="absolute inset-0 bg-black/50" onClick={handleCloseFilters} />
           {/* Bottom sheet: anchored at bottom and fills viewport */}
           <div className="absolute left-0 right-0 bottom-0 top-0 bg-white shadow-xl flex flex-col overflow-hidden transform transition-transform duration-200">
             {/* Floating close button (top-right) for clear exit action */}
             <button
-              onClick={() => setShowFiltersMobile(false)}
+              onClick={handleCloseFilters}
               aria-label="Close filters"
               title="Close filters"
               className="absolute right-4 top-2.5 z-50 inline-flex items-center justify-center w-11 h-11 rounded-full bg-[#B8071C] text-white shadow-[0_4px_12px_rgba(184,7,28,0.3)] hover:bg-[#910515] active:scale-95 transition-all outline-none ring-2 ring-white/10"
@@ -489,14 +491,20 @@ export default function AuctionsPageClient({
             <div className="px-4 py-4 border-b bg-white shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
               <button
                 type="button"
-                onClick={() => setShowFiltersMobile(false)}
+                onClick={handleCloseFilters}
                 className="w-full inline-flex items-center justify-center bg-gradient-to-r from-[#B8071C] to-[#D31027] hover:from-[#910515] hover:to-[#B8071C] text-white rounded-xl h-14 text-lg font-bold shadow-[0_4px_15px_rgba(184,7,28,0.25)] active:scale-[0.98] transition-all"
               >
                 {t("auctions.close")}
               </button>
             </div>
             <div className="p-0 flex-1 overflow-hidden">
-              <AuctionFiltersSidebar options={dynamicFilterOptions} mobile className="h-full" savedParamsString={savedParamsString} setSavedParamsString={setSavedParamsString} isSavedActive={isSavedActive} setIsSavedActive={setIsSavedActive} isLoaded={isLoaded} setIsLoaded={setIsLoaded} initialSavedId={initialSavedState?.savedId} />
+              <AuctionFiltersSidebar
+                ref={filtersRef}
+                options={dynamicFilterOptions}
+                mobile
+                className="h-full"
+                initialSavedState={initialSavedState}
+              />
             </div>
           </div>
         </div>

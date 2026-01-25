@@ -30,13 +30,13 @@ export default function NewItemsNotifier({ fetchUrl, initialTopId = null, pollIn
         const tryExtractArray = (obj: any): any[] | null => {
           if (!obj) return null
           if (Array.isArray(obj)) return obj
-          const keys = ["showroom", "results", "vehicles", "auctions", "items", "data"]
+          const keys = ["direct_sales", "results", "vehicles", "auctions", "items", "data"]
           for (const k of keys) {
             try {
               if (Array.isArray(obj[k])) return obj[k]
             } catch { }
           }
-          // sometimes payload is { success: true, showroom: [...] }
+          // sometimes payload is { success: true, direct_sales: [...] }
           for (const k of Object.keys(obj || {})) {
             try {
               if (Array.isArray((obj as any)[k])) return (obj as any)[k]

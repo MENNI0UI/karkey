@@ -63,16 +63,16 @@ export default function AlternatingCTAButtons({ onSellClick, isSellMenuOpen }: A
                     bg-[#B8071C] hover:bg-[#9C0618] text-white 
                     font-medium text-[13px] sm:text-[14px] shadow-sm
                     transition-all duration-300 ease-in-out
-                    ${activeButton === 'sell' && !isTransitioning 
-                        ? 'opacity-100 translate-y-0 scale-100' 
+                    ${activeButton === 'sell' && !isTransitioning
+                        ? 'opacity-100 translate-y-0 scale-100'
                         : 'opacity-0 -translate-y-2 scale-95 pointer-events-none'}
                     ${isSellMenuOpen ? "ring-4 ring-[#B8071C]/20" : ""}
                 `}
             >
                 <span className="whitespace-nowrap">{sellButtonText}</span>
-                <ChevronDown 
-                    size={14} 
-                    className={`opacity-80 transition-transform duration-200 ${isSellMenuOpen ? "rotate-180" : ""}`} 
+                <ChevronDown
+                    size={14}
+                    className={`opacity-80 transition-transform duration-200 ${isSellMenuOpen ? "rotate-180" : ""}`}
                 />
             </button>
 
@@ -85,8 +85,8 @@ export default function AlternatingCTAButtons({ onSellClick, isSellMenuOpen }: A
                     hover:bg-[#B8071C] hover:text-white
                     font-semibold text-[13px] sm:text-[14px] shadow-sm
                     transition-all duration-300 ease-in-out
-                    ${activeButton === 'signin' && !isTransitioning 
-                        ? 'opacity-100 translate-y-0 scale-100' 
+                    ${activeButton === 'signin' && !isTransitioning
+                        ? 'opacity-100 translate-y-0 scale-100'
                         : 'opacity-0 translate-y-2 scale-95 pointer-events-none'}
                 `}
             >

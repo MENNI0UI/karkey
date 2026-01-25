@@ -694,7 +694,7 @@ function VerificationSection({
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Location</p>
-                      <p className="text-sm font-medium text-gray-900">{selectedDirectSale.location}</p>
+                      <p className="text-sm font-medium text-gray-900">{t(`location.city.${(selectedDirectSale.location || "").toLowerCase().replace(/\s+/g, '')}` as any) || selectedDirectSale.location}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Listed Date</p>

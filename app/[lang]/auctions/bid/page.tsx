@@ -7,8 +7,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { sanitizeImageUrl } from "@/lib/security-utils"
 import Image from "next/image"
 import Link from "next/link"
+import { useTranslation } from "@/lib/i18n-context"
 
 export default function AuctionBidPage() {
+  const { t } = useTranslation()
   const searchParams = useSearchParams()
   const id = searchParams.get("id")
   const [auction, setAuction] = useState<any>(null)
@@ -122,7 +124,7 @@ export default function AuctionBidPage() {
           {/* Vehicle/Auction info */}
           <h1 className="text-2xl font-bold font-serif text-[#103090] mb-2">{model}</h1>
           <div className="mb-2 text-[#717171]">{make} {year !== "—" ? `• ${year}` : ""}</div>
-          <div className="mb-2 text-[#717171]">{location}</div>
+          <div className="mb-2 text-[#717171]">{t(`location.city.${(location || "").toLowerCase().replace(/\s+/g, '')}` as any) || location}</div>
           <div className="mb-4 flex items-center gap-3">
             <Image
               src={sellerAvatar}

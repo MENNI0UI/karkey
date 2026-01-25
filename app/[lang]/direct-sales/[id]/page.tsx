@@ -437,7 +437,7 @@ export default function DirectSalePage() {
         } catch {
           try {
             // Fallback: try to find in approved list
-            const res2 = await fetch("/api/showroom/approved", { signal: ac.signal, cache: "no-store" })
+            const res2 = await fetch("/api/direct-sales/approved", { signal: ac.signal, cache: "no-store" })
             if (res2.ok) {
               const data2 = await res2.json().catch(() => null)
               const found = Array.isArray(data2?.vehicles)

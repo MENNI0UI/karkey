@@ -19,7 +19,7 @@ export interface Seller {
 }
 
 /**
- * Base vehicle interface shared across auctions, direct sales, and showroom.
+ * Base vehicle interface shared across auctions and direct sales.
  */
 export interface Vehicle {
     id: number;

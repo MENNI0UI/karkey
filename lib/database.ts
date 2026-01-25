@@ -11,11 +11,9 @@ export { prisma }
 // Helper types from Prisma (🆕 vehicles/auctions/bids removed - using direct_sales)
 export type {
   users as UserModel,
-  direct_sales as DirectSaleModel,
   direct_sales as VehicleModel, // Alias for backward compatibility
   direct_sales as AuctionModel, // Alias for backward compatibility  
   notifications as NotificationModel,
-  showroom as ShowroomModel,
 } from "@prisma/client"
 
 // Type definitions for database operations

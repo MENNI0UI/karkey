@@ -18,9 +18,10 @@ type Props = {
     className?: string
     label?: string
     isAll?: boolean
+    disabled?: boolean
 }
 
-export default function CustomMultiSelect({ value, onChange, options, placeholder, className = "", label }: Props) {
+export default function CustomMultiSelect({ value, onChange, options, placeholder, className = "", label, disabled }: Props) {
     const { t } = useTranslation()
     const [isOpen, setIsOpen] = useState(false)
     const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
@@ -28,6 +29,28 @@ export default function CustomMultiSelect({ value, onChange, options, placeholde
     const triggerRef = useRef<HTMLButtonElement>(null)
     const dropdownRef = useRef<HTMLDivElement>(null)
     const [mounted, setMounted] = useState(false)
+
+    // Internal search state
+    const [searchTerm, setSearchTerm] = useState("")
+
+    // Reset search when closed
+    useEffect(() => {
+        if (!isOpen) setSearchTerm("")
+    }, [isOpen])
+
+    // Filtered options based on search
+    // Using useMemo to prevent re-calculations during renders
+    const filteredOptions = React.useMemo(() => {
+        const term = searchTerm.toLowerCase().trim()
+        const allOpts = options.filter(o => o.value !== "All")
+
+        if (!term) return allOpts
+
+        return allOpts.filter(o =>
+            o.label.toLowerCase().includes(term) ||
+            o.value.toLowerCase().includes(term)
+        )
+    }, [options, searchTerm])
 
     useEffect(() => {
         setMounted(true)
@@ -44,7 +67,8 @@ export default function CustomMultiSelect({ value, onChange, options, placeholde
             left: isRtl ? "auto" : rect.left,
             right: isRtl ? window.innerWidth - rect.right : "auto",
             minWidth: Math.max(rect.width, 200),
-            zIndex: 99999,
+            // Must be higher than mobile filter panel (z-[110000]) to appear on top
+            zIndex: 120000,
         })
     }, [])
 
@@ -127,8 +151,25 @@ export default function CustomMultiSelect({ value, onChange, options, placeholde
 
             <div className="border-t my-1 border-gray-100" />
 
-            <div className="max-h-[240px] overflow-y-auto">
-                {options.filter(o => o.value !== "All").map((option) => (
+            {/* Search Input for long lists */}
+            {options.length > 10 && (
+                <div className="px-2 py-1 sticky top-0 bg-white z-10">
+                    <input
+                        type="text"
+                        placeholder={t("common.search")}
+                        className="w-full text-xs px-2 py-1.5 border rounded-md focus:outline-none focus:border-[#00A651] transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                            // Store search term in a data attribute or local ref/state if we want to be pure
+                            // But since we need re-render, we'll use a local state for search
+                            setSearchTerm(e.target.value)
+                        }}
+                    />
+                </div>
+            )}
+
+            <div className="max-h-[240px] overflow-y-auto scrollbar-thin">
+                {filteredOptions.slice(0, 50).map((option) => (
                     <button
                         key={option.value}
                         type="button"
@@ -137,12 +178,22 @@ export default function CustomMultiSelect({ value, onChange, options, placeholde
                         className={`custom-select-option flex items-center justify-between ${isSelected(option.value) ? "custom-select-option--selected" : ""}`}
                         onClick={() => toggleOption(option.value)}
                     >
-                        <span className="truncate mr-2">{option.label}</span>
-                        <div className={`w-4 h-4 border rounded flex items-center justify-center transition-colors ${isSelected(option.value) ? "bg-[#00A651] border-[#00A651]" : "border-gray-300"}`}>
+                        <span className="truncate mr-2 text-left">{option.label}</span>
+                        <div className={`w-4 h-4 border rounded flex-shrink-0 flex items-center justify-center transition-colors ${isSelected(option.value) ? "bg-[#00A651] border-[#00A651]" : "border-gray-300"}`}>
                             {isSelected(option.value) && <Check className="w-3 h-3 text-white" />}
                         </div>
                     </button>
                 ))}
+                {filteredOptions.length > 50 && (
+                    <div className="text-[10px] text-gray-400 text-center py-1">
+                        {t("filters.more_results", { count: filteredOptions.length - 50 })}
+                    </div>
+                )}
+                {filteredOptions.length === 0 && (
+                    <div className="text-xs text-gray-400 text-center py-4">
+                        {t("common.no_results" as any) || "No results found"}
+                    </div>
+                )}
             </div>
 
             {value.length > 0 && (
@@ -167,22 +218,23 @@ export default function CustomMultiSelect({ value, onChange, options, placeholde
             <button
                 ref={triggerRef}
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className={`custom-select-trigger ${isAllSelected ? "custom-select-trigger--all" : ""}`}
+                onClick={() => !disabled && setIsOpen(!isOpen)}
+                className={`custom-select-trigger ${isAllSelected ? "custom-select-trigger--all" : ""} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                disabled={disabled}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
             >
-                <span className="custom-select-value truncate font-medium">{getDisplayLabel()}</span>
+                <span className="custom-select-value font-medium">{getDisplayLabel()}</span>
                 <div className="flex items-center gap-1">
                     {value.length > 0 && (
                         <div
                             onClick={(e) => { e.stopPropagation(); onChange([]); }}
-                            className="hover:bg-gray-100 rounded-full p-0.5"
+                            className="hover:bg-gray-100 rounded-full p-0.5 transition-colors"
                         >
-                            <X className="w-3 h-3 text-gray-400" />
+                            <X className="w-3.5 h-3.5 text-gray-400 hover:text-red-500" />
                         </div>
                     )}
-                    <ChevronDown className={`custom-select-arrow transition-transform duration-300 w-4 h-4 ${isOpen ? "rotate-180 text-[#00A651]" : "text-gray-400"}`} />
+                    <ChevronDown className={`custom-select-arrow transition-transform duration-300 w-4 h-4 ${isOpen ? "rotate-180 text-[#B8071C]" : "text-gray-400"}`} />
                 </div>
             </button>
             {dropdown}

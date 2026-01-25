@@ -37,7 +37,7 @@ export const fallbackPlans: Plan[] = [
     description: 'Perfect for individual sellers looking to list a few vehicles each month',
     features: [
       'Up to 3 active auctions',
-      'Up to 5 showroom listings',
+      'Up to 5 direct sales listings',
       'Standard listing visibility',
       'Basic auction analytics',
       'Email support',
@@ -58,7 +58,7 @@ export const fallbackPlans: Plan[] = [
     description: 'Ideal for dealers and frequent sellers who need more visibility and tools',
     features: [
       'Up to 15 active auctions',
-      'Up to 30 showroom listings',
+      'Up to 30 direct sales listings',
       'Priority listing placement',
       'Advanced auction analytics',
       'Priority email & chat support',
@@ -81,7 +81,7 @@ export const fallbackPlans: Plan[] = [
     description: 'For large dealerships and professionals who need unlimited access and premium support',
     features: [
       'Unlimited active auctions',
-      'Unlimited showroom listings',
+      'Unlimited direct sales listings',
       'Top placement in search results',
       'Full analytics dashboard',
       'Dedicated account manager',

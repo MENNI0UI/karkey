@@ -1,8 +1,7 @@
-"use client";
-
 import Link from "next/link";
 import React from "react";
 import Image from "next/image";
+import { useTranslation } from "@/lib/i18n-context";
 
 interface FooterLinksGroupProps {
     title: string;
@@ -44,6 +43,7 @@ export function FooterLinksGroup({ title, links, language }: FooterLinksGroupPro
 }
 
 export function FooterBrand({ language }: { language: string }) {
+    const { t } = useTranslation();
     return (
         <div className="col-span-2 md:col-span-3 lg:col-span-1 mb-4 lg:mb-0">
             <Link href={`/${language}/`} className="inline-block mb-3 transition-transform hover:scale-105 duration-300">
@@ -56,24 +56,32 @@ export function FooterBrand({ language }: { language: string }) {
                 />
             </Link>
             <p className="text-[13px] text-[#9ca3af] leading-relaxed max-w-[240px]">
-                Morocco's premier marketplace for buying and selling quality vehicles through secure auctions.
+                {t("footer.brand_desc")}
             </p>
         </div>
     );
 }
 
 export function FooterBottomBar() {
+    const { t } = useTranslation();
+    const links = [
+        { label: t("footer.privacy"), href: "#" },
+        { label: t("footer.terms_of_use"), href: "#" },
+        { label: t("footer.legal"), href: "#" },
+        { label: t("footer.site_map"), href: "#" },
+    ];
+
     return (
         <div className="border-t border-[#ececec]">
             <div className="max-w-7xl 3xl:max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     <p className="text-[13px] text-[#9ca3af]">
-                        © {new Date().getFullYear()} Karkey. All rights reserved.
+                        © {new Date().getFullYear()} Karkey. {t("footer.copyright")}
                     </p>
                     <div className="flex items-center gap-6">
-                        {["Privacy Policy", "Terms of Use", "Legal", "Site Map"].map((text) => (
-                            <Link key={text} href="#" className="text-[13px] text-[#9ca3af] hover:text-[#6b7280] transition-colors">
-                                {text}
+                        {links.map((link) => (
+                            <Link key={link.label} href={link.href} className="text-[13px] text-[#9ca3af] hover:text-[#6b7280] transition-colors">
+                                {link.label}
                             </Link>
                         ))}
                     </div>

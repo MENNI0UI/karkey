@@ -5,7 +5,7 @@ import { useTranslation } from "@/lib/i18n-context";
 import { FooterBrand, FooterLinksGroup, FooterBottomBar } from "./footer/footer-components";
 
 export default function Footer() {
-  const { language } = useTranslation();
+  const { t, language } = useTranslation();
   const pathname = usePathname() || "/";
 
   // Hide footer for auth pages
@@ -19,7 +19,7 @@ export default function Footer() {
       position: absolute;
       inset: 0;
       pointer-events: none;
-      background-image: url('/zellige.png');
+      background-image: url('/zellige.webp');
       background-repeat: repeat;
       background-size: 400px;
       opacity: 0.12;
@@ -38,51 +38,51 @@ export default function Footer() {
           <FooterBrand language={language} />
 
           <FooterLinksGroup
-            title="Marketplace"
+            title={t("footer.marketplace")}
             language={language}
             links={[
-              { label: "Auctions", href: "auctions" },
-              { label: "Direct Sales", href: "direct-sales" },
-              { label: "Karkey Cars", href: "karkey-cars" },
-              { label: "Pricing", href: "plans" },
+              { label: t("nav.auctions"), href: "auctions" },
+              { label: t("nav.direct_sales"), href: "direct-sales" },
+              { label: t("nav.karkey_cars"), href: "karkey-cars" },
+              { label: t("nav.pricing"), href: "plans" },
             ]}
           />
 
           <FooterLinksGroup
-            title="Company"
+            title={t("footer.company")}
             language={language}
             links={[
-              { label: "About Us", href: "about" },
-              { label: "How It Works", href: "#" },
-              { label: "Careers", href: "#" },
-              { label: "Contact", href: "#" },
+              { label: t("nav.about"), href: "about" },
+              { label: t("footer.how_it_works"), href: "#" },
+              { label: t("footer.careers"), href: "#" },
+              { label: t("footer.contact"), href: "#" },
             ]}
           />
 
           <FooterLinksGroup
-            title="Help & Information"
+            title={t("footer.help")}
             language={language}
             links={[
-              { label: "Help Center", href: "#" },
-              { label: "FAQ", href: "#" },
-              { label: "Manage Listings", href: "#" },
-              { label: "Account Settings", href: "#" },
+              { label: t("footer.help_center"), href: "#" },
+              { label: t("footer.faq"), href: "#" },
+              { label: t("footer.manage_listings"), href: "#" },
+              { label: t("footer.account_settings"), href: "#" },
             ]}
           />
 
           <FooterLinksGroup
-            title="Legal"
+            title={t("footer.legal")}
             language={language}
             links={[
-              { label: "Terms of Service", href: "#" },
-              { label: "Privacy Policy", href: "#" },
-              { label: "Cookie Policy", href: "#" },
-              { label: "Licenses", href: "#" },
+              { label: t("footer.terms"), href: "#" },
+              { label: t("footer.privacy"), href: "#" },
+              { label: t("footer.cookies"), href: "#" },
+              { label: t("footer.licenses"), href: "#" },
             ]}
           />
 
           <FooterLinksGroup
-            title="Social"
+            title={t("footer.social")}
             language={language}
             links={[
               { label: "Facebook", href: "https://facebook.com", external: true },

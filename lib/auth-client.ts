@@ -57,7 +57,7 @@ export async function performGlobalLogout(options?: {
 
         const allKeys = Object.keys(localStorage);
         for (const k of allKeys) {
-            if (k.startsWith("profile:") || k.startsWith("watchlist") || k.startsWith("showroom:interest")) {
+            if (k.startsWith("profile:") || k.startsWith("watchlist")) {
                 try { localStorage.removeItem(k); } catch { }
             }
         }
