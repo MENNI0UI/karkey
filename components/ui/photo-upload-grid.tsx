@@ -5,12 +5,24 @@ import { Upload, X, Star, GripVertical, Image as ImageIcon } from "lucide-react"
 import { validateImageFile } from "@/lib/validations";
 import { useTranslation } from "@/lib/i18n-context";
 
+// Enhanced Photo Interface
+export interface PhotoItem {
+    id: string; // unique id for key
+    url: string; // preview or final url
+    file?: File; // original file if not yet uploaded
+    status: 'pending' | 'uploading' | 'completed' | 'error';
+    error?: string;
+    isMain?: boolean;
+    uploadStartedAt?: number;
+}
+
 interface PhotoUploadGridProps {
-    photos: (string | File)[];
-    onChange: (photos: (string | File)[]) => void;
+    photos: PhotoItem[];
+    onChange: (photos: PhotoItem[]) => void;
     minPhotos?: number;
     maxPhotos?: number;
     label?: string;
+    onUpload?: (files: File[]) => Promise<void>; // Optional handler if grid manages upload trigger
 }
 
 export function PhotoUploadGrid({
@@ -34,13 +46,23 @@ export function PhotoUploadGrid({
             setError(null);
 
             const filesArray = Array.from(files);
-            const validFiles: File[] = [];
+            const validNewPhotos: PhotoItem[] = [];
             let lastError: string | null = null;
 
-            for (const file of filesArray) {
+            // Limit total photos
+            const remainingSlots = maxPhotos - photos.length;
+            const filesToProcess = filesArray.slice(0, remainingSlots);
+
+            for (const file of filesToProcess) {
                 const validation = validateImageFile(file);
                 if (validation.isValid) {
-                    validFiles.push(file);
+                    validNewPhotos.push({
+                        id: Math.random().toString(36).substr(2, 9),
+                        url: URL.createObjectURL(file), // Immediate local preview
+                        file: file,
+                        status: 'pending', // Parent will detect this and start upload
+                        isMain: false
+                    });
                 } else {
                     lastError = validation.error || "validation.image_invalid";
                     console.warn(`[photo-upload] File rejected: ${file.name}`, validation.error);
@@ -49,24 +71,13 @@ export function PhotoUploadGrid({
 
             if (lastError) {
                 setError(t(lastError as any) || lastError);
-                // Clear error after a few seconds
                 setTimeout(() => setError(null), 8000);
             }
 
-            const remainingSlots = maxPhotos - photos.length;
-            const filesToAdd = validFiles.slice(0, remainingSlots);
-
-            if (filesToAdd.length > 0) {
-                // Compress files before adding
-                Promise.all(filesToAdd.map(file => import("@/lib/client-image-compression").then(mod => mod.compressImage(file))))
-                    .then(compressedFiles => {
-                        onChange([...photos, ...compressedFiles]);
-                    })
-                    .catch(err => {
-                        console.error("Compression failed:", err);
-                        // Fallback to original files if compression fails
-                        onChange([...photos, ...filesToAdd]);
-                    });
+            if (validNewPhotos.length > 0) {
+                // If list was empty and we added photos, make the first one main by default logic in parent or here?
+                // Keeping it simple: straightforward append.
+                onChange([...photos, ...validNewPhotos]);
             }
         },
         [photos, maxPhotos, onChange, t]
@@ -110,11 +121,6 @@ export function PhotoUploadGrid({
         newPhotos.splice(index, 0, moved);
         onChange(newPhotos);
         setDraggedIndex(index);
-    };
-
-    const getPhotoUrl = (photo: string | File): string => {
-        if (typeof photo === "string") return photo;
-        return URL.createObjectURL(photo);
     };
 
     return (
@@ -169,7 +175,7 @@ export function PhotoUploadGrid({
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {photos.map((photo, index) => (
                         <div
-                            key={index}
+                            key={photo.id}
                             draggable
                             onDragStart={() => handleDragStart(index)}
                             onDragEnd={handleDragEnd}
@@ -179,10 +185,30 @@ export function PhotoUploadGrid({
                         >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                                src={getPhotoUrl(photo)}
+                                src={photo.url}
                                 alt={`Photo ${index + 1}`}
                                 className="w-full h-full object-cover"
                             />
+
+                            {/* Status Indicators */}
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                {photo.status === 'error' && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const newPhotos = [...photos];
+                                            newPhotos[index] = { ...photo, status: 'pending', error: undefined };
+                                            onChange(newPhotos);
+                                        }}
+                                        className="bg-red-500/90 text-white rounded-full p-2 hover:bg-red-600 transition-colors flex flex-col items-center gap-1 z-10"
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[10px] font-bold uppercase">Retry</span>
+                                        </div>
+                                    </button>
+                                )}
+                            </div>
 
                             {/* Overlay */}
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all">
@@ -196,7 +222,7 @@ export function PhotoUploadGrid({
 
                                 {/* Actions */}
                                 <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {index !== 0 && (
+                                    {index !== 0 && photo.status === 'completed' && (
                                         <button
                                             type="button"
                                             onClick={(e) => {

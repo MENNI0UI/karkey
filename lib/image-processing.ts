@@ -1,4 +1,4 @@
-
+import fs from "node:fs/promises";
 import path from "node:path";
 
 /**
@@ -44,7 +44,7 @@ export async function maybeApplyWatermark(
         }
 
         // Validate format is actually an image
-        const validFormats = ['jpeg', 'jpg', 'png', 'webp', 'gif', 'avif', 'heif'];
+        const validFormats = ['jpeg', 'jpg', 'png', 'webp', 'gif', 'avif', 'heif', 'heic'];
         if (!meta.format || !validFormats.includes(meta.format.toLowerCase())) {
             console.error(`[image-processing] Invalid image format: ${meta.format}`);
             throw new Error("Invalid image format");
@@ -71,22 +71,68 @@ export async function maybeApplyWatermark(
         // Watermark (only if enabled)
         const watermarkEnabled = (process.env.WATERMARK_ENABLED || "").toLowerCase();
         if (watermarkEnabled === "1" || watermarkEnabled === "true") {
-            const text = process.env.WATERMARK_TEXT ?? "karkey";
-            const fontSize = Math.max(18, Math.round(Math.min(w, h) / 10));
-            const svg = `
-                <svg width="${w}" height="${h}">
-                    <style>
-                        .t { fill: rgba(255,255,255,0.2); font-family: sans-serif; font-size: ${fontSize}px; font-weight: bold; }
-                    </style>
-                    <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" class="t" transform="rotate(-30 ${w / 2} ${h / 2})">
-                        ${text}
-                    </text>
+            try {
+                // Try to load logo for a professional look
+                const logoPath = path.join(process.cwd(), "public", "logo.png");
+                const logoBuffer = await fs.readFile(logoPath);
+                const logoBase64 = logoBuffer.toString('base64');
+                const logoMime = "image/png";
+
+                // Implementation matching the client-side style:
+                // Tiled 10% background, 30% center brand
+                const tileW = Math.round(w * 0.4);
+                const tileH = tileW; // Square-ish tiles for the pattern
+                const centerW = Math.round(w * 0.5);
+                const centerH = centerW;
+
+                const svg = `
+                <svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <pattern id="logoTile" x="0" y="0" width="${tileW * 1.5}" height="${tileW * 1.5}" patternUnits="userSpaceOnUse" patternTransform="rotate(-20)">
+                            <image href="data:${logoMime};base64,${logoBase64}" width="${tileW}" height="${tileH}" opacity="0.1" preserveAspectRatio="xMidYMid meet" />
+                        </pattern>
+                    </defs>
+                    
+                    <!-- 1. Tiled Background (10% opacity) -->
+                    <rect width="100%" height="100%" fill="url(#logoTile)" />
+                    
+                    <!-- 2. Strong Central Brand (30% opacity) -->
+                    <image 
+                        href="data:${logoMime};base64,${logoBase64}" 
+                        x="${(w - centerW) / 2}" 
+                        y="${(h - centerH) / 2}" 
+                        width="${centerW}" 
+                        height="${centerH}" 
+                        opacity="0.3" 
+                        preserveAspectRatio="xMidYMid meet"
+                    />
                 </svg>`;
 
-            img = img.composite([{
-                input: Buffer.from(svg),
-                gravity: 'center'
-            }]);
+                img = img.composite([{
+                    input: Buffer.from(svg),
+                    gravity: 'center'
+                }]);
+                console.log("[image-processing] Applied unified logo-based watermark.");
+            } catch (logoError) {
+                console.warn("[image-processing] Logo watermark failed, falling back to basic text:", logoError);
+                // Basic Text Fallback (Old logic)
+                const text = process.env.WATERMARK_TEXT ?? "karkey";
+                const fontSize = Math.max(18, Math.round(Math.min(w, h) / 10));
+                const svg = `
+                    <svg width="${w}" height="${h}">
+                        <style>
+                            .t { fill: rgba(255,255,255,0.2); font-family: sans-serif; font-size: ${fontSize}px; font-weight: bold; }
+                        </style>
+                        <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" class="t" transform="rotate(-30 ${w / 2} ${h / 2})">
+                            ${text}
+                        </text>
+                    </svg>`;
+
+                img = img.composite([{
+                    input: Buffer.from(svg),
+                    gravity: 'center'
+                }]);
+            }
         }
 
         // ENCODE & FORMAT FALLBACK

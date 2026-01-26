@@ -17,6 +17,19 @@ const R2 = new S3Client({
 
 export async function POST(request: Request) {
   try {
+    // 0. Origin Validation (CSRF Protection)
+    const origin = request.headers.get("origin")
+    const allowedOrigins = [
+      "https://karkey.space",
+      "https://www.karkey.space",
+      "http://localhost:3000" // Development fallback
+    ]
+
+    // Only validate origin if it's present (some clients/tools might not send it, but browsers do for CORS/POST)
+    if (origin && !allowedOrigins.includes(origin) && process.env.NODE_ENV === "production") {
+      return NextResponse.json({ success: false, error: "Invalid Origin" }, { status: 403 })
+    }
+
     // 1. Authentication Check
     const user = await getCurrentUser()
     if (!user) {
@@ -29,7 +42,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Too many upload requests" }, { status: 429 })
     }
 
-    const formData = await request.formData()
+    console.log("[api/upload] Starting upload request processing...")
+
+    let formData;
+    try {
+      formData = await request.formData()
+    } catch (e) {
+      console.error("[api/upload] Failed to parse formData (Client disconnect?)", e)
+      throw e
+    }
+
     const file = formData.get("file") as File | null
 
     if (!file) {
@@ -37,8 +59,8 @@ export async function POST(request: Request) {
     }
 
     // 3. Validation (Size & Magic Bytes)
-    if (!validateFileSize(file, 5)) { // 5MB limit
-      return NextResponse.json({ success: false, error: "File too large (max 5MB)" }, { status: 400 })
+    if (!validateFileSize(file, 20)) { // Increased to 20MB limit (Client compresses, but raw files valid too)
+      return NextResponse.json({ success: false, error: "File too large (max 20MB)" }, { status: 400 })
     }
 
     const isValidSignature = await validateFileSignature(file)
@@ -55,18 +77,41 @@ export async function POST(request: Request) {
     // Apply watermark to images
     let buffer: Uint8Array = Buffer.from(arrayBuffer)
     const contentTypeFromExt = getContentTypeFromExt(ext.replace('.', ''))
+    const isClientOptimized = request.headers.get("x-optimized") === "1"
 
-    // Additional Safety: explicit catch for image processing
+    console.log(`[api/upload] Processing: ${safeName} (Optimized: ${isClientOptimized}, Size: ${buffer.length})`)
+
+    // Only apply server-side watermark if client didn't already do it
+    if (!isClientOptimized) {
+      try {
+        console.log("[api/upload] Applying server-side watermark...")
+        const { data } = await maybeApplyWatermark(buffer, contentTypeFromExt, uniqueName)
+        buffer = data as Uint8Array
+        console.log("[api/upload] Server-side watermark applied.")
+      } catch (e) {
+        console.error("Watermark/Processing failed", e)
+      }
+    } else {
+      // Client handled it (High Performance Path)
+      // We trust the client-side watermark
+      console.log("[api/upload] Skipping server watermark (Client handled).")
+    }
+
+    // Generate Placeholder (BlurHash equivalent)
+    let blurhash: string | null = null;
     try {
-      const { data } = await maybeApplyWatermark(buffer, contentTypeFromExt, uniqueName)
-      buffer = data as Uint8Array
+      if (file.type.startsWith("image/")) {
+        const { generateTinyPlaceholder } = await import("@/lib/image-processing");
+        blurhash = await generateTinyPlaceholder(buffer);
+      }
     } catch (e) {
-      console.error("Watermark/Processing failed", e)
-      // Continue without watermark if fail, or fail? Let's continue but log.
+      console.warn("Blurhash generation failed", e);
     }
 
     // Upload to Cloudflare R2
     const key = `vehicles/${uniqueName}`
+
+    console.log(`[api/upload] Sending to R2: ${key}`)
 
     await R2.send(new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
@@ -75,10 +120,12 @@ export async function POST(request: Request) {
       ContentType: file.type || contentTypeFromExt || 'application/octet-stream',
     }))
 
+    console.log(`[api/upload] Upload success: ${key}`)
+
     // URL to be used by client (served from R2 Public Domain)
     const url = `${process.env.R2_PUBLIC_DOMAIN}/${key}`
 
-    return NextResponse.json({ success: true, url })
+    return NextResponse.json({ success: true, url, blurhash })
   } catch (err: unknown) {
     console.error("[api/upload] upload error:", err)
     return NextResponse.json({

@@ -4,14 +4,12 @@ import { headers } from "next/headers"
 import { isRateLimited, RATE_LIMITS } from "@/lib/rate-limiter"
 
 import prisma from "@/lib/prisma"
-import { createToken, setAuthCookie } from "@/lib/mysql-auth"
-import { validateEmail, validateUsername, validatePassword, validateUserType } from "@/lib/validations"
+// createToken, setAuthCookie removed
+import { validateEmail, validateUsername, validatePassword } from "@/lib/validations"
 import { validateAndNormalizePhone } from "@/lib/phone-utils"
 import { debug, info, warn, error as logError } from "@/lib/logger"
 import bcrypt from "bcryptjs"
 import { users_user_type } from "@prisma/client"
-import { LoginSchema } from "@/lib/schemas"
-import { errorResponse } from "@/lib/errors"
 
 // --- ADDED: runtime sanity check for DB env (masked, non-sensitive) ---
 const _mask = (v?: string) => {
@@ -131,13 +129,8 @@ export async function registerUser(formData: {
     const userId = createdUser.id
     debug("[v0 SERVER] ✓ User created with id:", userId)
 
-    debug("[v0 SERVER] Creating JWT token...")
-    const token = await createToken({ userId, email: formData.email })
-    debug("[v0 SERVER] ✓ Token created")
-
-    debug("[v0 SERVER] Setting auth cookie...")
-    await setAuthCookie(token)
-    debug("[v0 SERVER] ✓ Cookie set (attempted)")
+    // Token creation removed - client handles login via NextAuth
+    debug("[v0 SERVER] ✓ User created - skipping legacy token generation")
 
     debug("[v0 SERVER] Creating welcome notification...")
     try {
@@ -162,7 +155,6 @@ export async function registerUser(formData: {
       success: true,
       userId,
       redirect: "/auth/register/success",
-      token,
       user: {
         id: userId,
         email: formData.email,
@@ -181,67 +173,5 @@ export async function registerUser(formData: {
   }
 }
 
-export async function loginUser(formData: { email: string; password: string }) {
-  // Rate Limiting
-  const headersList = await headers()
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1"
 
-  if (await isRateLimited(`auth:login:${ip}`, RATE_LIMITS.AUTH_LOGIN)) {
-    warn(`[auth] Rate limit exceeded for login from ${ip}`)
-    return { success: false, error: "Too many login attempts. Please try again later." }
-  }
-
-  debug("[v0 SERVER] loginUser called for:", { email: formData.email ? formData.email : "(missing)" })
-  try {
-    // Validate fields with Zod
-    const parsed = LoginSchema.safeParse(formData);
-    if (!parsed.success) {
-      return { success: false, error: parsed.error.issues[0].message }
-    }
-
-    // Find user by email or username
-    const emailOrUsername = String(formData.email || "").trim()
-    const user = await prisma.users.findFirst({
-      where: {
-        OR: [
-          { email: emailOrUsername },
-          { username: emailOrUsername }
-        ]
-      }
-    })
-    debug("[v0 SERVER] loginUser - user found:", !!user)
-
-    if (!user) {
-      debug("[v0 SERVER] loginUser - user not found for email:", formData.email)
-      return { success: false, error: "Invalid email or password" }
-    }
-
-    // Normalize stored hash field
-    const storedHash = user.password_hash
-    if (!storedHash) {
-      console.warn("[v0 SERVER] loginUser - no stored password hash for user id:", user.id)
-      return { success: false, error: "Invalid email or password" }
-    }
-
-    // Verify password
-    const isValidPassword = await bcrypt.compare(formData.password, storedHash)
-    debug("[v0 SERVER] loginUser - password verification result:", isValidPassword)
-
-    if (!isValidPassword) {
-      return { success: false, error: "Invalid email or password" }
-    }
-
-    // Create JWT token
-    const token = await createToken({ userId: user.id, email: user.email })
-
-    // Set auth cookie
-    await setAuthCookie(token)
-
-    debug("[v0 SERVER] loginUser - success for user id:", user.id)
-    return { success: true, userId: user.id, redirect: "/", token }
-  } catch (error) {
-    console.error("[v0 SERVER] loginUser - unexpected error:", error)
-    return { success: false, error: "Login failed. Please try again." }
-  }
-}
 

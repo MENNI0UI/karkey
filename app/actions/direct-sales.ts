@@ -75,24 +75,39 @@ export async function createDirectSale(prevState: any, formData: FormData) {
         const serviceFiles = formData.getAll("service_docs") as File[]
 
         // photos
-        const photos = formData.getAll("photos") as File[]
+        // We now support two modes:
+        // 1. Legacy: File[] in 'photos' (processed on server) -- KEPT FOR COMPATIBILITY
+        // 2. Optimistic: 'photo_urls' + 'photo_blurhashes' (already on R2) -- NEW FAST PATH
+
+        const photosFiles = formData.getAll("photos") as File[]
+        const photoUrls = formData.getAll("photo_urls") as string[]
+        const photoBlurhashes = formData.getAll("photo_blurhashes") as string[]
+
+        const hasOptimisticPhotos = photoUrls.length > 0
+        const hasLegacyPhotos = photosFiles.length > 0 && photosFiles[0].size > 0
 
         // basic server-side validation
-        if (!photos || photos.length < 5) {
-            return { success: false, error: "At least 5 photos are required" }
-        }
-
-        // basic server-side validation (already handled by Zod partially, but keeping file checks)
-        if (!photos || photos.length < 5) {
+        if ((!hasOptimisticPhotos && !hasLegacyPhotos) || (hasOptimisticPhotos && photoUrls.length < 5) || (hasLegacyPhotos && photosFiles.length < 5)) {
+            // If mixing both? We assume wizard uses one or the other.
+            // If optimistic, we trust the count.
             return { success: false, error: "At least 5 photos are required" }
         }
 
         // Price check is now handled by Zod (min 10000)
         // Year/Mileage checks are handled by Zod
 
+        // OPTIMISTIC DOCUMENTS (Fast Path)
+        const carteGriseUrlOptimistic = formData.get("carte_grise_url") as string | null
+        const serviceDocUrlsOptimistic = formData.getAll("service_doc_urls") as string[]
+
         // save carte grise if present
         let carte_grise_url: string | null = null
-        if (carteGriseFile && carteGriseFile.size > 0) {
+
+        if (carteGriseUrlOptimistic) {
+            carte_grise_url = carteGriseUrlOptimistic
+            console.log(`[direct-sales] Using optimistic carte_grise: ${carte_grise_url}`)
+        } else if (carteGriseFile && carteGriseFile.size > 0) {
+            // Legacy slow path
             console.log(`[direct-sales] Processing carte_grise: ${carteGriseFile.name} (${carteGriseFile.size} bytes)`)
             const name = sanitizeFilename(carteGriseFile.name || `carte_${Date.now()}`)
             const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${name}`
@@ -123,7 +138,54 @@ export async function createDirectSale(prevState: any, formData: FormData) {
             }
         }
 
-        const service_history_url: string | null = null
+        const serviceDocPaths: string[] = []
+
+        if (serviceDocUrlsOptimistic.length > 0) {
+            console.log(`[direct-sales] Using ${serviceDocUrlsOptimistic.length} optimistic service docs`)
+            serviceDocPaths.push(...serviceDocUrlsOptimistic)
+        } else if (serviceFiles && serviceFiles.length > 0) {
+            // Legacy slow path
+            console.log(`[direct-sales] Processing ${serviceFiles.length} service docs`)
+            for (let i = 0; i < serviceFiles.length; i++) {
+                const f = serviceFiles[i]
+                if (f.size === 0) continue
+
+                console.log(`[direct-sales] Processing service doc ${i + 1}/${serviceFiles.length}: ${f.name}`)
+                const name = sanitizeFilename(f.name || `service_${i}`)
+                const ext = path.extname(name)
+                const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${name}`
+                const key = `direct-sales/${filename}`
+
+                try {
+                    const arrayBuffer = await f.arrayBuffer()
+                    let buffer = Buffer.from(arrayBuffer)
+                    const contentType = getContentTypeFromExt(ext.replace('.', ''))
+
+                    if (['jpg', 'jpeg', 'png', 'webp'].includes(ext.replace('.', '').toLowerCase())) {
+                        const { data } = await maybeApplyWatermark(buffer, contentType, filename)
+                        buffer = Buffer.from(data)
+                    }
+
+                    await R2.send(new PutObjectCommand({
+                        Bucket: process.env.R2_BUCKET_NAME,
+                        Key: key,
+                        Body: buffer,
+                        ContentType: f.type || contentType || 'application/octet-stream',
+                    }))
+
+                    const url = `${process.env.R2_PUBLIC_DOMAIN}/${key}`
+                    serviceDocPaths.push(url)
+                    console.log(`[direct-sales] Service doc ${i + 1} uploaded: ${url}`)
+                } catch (e) {
+                    console.warn(`[direct-sales] Service doc ${i + 1} failed:`, e)
+                }
+            }
+        }
+
+        const service_history_url: string | null = serviceDocPaths.length > 0 ? serviceDocPaths[0] : null
+        // We also store them in photos table for carousel support, but the main column is important for admin/profile views.
+        // Logic below maps to separate table.
+
 
         // Create direct sale using Prisma
         const newDirectSale = await prisma.direct_sales.create({
@@ -163,100 +225,76 @@ export async function createDirectSale(prevState: any, formData: FormData) {
 
         // Process photos sequentially to avoid server overload
         const photoPaths: { url: string; blurhash: string | null }[] = []
-        console.log(`[direct-sales] Starting batched processing of ${photos.length} photos (concurrency: 3)`)
 
-        // Process photos in batches of 3 to speed up but avoid crashing server
-        for (let i = 0; i < photos.length; i += 3) {
-            const batch = photos.slice(i, i + 3)
-            const batchPromises = batch.map(async (f, index) => {
-                const globalIndex = i + index
-                if (f.size === 0) return null
-
-                console.log(`[direct-sales] Processing photo ${globalIndex + 1}/${photos.length}: ${f.name}`)
-                const startTime = Date.now()
-                const name = sanitizeFilename(f.name || `photo_${globalIndex}`)
-                const ext = path.extname(name)
-                const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${name}`
-                const key = `direct-sales/${filename}`
-
-                try {
-                    const arrayBuffer = await f.arrayBuffer()
-                    let buffer = Buffer.from(arrayBuffer)
-                    const contentType = getContentTypeFromExt(ext.replace('.', ''))
-
-                    // Apply watermark if image
-                    const { data } = await maybeApplyWatermark(buffer, contentType, filename)
-                    buffer = Buffer.from(data)
-
-                    // Generate Placeholder (BlurHash equivalent)
-                    const blurhash = await generateTinyPlaceholder(buffer)
-
-                    await R2.send(new PutObjectCommand({
-                        Bucket: process.env.R2_BUCKET_NAME,
-                        Key: key,
-                        Body: buffer,
-                        ContentType: f.type || contentType || 'application/octet-stream',
-                    }))
-
-                    const url = `${process.env.R2_PUBLIC_DOMAIN}/${key}`
-                    console.log(`[direct-sales] Photo ${globalIndex + 1} uploaded in ${Date.now() - startTime}ms`)
-                    return { url, blurhash }
-                } catch (e) {
-                    console.warn(`[direct-sales] Photo ${globalIndex + 1} failed:`, e)
-                    return null
-                }
+        if (hasOptimisticPhotos) {
+            console.log(`[direct-sales] Using ${photoUrls.length} optimistic photos`)
+            photoUrls.forEach((url, i) => {
+                photoPaths.push({
+                    url,
+                    blurhash: photoBlurhashes[i] || null
+                })
             })
+        } else {
+            // FALLBACK: Legacy Monolithic Upload
+            const photos = photosFiles
+            console.log(`[direct-sales] Starting batched processing of ${photos.length} photos (concurrency: 3)`)
 
-            const batchResults = await Promise.all(batchPromises)
-            batchResults.forEach(res => {
-                if (res) photoPaths.push(res)
-            })
-        }
+            // Process photos in batches of 3 to speed up but avoid crashing server
+            for (let i = 0; i < photos.length; i += 3) {
+                const batch = photos.slice(i, i + 3)
+                const batchPromises = batch.map(async (f, index) => {
+                    const globalIndex = i + index
+                    if (f.size === 0) return null
 
-        const serviceDocPaths: string[] = []
-        if (serviceFiles && serviceFiles.length > 0) {
-            console.log(`[direct-sales] Processing ${serviceFiles.length} service docs`)
-            for (let i = 0; i < serviceFiles.length; i++) {
-                const f = serviceFiles[i]
-                if (f.size === 0) continue
+                    console.log(`[direct-sales] Processing photo ${globalIndex + 1}/${photos.length}: ${f.name}`)
+                    const startTime = Date.now()
+                    const name = sanitizeFilename(f.name || `photo_${globalIndex}`)
+                    const ext = path.extname(name)
+                    const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${name}`
+                    const key = `direct-sales/${filename}`
 
-                console.log(`[direct-sales] Processing service doc ${i + 1}/${serviceFiles.length}: ${f.name}`)
-                const name = sanitizeFilename(f.name || `service_${i}`)
-                const ext = path.extname(name)
-                const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${name}`
-                const key = `direct-sales/${filename}`
+                    try {
+                        const arrayBuffer = await f.arrayBuffer()
+                        let buffer = Buffer.from(arrayBuffer)
+                        const contentType = getContentTypeFromExt(ext.replace('.', ''))
 
-                try {
-                    const arrayBuffer = await f.arrayBuffer()
-                    let buffer = Buffer.from(arrayBuffer)
-                    const contentType = getContentTypeFromExt(ext.replace('.', ''))
-
-                    if (['jpg', 'jpeg', 'png', 'webp'].includes(ext.replace('.', '').toLowerCase())) {
+                        // Apply watermark if image
                         const { data } = await maybeApplyWatermark(buffer, contentType, filename)
                         buffer = Buffer.from(data)
+
+                        // Generate Placeholder (BlurHash equivalent)
+                        const blurhash = await generateTinyPlaceholder(buffer)
+
+                        await R2.send(new PutObjectCommand({
+                            Bucket: process.env.R2_BUCKET_NAME,
+                            Key: key,
+                            Body: buffer,
+                            ContentType: f.type || contentType || 'application/octet-stream',
+                        }))
+
+                        const url = `${process.env.R2_PUBLIC_DOMAIN}/${key}`
+                        console.log(`[direct-sales] Photo ${globalIndex + 1} uploaded in ${Date.now() - startTime}ms`)
+                        return { url, blurhash }
+                    } catch (e) {
+                        console.warn(`[direct-sales] Photo ${globalIndex + 1} failed:`, e)
+                        return null
                     }
+                })
 
-                    await R2.send(new PutObjectCommand({
-                        Bucket: process.env.R2_BUCKET_NAME,
-                        Key: key,
-                        Body: buffer,
-                        ContentType: f.type || contentType || 'application/octet-stream',
-                    }))
-
-                    const url = `${process.env.R2_PUBLIC_DOMAIN}/${key}`
-                    serviceDocPaths.push(url)
-                    console.log(`[direct-sales] Service doc ${i + 1} uploaded: ${url}`)
-                } catch (e) {
-                    console.warn(`[direct-sales] Service doc ${i + 1} failed:`, e)
-                }
+                const batchResults = await Promise.all(batchPromises)
+                batchResults.forEach(res => {
+                    if (res) photoPaths.push(res)
+                })
             }
         }
+
+
 
         // Save photos to DB
         const validPhotos = photoPaths.filter(p => p !== null)
         const validServiceDocs = serviceDocPaths.filter(p => p !== null) as string[]
 
-        const allPhotos = [...validPhotos, ...validServiceDocs]
+        const allPhotos = [...validPhotos]
 
         if (allPhotos.length > 0) {
             await prisma.direct_sale_photos.createMany({

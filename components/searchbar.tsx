@@ -1,5 +1,6 @@
 "use client"
 import React, { useEffect, useRef, useState, useLayoutEffect, useMemo } from "react"
+import { MainFilterPanel, PinnedFilterPanel } from "@/components/search/filter-panels"
 import { useRouter, usePathname } from "next/navigation"
 import { useTranslation } from "@/lib/i18n-context"
 import CustomSelect from "@/components/ui/custom-select"
@@ -21,30 +22,7 @@ type FilterOptions = {
 
 type Props = { className?: string; options?: FilterOptions }
 
-// --- Stable Badge Component (Defined outside to prevent remount flickering) ---
-const SearchModeBadge = ({ mode, lang, onReset }: { mode: string | null, lang: string, onReset: () => void }) => {
-    if (!mode) return null
-    const isAuction = mode === 'auction'
-    return (
-        <div className={`flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all whitespace-nowrap ${isAuction ? "bg-[#B8071C]/10 text-[#B8071C] border border-[#B8071C]/20" : "bg-emerald-100 text-emerald-700 border border-emerald-200"}`}>
-            <span>/ {isAuction ? (lang === 'ar' ? "مزاد" : "Auction") : (lang === 'ar' ? "بيع" : "Sale")}</span>
-            <button
-                type="button"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    onReset();
-                }}
-                className="w-5 h-5 flex items-center justify-center -mr-1 hover:scale-110 active:scale-90 transition-all opacity-60 hover:opacity-100 rounded-full hover:bg-black/5"
-                title="Reset mode"
-            >
-                <svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" strokeWidth="3" fill="none">
-                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-            </button>
-        </div>
-    )
-}
+import { SearchModeBadge } from "@/components/search/search-mode-badge"
 
 export default function SearchBar({ className = "", options }: Props) {
     const { t } = useTranslation()
@@ -641,183 +619,48 @@ export default function SearchBar({ className = "", options }: Props) {
         </div>
     )
 
-    // MAIN filter panel: only MIN / MAX (render OUTSIDE the main wrapper)
+    // MAIN filter panel
     const mainFilterPanel = filtersOpen && filterVariant === "main" ? (
-        <div
-            id="karkey-filter-panel-main"
-            role="dialog"
-            aria-label="Advanced filters"
-            className="custom-select-dropdown"
-            style={{
-                position: "fixed",
-                zIndex: 60,
-                top: filterPos ? `${filterPos.top}px` : `calc(var(--site-header-height) + 8px)`,
-                left: filterPos ? `${filterPos.left}px` : "50%",
-                transform: "translateX(-50%)",
-                minWidth: "min(480px, 95vw)",
-                animation: "none",
-            }}
-        >
-            <div className="p-3 space-y-3">
-                <div className="grid grid-cols-3 gap-2">
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block px-1">Condition</label>
-                        <CustomMultiSelect
-                            value={condition}
-                            onChange={setCondition}
-                            className="sb-dropdown-trigger-bordered text-[12px] h-8 min-h-[unset] py-1"
-                            options={conditionsList}
-                        />
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block px-1">Min Price</label>
-                        <div className="relative">
-                            <input
-                                value={minPrice}
-                                onChange={(e) => setMinPrice(e.target.value)}
-                                className="w-full pl-2 pr-6 py-1.5 bg-white border border-gray-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-[#00A651]/10 focus:border-[#00A651] transition-all professional-font h-8"
-                                placeholder="0"
-                            />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-gray-400 font-bold professional-font">{t('common.mad')}</span>
-                        </div>
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block px-1">Max Price</label>
-                        <div className="relative">
-                            <input
-                                value={maxPrice}
-                                onChange={(e) => setMaxPrice(e.target.value)}
-                                className="w-full pl-2 pr-6 py-1.5 bg-white border border-gray-200 rounded-lg text-[12px] focus:outline-none focus:ring-2 focus:ring-[#00A651]/10 focus:border-[#00A651] transition-all professional-font h-8"
-                                placeholder="Any"
-                            />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-gray-400 font-bold professional-font">{t('common.mad')}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between gap-2 border-t border-gray-100 px-1 pb-1">
-                <button
-                    onClick={() => setFiltersOpen(false)}
-                    className="px-3 py-1.5 text-[11px] font-semibold text-gray-500 hover:text-gray-900 hover:bg-gray-100/80 rounded-md transition-colors"
-                >
-                    Close
-                </button>
-                <button
-                    onClick={() => { applyFilters(); setFilterVariant(null) }}
-                    className="px-3 py-1.5 text-[11px] font-bold text-white bg-[#00A651] hover:bg-[#008f45] rounded-md shadow-sm shadow-[#00A651]/20 transition-all active:scale-[0.98]"
-                >
-                    Apply Filters
-                </button>
-            </div>
-        </div>
+        <MainFilterPanel
+            isOpen={filtersOpen && filterVariant === "main"}
+            position={filterPos}
+            condition={condition}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            conditionsList={conditionsList}
+            t={t}
+            setCondition={setCondition}
+            setMinPrice={setMinPrice}
+            setMaxPrice={setMaxPrice}
+            onClose={() => setFiltersOpen(false)}
+            onApply={() => { applyFilters(); setFilterVariant(null) }}
+        />
     ) : null
 
-    // PINNED filter panel: show MIN/MAX plus the missing selects (render OUTSIDE)
+    // PINNED filter panel
     const pinnedFilterPanel = filtersOpen && filterVariant === "pinned" ? (
-        <div
-            id="karkey-filter-panel-pinned"
-            role="dialog"
-            aria-label="Advanced filters (pinned)"
-            className="custom-select-dropdown"
-            style={{
-                position: "fixed",
-                zIndex: 60,
-                top: filterPos ? `${filterPos.top}px` : `calc(var(--site-header-height) + 8px)`,
-                left: filterPos ? `${filterPos.left}px` : "50%",
-                transform: "translateX(-50%)",
-                minWidth: "min(320px, 95vw)",
-                animation: "none",
-            }}
-        >
-            <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                <div className="grid grid-cols-1 gap-4">
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block px-1">Year</label>
-                        <CustomSelect
-                            value={year}
-                            onChange={setYear}
-                            isAll={year === "All"}
-                            className="sb-dropdown-trigger-bordered"
-                            options={[
-                                { value: "All", label: "All Years" },
-                                ...effectiveYearsList.map((y) => ({ value: String(y), label: String(y) }))
-                            ]}
-                        />
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block px-1">Fuel</label>
-                        <CustomMultiSelect
-                            value={fuel}
-                            onChange={setFuel}
-                            className="sb-dropdown-trigger-bordered"
-                            options={fuelsList}
-                        />
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block px-1">Transmission</label>
-                        <CustomSelect
-                            value={transmission}
-                            onChange={setTransmission}
-                            isAll={transmission === "All"}
-                            className="sb-dropdown-trigger-bordered"
-                            options={[
-                                { value: "All", label: "All Transmissions" },
-                                ...transList.map((tr) => ({ value: tr.value, label: tr.label }))
-                            ]}
-                        />
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block px-1">Condition</label>
-                        <CustomMultiSelect
-                            value={condition}
-                            onChange={setCondition}
-                            className="sb-dropdown-trigger-bordered"
-                            options={conditionsList}
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block px-1">Min Price</label>
-                            <input
-                                value={minPrice}
-                                onChange={(e) => setMinPrice(e.target.value)}
-                                className="w-full px-3 py-2.5 bg-gray-50/50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#00A651]/10 focus:border-[#00A651] transition-all professional-font"
-                                placeholder="0"
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block px-1">Max Price</label>
-                            <input
-                                value={maxPrice}
-                                onChange={(e) => setMaxPrice(e.target.value)}
-                                className="w-full px-3 py-2.5 bg-gray-50/50 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#00A651]/10 focus:border-[#00A651] transition-all professional-font"
-                                placeholder="Any"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex gap-2 pt-2">
-                    <button
-                        onClick={() => setFiltersOpen(false)}
-                        className="flex-1 px-4 py-2.5 rounded-xl bg-gray-50 text-gray-600 text-sm font-semibold transition-all hover:bg-gray-100"
-                    >
-                        Close
-                    </button>
-                    <button
-                        onClick={() => { applyFilters(); setFilterVariant(null) }}
-                        className="flex-[1.5] px-4 py-2.5 rounded-xl bg-[#00A651] text-white text-sm font-semibold shadow-lg shadow-[#00A651]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                        Apply Filters
-                    </button>
-                </div>
-            </div>
-        </div>
+        <PinnedFilterPanel
+            isOpen={filtersOpen && filterVariant === "pinned"}
+            position={filterPos}
+            year={year}
+            fuel={fuel}
+            transmission={transmission}
+            condition={condition}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            effectiveYearsList={effectiveYearsList}
+            fuelsList={fuelsList}
+            transList={transList}
+            conditionsList={conditionsList}
+            setYear={setYear}
+            setFuel={setFuel}
+            setTransmission={setTransmission}
+            setCondition={setCondition}
+            setMinPrice={setMinPrice}
+            setMaxPrice={setMaxPrice}
+            onClose={() => setFiltersOpen(false)}
+            onApply={() => { applyFilters(); setFilterVariant(null) }}
+        />
     ) : null
 
     // effect: monitor main-search position and set showPinnedEarly before pinned becomes true

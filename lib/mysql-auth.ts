@@ -25,6 +25,7 @@ export async function verifyPassword(plainPassword: string, hashedPassword: stri
 }
 
 // Create JWT token (HS256)
+// @deprecated Use NextAuth session instead
 export async function createToken(payload: { userId: number; email: string }): Promise<string> {
   const token = await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
@@ -35,6 +36,7 @@ export async function createToken(payload: { userId: number; email: string }): P
 }
 
 // Verify JWT token and return typed payload or null
+// @deprecated Use NextAuth auth() instead
 export async function verifyToken(token: string): Promise<{ userId: number; email: string } | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET)
@@ -48,6 +50,7 @@ export async function verifyToken(token: string): Promise<{ userId: number; emai
 }
 
 // Set authentication cookie (server-side). Use next/headers cookies()
+// @deprecated Use NextAuth session cookie instead
 export async function setAuthCookie(token: string, options?: { maxAge?: number }) {
   // guard to ensure server-only usage
   if (typeof window !== "undefined") throw new Error("setAuthCookie() can only be used on the server")
@@ -108,19 +111,14 @@ export async function getCurrentUser() {
   try {
     const { auth } = await import("@/auth")
     const session = await auth()
-    if (!session?.user) {
-      // Fallback: check legacy cookie if NextAuth session doesn't exist yet
-      const token = await getAuthCookie()
-      if (token) {
-        const payload = await verifyToken(token)
-        return payload
+
+    if (session?.user) {
+      return {
+        userId: Number(session.user.id),
+        email: session.user.email || ""
       }
-      return null
     }
-    return {
-      userId: Number(session.user.id),
-      email: session.user.email || ""
-    }
+    return null
   } catch {
     return null
   }

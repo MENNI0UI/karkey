@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useEffect, useMemo, useRef } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
-import { ChevronLeft, ChevronRight, Check, MapPin, FileText, Heart, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Heart } from "lucide-react";
 
 /**
  * Client-side utility to resize images before upload.
@@ -58,13 +58,15 @@ async function resizeImage(file: File, maxWidth = 1200, maxHeight = 1200, qualit
 }
 import { useTranslation } from "@/lib/i18n-context"
 import { WizardLayout, WizardStep } from "@/components/ui/wizard-layout"
-import { WizardCard } from "@/components/ui/wizard-card"
-import { MinimalTextInput, MinimalSelect, MinimalTextarea } from "@/components/ui/minimal-input"
-import { ColorDropdown } from "@/components/ui/color-dropdown"
-import { PhotoUploadGrid } from "@/components/ui/photo-upload-grid"
-import { CAR_COLORS } from "@/lib/car-colors"
 import { createDirectSale } from "@/app/actions/direct-sales"
-import { validateImageFile } from "@/lib/validations"
+
+// Imported Steps
+import { StepCarDetails } from "@/components/wizard/steps/step-car-details"
+import { StepPhotos } from "@/components/wizard/steps/step-photos"
+import { StepDocuments } from "@/components/wizard/steps/step-documents"
+import { StepPricing } from "@/components/wizard/steps/step-pricing"
+import { StepReview } from "@/components/wizard/steps/step-review"
+import { useLocalStorage } from "@/hooks/use-local-storage"
 
 // Sample option lists
 const makes = ["Kia", "Toyota", "Honda", "BMW", "Mercedes", "Hyundai", "Renault", "Peugeot", "Dacia", "Volkswagen"]
@@ -80,15 +82,11 @@ const modelsMap: Record<string, string[]> = {
   Dacia: ["Sandero", "Duster", "Logan", "Spring"],
   Volkswagen: ["Golf", "Polo", "Tiguan", "Passat", "T-Roc"],
 }
-const years = Array.from({ length: 36 }).map((_, i) => String(1990 + i))
-const locations = ["Casablanca", "Rabat", "Mohammedia", "Tangier", "Marrakesh", "Fes", "Agadir", "Meknes", "Oujda"]
-
 
 export default function CreateDirectSaleWizard() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { t: translate, dir } = useTranslation()
-  const isRtl = dir === "rtl"
 
   // Translation strings
   const t = (key: string) => {
@@ -160,16 +158,193 @@ export default function CreateDirectSaleWizard() {
     return strings[key] ?? key
   }
 
-  // State
-  const [step, setStep] = useState(1)
-  const [data, setData] = useState<any>({
+
+
+
+
+  // State with Auto-Save
+  const [step, setStep, clearStep] = useLocalStorage("direct_sale_wizard_step", 1)
+  const [data, setData, clearData] = useLocalStorage<any>("direct_sale_wizard_data", {
     is_original_paint: true,
   })
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittingStatus, setSubmittingStatus] = useState("")
   const [isSuccess, setIsSuccess] = useState(false)
 
+  // Clear drafts on unmount if successful? No, keep it until explicit success.
 
+  // Hydration fix: Ensure we only render the loaded state on client
+  const [isHydrated, setIsHydrated] = useState(false)
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
+
+  // ... (rest of logic) ...
+
+
+  // Keep a ref to the latest photos to access in async loops (avoid stale closures)
+  const latestPhotosRef = React.useRef(data.photos || [])
+  useEffect(() => {
+    latestPhotosRef.current = data.photos || []
+  }, [data.photos])
+
+  // PROMISE-BASED UPLOAD TRACKING
+  const uploadPromisesRef = React.useRef(new Map<string, Promise<any>>())
+
+  // Centralized Upload Handler (Passed to StepPhotos)
+  const handleUpload = async (file: File, id: string) => {
+    // 1. Initial State Update (Pending -> Uploading)
+    setData((prev: any) => {
+      const photos = prev.photos || []
+      return {
+        ...prev,
+        photos: photos.map((p: any) => p.id === id ? { ...p, status: 'uploading' } : p)
+      }
+    })
+
+    // 2. Create Promise
+    const uploadPromise = (async () => {
+      try {
+        // Compress
+        const { compressImage } = await import("@/lib/client-image-compression")
+        let uploadFile = file
+        let isProcessed = false
+
+        try {
+          uploadFile = await compressImage(file, { maxWidth: 1024, maxHeight: 1024, quality: 0.6, watermark: true })
+          isProcessed = true
+        } catch (e) { console.warn("Compress failed", e) }
+
+        // Upload
+        const fd = new FormData()
+        fd.append("file", uploadFile)
+
+        const headers: Record<string, string> = {}
+        if (isProcessed) {
+          headers['x-optimized'] = '1'
+        }
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: fd,
+          headers
+        })
+
+        if (!res.ok) throw new Error("Status " + res.status)
+        const json = await res.json()
+        if (!json.success) throw new Error(json.error)
+
+        // Success Update
+        setData((prev: any) => {
+          const photos = prev.photos || []
+          return {
+            ...prev,
+            photos: photos.map((p: any) => p.id === id ? {
+              ...p,
+              status: 'completed',
+              url: json.url,
+              blurhash: json.blurhash,
+              file: undefined
+            } : p)
+          }
+        })
+
+        // Cleanup promise from map after success
+        uploadPromisesRef.current.delete(id)
+        return json
+
+      } catch (err) {
+        console.error("Upload failed", id, err)
+        setData((prev: any) => {
+          const photos = prev.photos || []
+          return {
+            ...prev,
+            photos: photos.map((p: any) => p.id === id ? { ...p, status: 'error', error: "Failed" } : p)
+          }
+        })
+        uploadPromisesRef.current.delete(id)
+        throw err
+      }
+    })()
+
+    // 3. Track Promise
+    uploadPromisesRef.current.set(id, uploadPromise)
+    return uploadPromise
+  }
+
+  // Document Upload Handler
+  const handleDocumentUpload = async (file: File, type: 'carte_grise' | 'service_history') => {
+    const id = `${type}-${Date.now()}`
+    // We don't need detailed status tracking in UI for docs for now (just "Uploaded"), 
+    // but we track promise for submission blocking.
+
+    const uploadPromise = (async () => {
+      try {
+        // Docs don't need aggressive compression usually (PDF/Images)
+        // But if image, we should compress and WATERMARK
+        let uploadFile = file
+        let isProcessed = false
+
+        if (file.type.startsWith('image/')) {
+          const { compressImage } = await import("@/lib/client-image-compression")
+          try {
+            // Explicitly request watermarking
+            uploadFile = await compressImage(file, {
+              maxWidth: 1600,
+              maxHeight: 1600,
+              quality: 0.8,
+              watermark: true
+            })
+            isProcessed = true
+          } catch (e) { console.warn("Doc compress failed", e) }
+        }
+
+        const fd = new FormData()
+        fd.append("file", uploadFile)
+
+        const headers: Record<string, string> = {}
+        // Only tell server to skip processing if we actually processed it on client
+        if (isProcessed) {
+          headers['x-optimized'] = '1'
+        }
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: fd,
+          headers
+        })
+
+        if (!res.ok) throw new Error("Status " + res.status)
+        const json = await res.json()
+        if (!json.success) throw new Error(json.error)
+
+        // Update Data with URL
+        setData((prev: any) => {
+          return {
+            ...prev,
+            [type === 'carte_grise' ? 'carte_grise_url' : 'service_doc_urls']:
+              type === 'carte_grise' ? json.url : [...(prev.service_doc_urls || []), json.url]
+          }
+        })
+
+        // Cleanup
+        uploadPromisesRef.current.delete(id)
+        return json
+
+      } catch (err) {
+        console.error("Doc upload failed", type, err)
+        uploadPromisesRef.current.delete(id)
+        throw err
+      }
+    })()
+
+    uploadPromisesRef.current.set(id, uploadPromise)
+    return uploadPromise
+  }
+
+  // Ref to block updates after submission
+  const isFinishedRef = React.useRef(false)
 
   // Steps configuration
   const steps: WizardStep[] = useMemo(() => [
@@ -180,7 +355,11 @@ export default function CreateDirectSaleWizard() {
     { id: "review", label: t("review"), description: t("reviewDesc") },
   ], [])
 
-  const update = (patch: any) => setData((s: any) => ({ ...s, ...patch }))
+  const update = React.useCallback((patch: any) => {
+    // Prevent updates if we already finished/submitted
+    if (isFinishedRef.current) return
+    setData((s: any) => ({ ...s, ...patch }))
+  }, [])
 
   // Validation
   const canNext = () => {
@@ -197,21 +376,19 @@ export default function CreateDirectSaleWizard() {
           data.exterior_color && data.interior_color
         )
       case "photos":
+        // Allow next if we have enough items, even if status is pending (Optimistic)
         return Array.isArray(data.photos) && data.photos.length >= 5
       case "documents":
         return Boolean(data.registration_doc)
       case "pricing":
-        // Direct sales typically require price >= 10000
+        // ... existing validation ...
         const p = Number(String(data.price ?? "").replace(/[^0-9.\-]/g, ""))
         const priceValid = Number.isFinite(p) && p >= 10000
-
-        // If auction consent is given, validate auction prices
         if (data.auction_consent) {
           const startPrice = Number(String(data.auction_starting_price ?? "").replace(/[^0-9.\-]/g, ""))
           const reservePrice = Number(String(data.auction_reserve_price ?? "").replace(/[^0-9.\-]/g, ""))
-          const auctionPricesValid = Number.isFinite(startPrice) && startPrice >= 5000 &&
+          return priceValid && Number.isFinite(startPrice) && startPrice >= 5000 &&
             Number.isFinite(reservePrice) && reservePrice > startPrice
-          return priceValid && auctionPricesValid
         }
         return priceValid
       case "review":
@@ -260,59 +437,67 @@ export default function CreateDirectSaleWizard() {
         if (data.auction_reserve_price) formData.append("auction_reserve_price", data.auction_reserve_price)
       }
 
-      // Photos - Resize on client to save up to 90% bandwidth
-      if (data.photos) {
-        setSubmittingStatus("Processing photos...")
-        for (let i = 0; i < data.photos.length; i++) {
-          setSubmittingStatus(`Optimizing photo ${i + 1}/${data.photos.length}...`)
-          const item = data.photos[i]
-          if (item instanceof File) {
-            const resized = await resizeImage(item);
-            formData.append("photos", resized)
-          } else if (typeof item === 'string' && (item.startsWith('blob:') || item.startsWith('data:'))) {
-            // ... (blob fetch) ...
-            const b = await (await fetch(item)).blob();
-            const resized = await resizeImage(new File([b], `photo_${i}.jpg`, { type: b.type }));
-            formData.append('photos', resized);
+      // Photos - Optimistic Upload
+      // Wait for all upload promises to resolve/reject
+      if (data.photos && Array.isArray(data.photos) && data.photos.length > 0) {
+        setSubmittingStatus("Finalizing... This may take a moment.")
+
+        const promises = Array.from(uploadPromisesRef.current.values())
+        if (promises.length > 0) {
+          try {
+            // Wait for all active uploads to finish (success or fail)
+            await Promise.allSettled(promises)
+          } catch (e) {
+            console.error("Some uploads failed", e)
           }
         }
-      }
 
-      setSubmittingStatus("Uploading to server...")
-
-      // Documents
-      const fetchBlob = async (url: string) => {
-        try {
-          const r = await fetch(url)
-          return await r.blob()
-        } catch (e) { return null }
-      }
-
-      // Carte Grise
-      if (data.registration_doc instanceof File) {
-        formData.append("carte_grise", data.registration_doc)
-      } else if (typeof data.registration_doc === 'string' && data.registration_doc.startsWith('blob:')) {
-        const b = await fetchBlob(data.registration_doc)
-        if (b) {
-          const ext = (b.type || '').split('/')[1] || 'pdf'
-          formData.append('carte_grise', new File([b], `carte_grise.${ext}`, { type: b.type || 'application/octet-stream' }))
+        // Final check of status for Photos
+        const finalPhotos = latestPhotosRef.current.filter((p: any) => p.status === 'completed' && p.url)
+        if (finalPhotos.length < 5) {
+          alert("Not enough photos uploaded (Minimum 5). Please retry failed uploads.")
+          setIsSubmitting(false)
+          return
         }
+
+        finalPhotos.forEach((p: any) => {
+          formData.append("photo_urls", p.url)
+          if (p.blurhash) formData.append("photo_blurhashes", p.blurhash)
+        })
       }
 
-      // Service History might be a single file or array in new wizard? 
-      // The original direct wizard handled array 'docs', new auction wizard handles single 'service_history'
-      // We'll stick to single service_history for consistency with new UI unless required otherwise
-      // But let's check what input StepDocuments produces. It produces a File object in 'service_history'.
-      if (data.service_history instanceof File) {
-        formData.append("service_docs", data.service_history) // API likely expects 'service_docs' based on previous file viewing, wait, auction expects 'service_history' but direct sale API?
-        // Looking at old file: fd.append('service_docs', ...) for array.
-        // We'll send it as 'service_docs' to be safe, or check direct sale API.
-        // Let's assume 'service_docs' for now as the server likely iterates it.
+      setSubmittingStatus("Saving to database...")
+
+      // Optimistic Documents
+      if (data.carte_grise_url) {
+        formData.append("carte_grise_url", data.carte_grise_url)
+      } else if (data.registration_doc instanceof File) {
+        // Fallback if promise failed but file is there (should rarely happen if blocked by promise wait above)
+        formData.append("carte_grise", data.registration_doc)
+      }
+
+      if (data.service_doc_urls && Array.isArray(data.service_doc_urls)) {
+        data.service_doc_urls.forEach((url: string) => formData.append("service_doc_urls", url))
+      } else if (data.service_history instanceof File) {
+        formData.append("service_docs", data.service_history)
       }
 
       const result = await createDirectSale(null, formData)
 
       if (result.success && result.directSaleId) {
+        // Block further updates
+        isFinishedRef.current = true
+
+        // Force Clear LocalStorage immediately
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem("direct_sale_wizard_step")
+          window.localStorage.removeItem("direct_sale_wizard_data")
+        }
+
+        // Hooks clear
+        clearStep()
+        clearData()
+
         setIsSuccess(true)
       } else {
         alert(result.error || "Failed to create listing")
@@ -416,10 +601,10 @@ export default function CreateDirectSaleWizard() {
           <StepCarDetails data={data} update={update} t={t} models={models} />
         )}
         {step === 2 && (
-          <StepPhotos data={data} update={update} t={t} />
+          <StepPhotos data={data} update={update} t={t} onUpload={handleUpload} />
         )}
         {step === 3 && (
-          <StepDocuments data={data} update={update} t={t} />
+          <StepDocuments data={data} update={update} t={t} onUpload={handleDocumentUpload} />
         )}
         {step === 4 && (
           <StepPricing data={data} update={update} t={t} />
@@ -560,823 +745,6 @@ function SellGuidePanel() {
             </div>
           ))}
         </div>
-      </div>
-    </div>
-  )
-}
-
-/* -------------------------------------------------------------------------- */
-/*                              STEP COMPONENTS                               */
-/* -------------------------------------------------------------------------- */
-
-function StepCarDetails({ data, update, t, models }: any) {
-  const { t: translate } = useTranslation()
-  const needsEngine = data.fuel_type !== "Electric"
-  const descriptionLength = String(data.description || "").length
-
-  const conditions = [
-    { value: "excellent", label: t("excellent") },
-    { value: "good", label: t("good") },
-    { value: "fair", label: t("fair") },
-    { value: "poor", label: t("poor") },
-  ]
-
-  const fuelTypes = [
-    { value: "Petrol", label: t("petrol") },
-    { value: "Diesel", label: t("diesel") },
-    { value: "Electric", label: t("electric") },
-    { value: "Hybrid", label: t("hybrid") },
-  ]
-
-  const transmissions = [
-    { value: "Automatic", label: t("automatic") },
-    { value: "Manual", label: t("manual") },
-  ]
-
-  const doorOptions = [
-    { value: "2", label: `2 ${translate("vehicle.doors")}` },
-    { value: "3", label: `3 ${translate("vehicle.doors")}` },
-    { value: "4", label: `4 ${translate("vehicle.doors")}` },
-    { value: "5", label: `5 ${translate("vehicle.doors")}` },
-  ]
-
-  return (
-    <div className="space-y-6">
-      {/* Basic Details */}
-      <WizardCard
-        title={t("vehicleInfo")}
-        stepIndicator={translate("wizard.progress.step_of", { current: 1, total: 5 })}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <MinimalSelect
-            label={t("make")}
-            required
-            value={data.make || ""}
-            onChange={(e) => update({ make: e.target.value, model: "" })}
-            options={makes.map((m) => ({ value: m, label: m }))}
-            placeholder={t("select")}
-          />
-          <MinimalSelect
-            label={t("model")}
-            required
-            value={data.model || ""}
-            onChange={(e) => update({ model: e.target.value })}
-            options={models.map((m: string) => ({ value: m, label: m }))}
-            placeholder={t("select")}
-            disabled={!data.make}
-          />
-          <MinimalSelect
-            label={t("year")}
-            required
-            value={data.year || ""}
-            onChange={(e) => update({ year: e.target.value })}
-            options={years.map((y) => ({ value: y, label: y }))}
-            placeholder={t("select")}
-          />
-          <MinimalTextInput
-            label={t("mileage")}
-            required
-            type="number"
-            step={100}
-            value={data.mileage || ""}
-            onChange={(e) => update({ mileage: e.target.value })}
-            placeholder="e.g. 50000"
-            suffix="KM"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-          <MinimalSelect
-            label={t("condition")}
-            required
-            value={data.condition || ""}
-            onChange={(e) => update({ condition: e.target.value })}
-            options={conditions}
-            placeholder={t("select")}
-          />
-          <MinimalSelect
-            label={t("fuelType")}
-            required
-            value={data.fuel_type || ""}
-            onChange={(e) => update({ fuel_type: e.target.value })}
-            options={fuelTypes}
-            placeholder={t("select")}
-          />
-          <MinimalSelect
-            label={t("transmission")}
-            required
-            value={data.transmission || ""}
-            onChange={(e) => update({ transmission: e.target.value })}
-            options={transmissions}
-            placeholder={t("select")}
-          />
-          {needsEngine && (
-            <MinimalTextInput
-              label={t("engineSize")}
-              required
-              type="number"
-              step={0.1}
-              decimals={1}
-              value={data.engine_size || ""}
-              onChange={(e) => update({ engine_size: e.target.value })}
-              placeholder="e.g. 2.0"
-              suffix="L"
-            />
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <MinimalSelect
-            label={t("doors")}
-            required
-            value={data.doors || ""}
-            onChange={(e) => update({ doors: e.target.value })}
-            options={doorOptions}
-            placeholder={t("select")}
-          />
-          <MinimalSelect
-            label={t("location")}
-            required
-            value={data.location || ""}
-            onChange={(e) => update({ location: e.target.value })}
-            options={locations.map((l) => ({
-              value: l,
-              label: translate(`location.city.${l.toLowerCase().replace(/\s+/g, '')}` as any) || l
-            }))}
-            placeholder={t("select")}
-          />
-        </div>
-      </WizardCard>
-
-      {/* Appearance */}
-      <WizardCard title={t("appearance")}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1 font-serif">
-                {t("exteriorColor")}
-              </label>
-              <ColorDropdown
-                value={data.exterior_color || ""}
-                onChange={(v) => update({ exterior_color: v })}
-              />
-            </div>
-
-            {/* Original Paint Checkbox */}
-            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
-              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${data.is_original_paint
-                ? "bg-[#B8071C] border-[#B8071C]"
-                : "border-gray-300 bg-white"
-                }`}>
-                {data.is_original_paint && <Check className="w-3 h-3 text-white" />}
-              </div>
-              <input
-                type="checkbox"
-                checked={data.is_original_paint}
-                onChange={(e) => update({ is_original_paint: e.target.checked })}
-                className="hidden"
-              />
-              <span className="text-sm font-medium text-[#103090] font-serif">{t("originalPaint")}</span>
-            </label>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1 font-serif">
-              {t("interiorColor")}
-            </label>
-            <ColorDropdown
-              value={data.interior_color || ""}
-              onChange={(v) => update({ interior_color: v })}
-            />
-          </div>
-        </div>
-      </WizardCard>
-
-      {/* Special Features */}
-      <WizardCard title={t("specialFeatures")}>
-        <MinimalTextarea
-          label={t("specialFeatures")}
-          value={data.special_features || ""}
-          onChange={(e) => update({ special_features: e.target.value })}
-          placeholder={translate("wizard.fields.special_features_placeholder")}
-          rows={3}
-        />
-      </WizardCard>
-
-      {/* Description */}
-      <WizardCard title={t("description")}>
-        <MinimalTextarea
-          label={t("description")}
-          required
-          value={data.description || ""}
-          onChange={(e) => update({ description: e.target.value })}
-          placeholder={translate("wizard.fields.description_placeholder")}
-          rows={6}
-          charCount={descriptionLength}
-          minChars={20}
-          hint={t("descriptionMinChars")}
-          error={descriptionLength > 0 && descriptionLength < 20 ? "Minimum 20 characters required" : undefined}
-        />
-      </WizardCard>
-    </div>
-  )
-}
-
-function StepPhotos({ data, update, t }: any) {
-  const { t: translate } = useTranslation()
-  return (
-    <div className="space-y-6">
-      <WizardCard
-        title={t("photosTitle")}
-        stepIndicator={translate("wizard.progress.step_of", { current: 2, total: 5 })}
-        subtitle={t("photosSubtitle")}
-      >
-        <PhotoUploadGrid
-          photos={data.photos || []}
-          onChange={(photos) => update({ photos })}
-          minPhotos={5}
-          maxPhotos={10}
-          label={t("photos")}
-        />
-      </WizardCard>
-
-      {/* Photography Guidelines */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-base font-bold text-[#103090] uppercase tracking-wide mb-6 font-serif">
-          {t("photographyGuidelines")}
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Best Practices */}
-          <div>
-            <h4 className="text-sm font-bold text-gray-500 uppercase mb-4 font-serif">{t("bestPractices")}</h4>
-            <ul className="space-y-2">
-              <li className="flex items-start gap-3 text-base text-gray-600">
-                <span className="text-gray-400 mt-0.5">•</span>
-                Photograph in natural daylight
-              </li>
-              <li className="flex items-start gap-3 text-base text-gray-600">
-                <span className="text-gray-400 mt-0.5">•</span>
-                Include all angles: front, rear, both sides
-              </li>
-              <li className="flex items-start gap-3 text-base text-gray-600">
-                <span className="text-gray-400 mt-0.5">•</span>
-                Show interior: dashboard, seats, trunk
-              </li>
-              <li className="flex items-start gap-3 text-base text-gray-600">
-                <span className="text-gray-400 mt-0.5">•</span>
-                Document any damage or wear honestly
-              </li>
-            </ul>
-          </div>
-
-          {/* Avoid */}
-          <div>
-            <h4 className="text-sm font-bold text-gray-500 uppercase mb-4 font-serif">{t("avoid")}</h4>
-            <ul className="space-y-2">
-              <li className="flex items-start gap-3 text-base text-gray-600">
-                <span className="text-gray-400 mt-0.5">•</span>
-                Personal information visible (phone, email)
-              </li>
-              <li className="flex items-start gap-3 text-base text-gray-600">
-                <span className="text-gray-400 mt-0.5">•</span>
-                Blurry or poorly lit images
-              </li>
-              <li className="flex items-start gap-3 text-base text-gray-600">
-                <span className="text-gray-400 mt-0.5">•</span>
-                Concealing damage or defects
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Recommended Shots */}
-        <div className="mt-6 pt-5 border-t border-gray-100">
-          <h4 className="text-sm font-bold text-gray-500 uppercase mb-5 font-serif">{t("recommendedShots")}</h4>
-          <div className="flex flex-wrap gap-2">
-            {["Exterior Front", "Exterior Rear", "Driver Side", "Passenger Side", "Dashboard", "Front Seats", "Rear Seats", "Engine Bay", "Trunk/Boot", "Wheels"].map((shot, i) => (
-              <span
-                key={i}
-                className="px-4 py-2 bg-gray-50 text-gray-700 text-sm font-medium rounded-full border border-gray-200"
-              >
-                {shot}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function StepDocuments({ data, update, t }: any) {
-  const { t: translate } = useTranslation()
-  const registrationInputRef = useRef<HTMLInputElement>(null)
-  const serviceInputRef = useRef<HTMLInputElement>(null)
-
-  return (
-    <WizardCard
-      title={t("documentsTitle")}
-      stepIndicator={translate("wizard.progress.step_of", { current: 3, total: 5 })}
-      subtitle={t("documentsSubtitle")}
-    >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Carte Grise */}
-        <div
-          onClick={() => registrationInputRef.current?.click()}
-          className={`p-6 border-2 border-dashed rounded-xl cursor-pointer transition-all ${data.registration_doc
-            ? "border-green-400 bg-green-50"
-            : "border-gray-300 hover:border-[#B8071C] hover:bg-gray-50"
-            }`}
-        >
-          <input
-            ref={registrationInputRef}
-            type="file"
-            accept="image/*,.pdf"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) {
-                const validation = validateImageFile(file, true)
-                if (validation.isValid) {
-                  update({ registration_doc: file })
-                } else {
-                  alert(t(validation.error as any) || validation.error)
-                }
-              }
-            }}
-            className="hidden"
-          />
-          <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${data.registration_doc ? "bg-green-100" : "bg-gray-100"
-              }`}>
-              {data.registration_doc ? (
-                <Check className="w-6 h-6 text-green-600" />
-              ) : (
-                <FileText className="w-6 h-6 text-gray-400" />
-              )}
-            </div>
-            <div>
-              <p className="font-medium text-[#103090]">{t("carteGrise")} *</p>
-              <p className="text-sm text-gray-500">
-                {data.registration_doc instanceof File
-                  ? data.registration_doc.name
-                  : data.registration_doc ? t("fileUploaded") : t("clickToUpload")}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Service History (Optional) */}
-        <div
-          onClick={() => serviceInputRef.current?.click()}
-          className={`p-6 border-2 border-dashed rounded-xl cursor-pointer transition-all ${data.service_history
-            ? "border-green-400 bg-green-50"
-            : "border-gray-300 hover:border-[#B8071C] hover:bg-gray-50"
-            }`}
-        >
-          <input
-            ref={serviceInputRef}
-            type="file"
-            accept="image/*,.pdf"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) {
-                const validation = validateImageFile(file, true)
-                if (validation.isValid) {
-                  update({ service_history: file })
-                } else {
-                  alert(t(validation.error as any) || validation.error)
-                }
-              }
-            }}
-            className="hidden"
-          />
-          <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${data.service_history ? "bg-green-100" : "bg-gray-100"
-              }`}>
-              {data.service_history ? (
-                <Check className="w-6 h-6 text-green-600" />
-              ) : (
-                <FileText className="w-6 h-6 text-gray-400" />
-              )}
-            </div>
-            <div>
-              <p className="font-medium text-[#103090]">{t("serviceHistory")}</p>
-              <p className="text-sm text-gray-500">
-                {data.service_history instanceof File
-                  ? data.service_history.name
-                  : data.service_history ? t("fileUploaded") : t("optionalClick")}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </WizardCard>
-  )
-}
-
-function StepPricing({ data, update, t }: any) {
-  const { t: translate } = useTranslation()
-  const priceTooLow = data.price && Number(data.price) < 10000
-  const auctionConsent = data.auction_consent === true
-
-  // Validate auction prices if consent is given
-  const auctionStartingPriceError = auctionConsent && data.auction_starting_price && Number(data.auction_starting_price) < 5000
-    ? translate("auction.consent.error.starting_min") || "Starting price must be at least 5,000 MAD"
-    : undefined
-
-  const auctionReservePriceError = auctionConsent && data.auction_reserve_price && data.auction_starting_price &&
-    Number(data.auction_reserve_price) <= Number(data.auction_starting_price)
-    ? translate("auction.consent.error.reserve_higher") || "Reserve price must be higher than starting price"
-    : undefined
-
-  return (
-    <WizardCard
-      title={translate("wizard.pricing.title") || "Sale Pricing"}
-      stepIndicator={translate("wizard.progress.step_of", { current: 4, total: 5 }) || "Step 4 of 5"}
-      subtitle={translate("wizard.pricing.subtitle") || "Set your asking price"}
-    >
-      <div className="space-y-8">
-        {/* Direct Sale Price */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <MinimalTextInput
-            label={t("askingPrice")}
-            required
-            type="number"
-            step={100}
-            value={data.price || ""}
-            onChange={(e) => update({ price: e.target.value })}
-            placeholder="e.g. 50000"
-            suffix={translate("common.mad")}
-            hint={translate("wizard.pricing.min_price") || "Minimum 10,000 MAD"}
-            error={priceTooLow ? translate("wizard.pricing.price_too_low") || "Price must be at least 10,000 MAD" : undefined}
-          />
-        </div>
-
-        {/* Auction Consent Section */}
-        <div className="border-t border-gray-200 pt-6">
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-6 border border-amber-200">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 font-serif">
-                  {translate("auction.consent.title") || "Auction Option"}
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  {translate("auction.consent.description") || "If your car doesn't sell within 10 days through direct sale, would you like us to list it in our weekend auction? Auctions run every Saturday and Sunday."}
-                </p>
-
-                {/* Consent Toggle */}
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={auctionConsent}
-                      onChange={(e) => update({
-                        auction_consent: e.target.checked,
-                        // Clear auction prices if unchecked
-                        ...(!e.target.checked ? { auction_starting_price: undefined, auction_reserve_price: undefined } : {})
-                      })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                  </div>
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
-                    {translate("auction.consent.agree") || "Yes, list in auction if not sold"}
-                  </span>
-                </label>
-
-                {/* Auction Prices - Only show if consent is given */}
-                {auctionConsent && (
-                  <div className="mt-6 p-4 bg-white rounded-lg border border-amber-100 space-y-4">
-                    <p className="text-sm text-gray-500 mb-4">
-                      {translate("auction.consent.set_prices") || "Please set your auction prices:"}
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <MinimalTextInput
-                        label={translate("auction.consent.starting_price") || "Starting Price"}
-                        required
-                        type="number"
-                        step={100}
-                        value={data.auction_starting_price || ""}
-                        onChange={(e) => update({ auction_starting_price: e.target.value })}
-                        placeholder="e.g. 30000"
-                        suffix={translate("common.mad")}
-                        hint={translate("auction.consent.starting_price_hint") || "Bidding starts at this price"}
-                        error={auctionStartingPriceError}
-                      />
-                      <MinimalTextInput
-                        label={translate("auction.consent.reserve_price") || "Reserve Price"}
-                        required
-                        type="number"
-                        step={100}
-                        value={data.auction_reserve_price || ""}
-                        onChange={(e) => update({ auction_reserve_price: e.target.value })}
-                        placeholder="e.g. 45000"
-                        suffix={translate("common.mad")}
-                        hint={translate("auction.consent.reserve_price_hint") || "Minimum price you'll accept"}
-                        error={auctionReservePriceError}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-2">
-                      {translate("auction.consent.note") || "Note: If the car doesn't sell during the weekend auction, it will automatically return to direct sale."}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </WizardCard>
-  )
-}
-
-function StepReview({ data, t }: any) {
-  const { t: translate } = useTranslation()
-  const [mainPhotoIndex, setMainPhotoIndex] = useState(0)
-  const thumbnailsRef = React.useRef<HTMLDivElement>(null)
-
-  const photos = data.photos || []
-  const mainPhoto = photos[mainPhotoIndex]
-
-  const getPhotoUrl = (photo: File | string): string => {
-    if (typeof photo === "string") return photo
-    return URL.createObjectURL(photo)
-  }
-
-  // Auto-scroll thumbnails when main photo changes
-  React.useEffect(() => {
-    if (thumbnailsRef.current && photos.length > 0) {
-      const container = thumbnailsRef.current
-      const thumbnail = container.children[mainPhotoIndex] as HTMLElement
-      if (thumbnail) {
-        const containerWidth = container.offsetWidth
-        const thumbnailLeft = thumbnail.offsetLeft
-        const thumbnailWidth = thumbnail.offsetWidth
-        const scrollPosition = thumbnailLeft - (containerWidth / 2) + (thumbnailWidth / 2)
-        container.scrollTo({ left: scrollPosition, behavior: 'smooth' })
-      }
-    }
-  }, [mainPhotoIndex, photos.length])
-
-  const exteriorColor = CAR_COLORS.find(c => c.value === data.exterior_color)
-  const interiorColor = CAR_COLORS.find(c => c.value === data.interior_color)
-
-  // Icon helper
-  const getIcon = (type: string) => {
-    switch (type) {
-      case "mileage": return "/icons/mileage.png"
-      case "transmission": return "/icons/transmission.png"
-      case "fuel": return data.fuel_type?.toLowerCase() === "electric" ? "/icons/electric-fuel.png" : "/icons/fuel.png"
-      case "condition": return "/icons/condition.png"
-      case "engine": return "/icons/engine.png"
-      case "doors": return "/icons/car-door.png"
-      default: return "/icons/condition.png"
-    }
-  }
-
-  const goToPrev = () => setMainPhotoIndex(prev => (prev === 0 ? photos.length - 1 : prev - 1))
-  const goToNext = () => setMainPhotoIndex(prev => (prev === photos.length - 1 ? 0 : prev + 1))
-
-  return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-[#103090]">{t("previewTitle")}</h2>
-          <p className="text-sm text-gray-500">{t("previewSubtitle")}</p>
-        </div>
-        <span className="text-xs font-medium text-gray-400 bg-gray-50 px-3 py-1 rounded-full">
-          {translate("wizard.progress.step_of", { current: 5, total: 5 }) || "Step 5 of 5"}
-        </span>
-      </div>
-
-      <div className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left: Photo Gallery */}
-          <div className="space-y-4">
-            {/* Main Photo with Navigation */}
-            <div className="aspect-[4/3] rounded-xl overflow-hidden bg-gray-100 relative group">
-              {mainPhoto ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={getPhotoUrl(mainPhoto)}
-                    alt="Main photo"
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Navigation Arrows */}
-                  {photos.length > 1 && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={goToPrev}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-[#103090] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <ChevronLeft className="w-5 h-5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={goToNext}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-[#103090] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
-                    </>
-                  )}
-                  {/* Photo Counter */}
-                  <div className="absolute bottom-4 right-4 bg-black/60 text-white text-sm px-3 py-1 rounded-full">
-                    {mainPhotoIndex + 1} / {photos.length}
-                  </div>
-                </>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                  No photos
-                </div>
-              )}
-            </div>
-
-            {/* Scrollable Thumbnails */}
-            {photos.length > 1 && (
-              <div
-                ref={thumbnailsRef}
-                className="flex gap-2 overflow-x-auto py-1 px-1 -mx-1 scrollbar-hide"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {photos.map((photo: File | string, i: number) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setMainPhotoIndex(i)}
-                    className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden bg-gray-100 transition-all ${i === mainPhotoIndex
-                      ? "ring-2 ring-[#B8071C] ring-offset-1"
-                      : "opacity-70 hover:opacity-100"
-                      }`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={getPhotoUrl(photo)}
-                      alt={`Thumbnail ${i + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Right: Vehicle Info */}
-          <div className="space-y-6">
-            {/* Title & Price */}
-            <div>
-              <h1 className="text-2xl font-bold text-[#103090]">
-                {data.make} {data.model}
-              </h1>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="bg-[#103090] text-white text-xs font-semibold px-3 py-1 rounded-full">
-                  {data.year}
-                </span>
-                <span className="flex items-center gap-1 text-gray-500 text-sm">
-                  <MapPin className="w-4 h-4" />
-                  {data.location}
-                </span>
-              </div>
-              <p className="text-3xl font-bold text-[#B8071C] mt-4">
-                {data.price ? `${Number(data.price).toLocaleString()} ${translate('common.mad')}` : "—"}
-              </p>
-              <p className="text-sm text-gray-500">{t("askingPrice")}</p>
-            </div>
-
-            {/* Specs Grid with Icons */}
-            <div className="bg-gray-50 rounded-xl p-4">
-              <div className="grid grid-cols-2 gap-4">
-                {/* Mileage */}
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{t("mileage")}</span>
-                  <div className="flex items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={getIcon("mileage")} alt="" className="w-5 h-5 opacity-70" />
-                    <span className="font-semibold text-[#103090]">
-                      {data.mileage ? `${Number(data.mileage).toLocaleString()} ${translate("unit.km")}` : "—"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Transmission */}
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{t("transmission")}</span>
-                  <div className="flex items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={getIcon("transmission")} alt="" className="w-5 h-5 opacity-70" />
-                    <span className="font-semibold text-[#103090]">{data.transmission || "—"}</span>
-                  </div>
-                </div>
-
-                {/* Fuel */}
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{t("fuelType")}</span>
-                  <div className="flex items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={getIcon("fuel")} alt="" className="w-5 h-5 opacity-70" />
-                    <span className="font-semibold text-[#103090]">{data.fuel_type || "—"}</span>
-                  </div>
-                </div>
-
-                {/* Condition */}
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{t("condition")}</span>
-                  <div className="flex items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={getIcon("condition")} alt="" className="w-5 h-5 opacity-70" />
-                    <span className="font-semibold text-[#103090]">{data.condition || "—"}</span>
-                  </div>
-                </div>
-
-                {/* Engine */}
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{t("engineSize")}</span>
-                  <div className="flex items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={getIcon("engine")} alt="" className="w-5 h-5 opacity-70" />
-                    <span className="font-semibold text-[#103090]">{data.engine_size ? `${data.engine_size}` : "—"}</span>
-                  </div>
-                </div>
-
-                {/* Doors */}
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{t("doors")}</span>
-                  <div className="flex items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={getIcon("doors")} alt="" className="w-5 h-5 opacity-70" />
-                    <span className="font-semibold text-[#103090]">{data.doors || "—"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Special Features */}
-            {data.special_features && (
-              <div className="bg-gray-50 rounded-xl p-6">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 font-serif flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
-                  </svg>
-                  {t("specialFeatures")}
-                </h3>
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-base">
-                  {data.special_features}
-                </p>
-              </div>
-            )}
-
-            {/* Appearance */}
-            <div className="bg-gray-50 rounded-xl p-6">
-              {exteriorColor && (
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`w-5 h-5 rounded-full ${exteriorColor.border ? "border border-gray-300" : ""}`}
-                    style={{ background: exteriorColor.hex }}
-                  />
-                  <span className="text-sm text-gray-600">
-                    {translate(`colors.${exteriorColor.value}` as any)} {t("exterior")}
-                  </span>
-                </div>
-              )}
-              {interiorColor && (
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`w-5 h-5 rounded-full ${interiorColor.border ? "border border-gray-300" : ""}`}
-                    style={{ background: interiorColor.hex }}
-                  />
-                  <span className="text-sm text-gray-600">
-                    {translate(`colors.${interiorColor.value}` as any)} {t("interior")}
-                  </span>
-                </div>
-              )}
-              {data.is_original_paint && (
-                <span className="text-sm text-green-600 font-medium">✓ {t("originalPaint")}</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Description */}
-        {data.description && (
-          <div className="mt-8 pt-6 border-t border-gray-100">
-            <h3 className="text-lg font-semibold text-[#103090] mb-3">{t("description")}</h3>
-            <div className="max-h-48 overflow-y-auto">
-              <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{data.description}</p>
-            </div>
-            {data.description.length > 500 && (
-              <p className="text-xs text-gray-400 mt-2">{t("scrollMore")}</p>
-            )}
-          </div>
-        )}
       </div>
     </div>
   )

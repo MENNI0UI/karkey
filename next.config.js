@@ -87,9 +87,9 @@ const nextConfig = {
       'sonner',
     ],
     serverActions: {
-      bodySizeLimit: '30mb',
+      bodySizeLimit: '100mb',
     },
-    middlewareClientMaxBodySize: '30mb',
+    middlewareClientMaxBodySize: '100mb',
     // instrumentationHook is enabled by default in Next.js 15+
   },
   webpack: (config, { dev }) => {

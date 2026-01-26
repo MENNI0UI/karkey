@@ -2,14 +2,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import prisma from "@/lib/prisma"
-import { createToken } from "@/lib/mysql-auth"
 import { cookies } from "next/headers"
 
 export async function GET(req: NextRequest) {
     try {
         // 1. Get session from NextAuth
         const session = await auth()
-        
+
         if (!session?.user?.email) {
             console.error("[GoogleSync] No session or email found")
             return redirectToLogin(req, "no_session")
@@ -28,8 +27,7 @@ export async function GET(req: NextRequest) {
             return redirectToLogin(req, "user_not_found")
         }
 
-        // 3. Create our app's JWT token
-        const token = await createToken({ userId: user.id, email: user.email })
+        // Legacy Token Generation Removed - NextAuth Session is Sufficient
 
         // 4. Get language preference
         const cookieStore = await cookies()
@@ -37,26 +35,17 @@ export async function GET(req: NextRequest) {
 
         // 5. Determine redirect path
         const baseUrl = (process.env.AUTH_URL || req.nextUrl.origin).replace(/\/$/, "")
-        const redirectPath = user.is_profile_complete 
-            ? `/${lang}` 
+        const redirectPath = user.is_profile_complete
+            ? `/${lang}`
             : `/${lang}/auth/complete-profile`
-        
+
         const finalUrl = `${baseUrl}${redirectPath}`
         const isSecure = baseUrl.startsWith("https://")
 
         console.log("[GoogleSync] User authenticated, redirecting to:", finalUrl)
 
-        // 6. Set cookie and redirect
-        const response = NextResponse.redirect(finalUrl)
-        response.cookies.set("auth_token", token, {
-            path: "/",
-            httpOnly: true,
-            sameSite: "lax",
-            maxAge: 60 * 60 * 24 * 30, // 30 days
-            secure: isSecure,
-        })
-
-        return response
+        // 6. Redirect (Session matches)
+        return NextResponse.redirect(finalUrl)
 
     } catch (error) {
         console.error("[GoogleSync] Error:", error)
