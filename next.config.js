@@ -87,9 +87,9 @@ const nextConfig = {
       'sonner',
     ],
     serverActions: {
-      bodySizeLimit: '100mb',
+      bodySizeLimit: '20mb',
     },
-    middlewareClientMaxBodySize: '100mb',
+    middlewareClientMaxBodySize: '20mb',
     // instrumentationHook is enabled by default in Next.js 15+
   },
   webpack: (config, { dev }) => {
@@ -127,7 +127,8 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()' }
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()' },
+          { key: 'Link', value: '<https://accounts.google.com>; rel=preconnect, <https://img.karkey.space>; rel=preconnect' }
         ],
       },
     ];

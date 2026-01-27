@@ -277,6 +277,35 @@ export default function AuctionBidPage() {
       imageOverlay={null}
       galleryFooter={endIso ? <BoxedCountdown endDate={endIso} fullWidth={true} /> : null}
       extraContent={suggestions.length > 0 ? <Suggestions /> : null}
-    />
+    >
+      {carData && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Car",
+              "name": `${carData.make} ${carData.model}`,
+              "image": carData.photos[0]?.url,
+              "description": carData.description,
+              "brand": {
+                "@type": "Brand",
+                "name": carData.make
+              },
+              "model": carData.model,
+              "productionDate": carData.year,
+              "vehicleModelDate": carData.year,
+              "offers": {
+                "@type": "Offer",
+                "price": displayPrice,
+                "priceCurrency": "MAD",
+                "availability": "https://schema.org/InStock",
+                "url": typeof window !== "undefined" ? window.location.href : ""
+              }
+            })
+          }}
+        />
+      )}
+    </UnifiedCarLayout>
   )
 }

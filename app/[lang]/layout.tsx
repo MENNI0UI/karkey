@@ -13,7 +13,7 @@ import { DM_Sans, Noto_Sans_Arabic, DM_Serif_Display, Amiri } from "next/font/go
 
 const dmSans = DM_Sans({
     subsets: ["latin"],
-    weight: ["300", "400", "500", "600", "700", "800"],
+    weight: ["400", "500", "700"],
     variable: "--font-dm-sans",
     display: "swap",
 });
@@ -22,7 +22,7 @@ const dmSans = DM_Sans({
 
 const notoSansArabic = Noto_Sans_Arabic({
     subsets: ["arabic"],
-    weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+    weight: ["300", "400", "700"],
     variable: "--font-noto-sans-arabic",
     display: "swap",
 });
@@ -142,6 +142,8 @@ export default async function RootLayout({
                 <meta name="viewport" content="width=device-width,initial-scale=1" />
                 <link rel="preconnect" href="https://img.karkey.space" crossOrigin="anonymous" />
                 <link rel="dns-prefetch" href="https://img.karkey.space" />
+                <link rel="manifest" href="/manifest.json" />
+                <link rel="apple-touch-icon" href="/logo.png" />
             </head>
             <body>
                 <I18nProvider lang={lang as Language}>

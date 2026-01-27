@@ -41,6 +41,9 @@ export default function HomeCityCard({ city, image, language, priority = false }
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                         unoptimized
                         priority={priority}
+                        onError={(e) => {
+                            e.currentTarget.src = "/zellige.webp"
+                        }}
                     />
                     {/* Dark Overlay - lighter by default, stronger on hover */}
                     <div className="absolute inset-0 bg-black/40 group-hover:bg-black/70 transition-colors duration-500" />

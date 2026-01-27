@@ -407,7 +407,7 @@ export function DirectSaleCard({
                         specs={[
                             { iconUrl: "/icons/mileage.png", label: t("unit.km"), value: mileage },
                             { iconUrl: "/icons/transmission.png", label: "", value: transmission ? t(`vehicle.transmission.${transmission.toLowerCase()}` as any) : undefined },
-                            { iconUrl: "/icons/fuel.png", label: "", value: fuel_type ? t(`vehicle.fuel.${fuel_type.toLowerCase()}` as any) : undefined },
+                            { iconUrl: (fuel_type || "").toLowerCase() === "electric" ? "/icons/electric-fuel.png" : "/icons/fuel.png", label: "", value: fuel_type ? t(`vehicle.fuel.${fuel_type.toLowerCase()}` as any) : undefined },
                             { iconUrl: "/icons/car-door.png", label: t("vehicle.doors"), value: doors ?? undefined },
                             {
                                 iconUrl: "/icons/condition.png",

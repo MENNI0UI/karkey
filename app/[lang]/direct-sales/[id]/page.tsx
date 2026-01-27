@@ -690,7 +690,36 @@ export default function DirectSalePage() {
         seller={sellerData}
         action={actionsContent}
         extraContent={suggestionsContent}
-      />
+      >
+        {carData && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Car",
+                "name": `${carData.make} ${carData.model}`,
+                "image": carData.photos[0]?.url,
+                "description": carData.description,
+                "brand": {
+                  "@type": "Brand",
+                  "name": carData.make
+                },
+                "model": carData.model,
+                "productionDate": carData.year,
+                "vehicleModelDate": carData.year,
+                "offers": {
+                  "@type": "Offer",
+                  "price": carData.price,
+                  "priceCurrency": "MAD",
+                  "availability": "https://schema.org/InStock",
+                  "url": typeof window !== "undefined" ? window.location.href : ""
+                }
+              })
+            }}
+          />
+        )}
+      </UnifiedCarLayout>
 
       <ContactUsModal
         open={showContactModal}

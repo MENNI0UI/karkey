@@ -261,6 +261,8 @@ export const ar: typeof en = {
   "time.short_seconds": "ثانية",
   "unit.liter": "لتر",
   "unit.km": "كم",
+  "wizard.placeholders.mileage": "مثال: 50000",
+  "wizard.placeholders.engine_size": "مثال: 2.0",
 
   // Auctions Page
   "auctions.title": "المزادات",
@@ -707,6 +709,43 @@ export const ar: typeof en = {
   "wizard.success.view_listings": "شاهد الإعلانات",
   "wizard.success.view_profile": "حسابي الشخصي",
   "wizard.success.thank_you": "شكراً لاختيارك كاركي",
+
+  // Photography Coach
+  "wizard.coach.front": "واجهة السيارة",
+  "wizard.coach.rear": "الجهة الخلفية",
+  "wizard.coach.side": "جانب السائق",
+  "wizard.coach.dash": "لوحة القيادة",
+  "wizard.coach.interior": "المقصورة الأمامية",
+  "wizard.coach.engine": "غرفة المحرك",
+
+  // Wizard - Magic Description & Validation
+  "wizard.magic_description": "وصف سحري",
+  "wizard.validation.min_20_chars": "مطلوب 20 حرفاً كحد أدنى",
+
+  // Wizard - Photography Guidelines
+  "wizard.photos.best_practice_1": "التقط الصور في ضوء النهار الطبيعي",
+  "wizard.photos.best_practice_2": "اشمل جميع الزوايا: الأمام، الخلف، كلا الجانبين",
+  "wizard.photos.best_practice_3": "أظهر الداخلية: لوحة القيادة، المقاعد، صندوق السيارة",
+  "wizard.photos.best_practice_4": "وثّق أي ضرر أو تآكل بصدق",
+  "wizard.photos.avoid_1": "معلومات شخصية ظاهرة (الهاتف، البريد الإلكتروني)",
+  "wizard.photos.avoid_2": "صور ضبابية أو إضاءة سيئة",
+  "wizard.photos.avoid_3": "إخفاء الأضرار أو العيوب",
+  "wizard.photos.shot_1": "الواجهة الخارجية",
+  "wizard.photos.shot_2": "الخلفية الخارجية",
+  "wizard.photos.shot_3": "جانب السائق",
+  "wizard.photos.shot_4": "جانب الراكب",
+  "wizard.photos.shot_5": "لوحة القيادة",
+  "wizard.photos.shot_6": "المقاعد الأمامية",
+  "wizard.photos.shot_7": "المقاعد الخلفية",
+  "wizard.photos.shot_8": "غرفة المحرك",
+  "wizard.photos.shot_9": "صندوق السيارة",
+  "wizard.photos.shot_10": "العجلات",
+  "wizard.photos.upload_failed": "فشل رفع {count} صور",
+  "wizard.photos.wait_for_uploads": "يرجى الانتظار حتى اكتمال الرفع...",
+  "wizard.photos.must_fix_errors": "يجب إصلاح الأخطاء قبل المتابعة.",
+  "wizard.photos.next_enabled": "سيتم تفعيل زر 'التالي' تلقائياً.",
+  "wizard.photos.retry_all": "إعادة محاولة الكل",
+
 
   // Brokerage
   "wizard.brokerage.title": "خدمة الوساطة",

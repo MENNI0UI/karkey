@@ -10,7 +10,7 @@ type Props = {
   label?: string;
 };
 
-export default function NewItemsNotifier({ fetchUrl, initialTopId = null, pollIntervalMs = 15000, label = "Show new auctions" }: Props) {
+export default function NewItemsNotifier({ fetchUrl, initialTopId = null, pollIntervalMs = 30000, label = "Show new auctions" }: Props) {
   const [hasNew, setHasNew] = useState(false);
   const [checking, setChecking] = useState(false);
   const router = useRouter();
@@ -18,9 +18,15 @@ export default function NewItemsNotifier({ fetchUrl, initialTopId = null, pollIn
   useEffect(() => {
     let mounted = true;
     let lastTop = initialTopId ?? null;
-    let initialized = false;
+    // If we have an initial ID, we are already "initialized" baseline-wise, 
+    // but we still want to handle the first check carefully to avoid false positives if logic differs.
+    // Actually, trusting initialTopId allows immediate updates on the very first fetch if freshness drift occurred.
+    let initialized = initialTopId != null;
 
     const check = async () => {
+      // Skip check if tab is not visible to save server resources
+      if (typeof document !== "undefined" && document.hidden) return;
+
       try {
         setChecking(true);
         const res = await fetch(fetchUrl, { cache: "no-store" });

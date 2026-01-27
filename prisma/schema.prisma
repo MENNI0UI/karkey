@@ -145,6 +145,10 @@ model direct_sales {
   @@index([mileage], map: "idx_direct_sales_mileage")
   @@index([price], map: "idx_direct_sales_price")
   @@index([year], map: "idx_direct_sales_year")
+
+  // Composite Indexes for main listings
+  @@index([verification_status, sale_status, created_at], map: "idx_ds_status_composite")
+  @@index([auction_mode, auction_status, verification_status, auction_end_date], map: "idx_ds_auction_composite")
 }
 
 model direct_sales_contacts {
@@ -431,6 +435,9 @@ model karkey_cars {
   @@index([mileage], map: "idx_karkey_cars_mileage")
   @@index([price], map: "idx_karkey_cars_price")
   @@index([year], map: "idx_karkey_cars_year")
+
+  // Composite Index for main listing
+  @@index([is_active, created_at], map: "idx_karkey_cars_active_composite")
 }
 
 model karkey_car_photos {

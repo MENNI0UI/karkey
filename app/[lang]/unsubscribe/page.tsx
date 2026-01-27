@@ -3,9 +3,10 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { m } from "framer-motion";
-import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LuxuryLoader } from "@/components/ui/luxury-loader";
 
 export default function UnsubscribePage() {
     const searchParams = useSearchParams();
@@ -56,7 +57,7 @@ export default function UnsubscribePage() {
             >
                 {status === "loading" && (
                     <>
-                        <Loader2 className="w-16 h-16 mx-auto text-[#00A651] animate-spin mb-6" />
+                        <LuxuryLoader size="md" className="mx-auto mb-6" />
                         <h1 className="text-2xl font-serif text-slate-800 mb-2">Processing...</h1>
                         <p className="text-slate-500">Please wait while we process your request.</p>
                     </>

@@ -47,13 +47,13 @@ export async function GET(request: NextRequest) {
       ? Math.round(((usersThisMonth - usersLastMonth) / usersLastMonth) * 100)
       : usersThisMonth > 0 ? 100 : 0
 
-    // OPTIMIZED: Combined vehicle stats into single query
+    // OPTIMIZED: Combined vehicle stats into single query (from direct_sales)
     const vehicleStatsRow = await prisma.$queryRaw<any[]>`
       SELECT 
         COUNT(*) as total,
         SUM(CASE WHEN verification_status = 'approved' THEN 1 ELSE 0 END) as approved,
         SUM(CASE WHEN verification_status = 'pending' THEN 1 ELSE 0 END) as pending
-      FROM vehicles
+      FROM direct_sales
     `
 
     const vehicleStats = vehicleStatsRow[0] || {}
@@ -61,18 +61,19 @@ export async function GET(request: NextRequest) {
     const approvedAuctionVehicles = Number(vehicleStats.approved) || 0
     const pendingVehicleVerifications = Number(vehicleStats.pending) || 0
 
-    // OPTIMIZED: Combined auction stats into single query
+    // OPTIMIZED: Combined auction stats into single query (from direct_sales WHERE auction_mode=1)
     const auctionStatsRow = await prisma.$queryRaw<any[]>`
       SELECT 
         COUNT(*) as total,
-        SUM(CASE WHEN status = 'active' AND end_date > NOW() THEN 1 ELSE 0 END) as active,
-        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-        SUM(CASE WHEN DATE(end_date) = CURDATE() AND status = 'active' THEN 1 ELSE 0 END) as ending_today,
+        SUM(CASE WHEN auction_status = 'active' AND auction_end_date > NOW() THEN 1 ELSE 0 END) as active,
+        SUM(CASE WHEN auction_status = 'completed' THEN 1 ELSE 0 END) as completed,
+        SUM(CASE WHEN DATE(auction_end_date) = CURDATE() AND auction_status = 'active' THEN 1 ELSE 0 END) as ending_today,
         SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as new_week,
         SUM(CASE WHEN MONTH(created_at) = MONTH(NOW()) AND YEAR(created_at) = YEAR(NOW()) THEN 1 ELSE 0 END) as this_month,
         SUM(CASE WHEN MONTH(created_at) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH)) 
                   AND YEAR(created_at) = YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH)) THEN 1 ELSE 0 END) as last_month
-      FROM auctions
+      FROM direct_sales
+      WHERE auction_mode = 1
     `
 
     const auctionStats = auctionStatsRow[0] || {}
@@ -87,14 +88,15 @@ export async function GET(request: NextRequest) {
       ? Math.round(((auctionsThisMonth - auctionsLastMonth) / auctionsLastMonth) * 100)
       : auctionsThisMonth > 0 ? 100 : 0
 
-    // OPTIMIZED: Combined bid stats into single query
+    // OPTIMIZED: Combined bid stats into single query (Aggregated from direct_sales)
     const bidStatsRow = await prisma.$queryRaw<any[]>`
       SELECT 
-        COUNT(*) as total,
-        SUM(CASE WHEN DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) as today,
-        MAX(CASE WHEN DATE(created_at) = CURDATE() THEN amount ELSE 0 END) as highest_today,
-        (SELECT AVG(bid_count) FROM (SELECT COUNT(*) as bid_count FROM bids GROUP BY auction_id) as bc) as avg_per_auction
-      FROM bids
+        SUM(auction_bid_count) as total,
+        SUM(CASE WHEN DATE(updated_at) = CURDATE() THEN auction_bid_count ELSE 0 END) as today,
+        MAX(auction_current_bid) as highest_today,
+        AVG(auction_bid_count) as avg_per_auction
+      FROM direct_sales
+      WHERE auction_mode = 1
     `
 
     const bidStats = bidStatsRow[0] || {}
@@ -103,9 +105,9 @@ export async function GET(request: NextRequest) {
     const highestBidToday = Number(bidStats.highest_today) || 0
     const avgBidsPerAuction = Math.round(Number(bidStats.avg_per_auction) || 0)
 
-    // Top brands and cities for vehicles (keeping as separate queries since they're aggregations)
+    // Top brands and cities for vehicles (from direct_sales)
     const auctionTopBrandsRows = await prisma.$queryRaw<any[]>`
-      SELECT make, COUNT(*) as count FROM vehicles 
+      SELECT make, COUNT(*) as count FROM direct_sales 
        WHERE make IS NOT NULL AND make != ''
        GROUP BY make ORDER BY count DESC LIMIT 5
     `
@@ -115,7 +117,7 @@ export async function GET(request: NextRequest) {
     }))
 
     const auctionTopCitiesRows = await prisma.$queryRaw<any[]>`
-      SELECT location, COUNT(*) as count FROM vehicles 
+      SELECT location, COUNT(*) as count FROM direct_sales 
        WHERE location IS NOT NULL AND location != ''
        GROUP BY location ORDER BY count DESC LIMIT 5
     `
@@ -124,7 +126,7 @@ export async function GET(request: NextRequest) {
       count: Number(row.count)
     }))
 
-    // OPTIMIZED: Combined showroom stats into single query
+    // OPTIMIZED: Combined showroom stats into single query (from karkey_cars)
     const showroomStatsRow = await prisma.$queryRaw<any[]>`
       SELECT 
         COUNT(*) as total,
@@ -133,7 +135,7 @@ export async function GET(request: NextRequest) {
         SUM(CASE WHEN MONTH(created_at) = MONTH(NOW()) AND YEAR(created_at) = YEAR(NOW()) THEN 1 ELSE 0 END) as this_month,
         SUM(CASE WHEN MONTH(created_at) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH)) 
                   AND YEAR(created_at) = YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH)) THEN 1 ELSE 0 END) as last_month
-      FROM showroom
+      FROM karkey_cars
     `
 
     const showroomStats = showroomStatsRow[0] || {}
@@ -146,15 +148,15 @@ export async function GET(request: NextRequest) {
       ? Math.round(((showroomThisMonth - showroomLastMonth) / showroomLastMonth) * 100)
       : showroomThisMonth > 0 ? 100 : 0
 
-    // Showroom interests count
+    // Showroom inquiries count (replaces interests)
     const showroomInterestsRow = await prisma.$queryRaw<any[]>`
-      SELECT COUNT(*) as count FROM showroom_interests
+      SELECT COUNT(*) as count FROM karkey_car_inquiries
     `
     const showroomInterests = Number(showroomInterestsRow[0]?.count) || 0
 
-    // Showroom top brands and cities
+    // Showroom top brands and cities (from karkey_cars)
     const showroomTopBrandsRows = await prisma.$queryRaw<any[]>`
-      SELECT make, COUNT(*) as count FROM showroom 
+      SELECT make, COUNT(*) as count FROM karkey_cars 
        WHERE make IS NOT NULL AND make != ''
        GROUP BY make ORDER BY count DESC LIMIT 5
     `
@@ -164,7 +166,7 @@ export async function GET(request: NextRequest) {
     }))
 
     const showroomTopCitiesRows = await prisma.$queryRaw<any[]>`
-      SELECT location, COUNT(*) as count FROM showroom 
+      SELECT location, COUNT(*) as count FROM karkey_cars 
        WHERE location IS NOT NULL AND location != ''
        GROUP BY location ORDER BY count DESC LIMIT 5
     `

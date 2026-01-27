@@ -452,6 +452,8 @@ export const en = {
   "time.short_minutes": "Min",
   "time.short_seconds": "Sec",
   "unit.liter": "L",
+  "wizard.placeholders.mileage": "e.g. 50000",
+  "wizard.placeholders.engine_size": "e.g. 2.0",
   "unit.km": "km",
   "time.day_singular": "day",
   "time.day_dual": "days",
@@ -612,6 +614,43 @@ export const en = {
   "wizard.success.view_profile": "My Profile",
   "wizard.success.thank_you": "Thank you for choosing Karkey",
 
+  // Photography Coach
+  "wizard.coach.front": "Front Exterior",
+  "wizard.coach.rear": "Rear Exterior",
+  "wizard.coach.side": "Driver Side",
+  "wizard.coach.dash": "Dashboard",
+  "wizard.coach.interior": "Interior Front",
+  "wizard.coach.engine": "Engine Bay",
+
+  // Wizard - Magic Description & Validation
+  "wizard.magic_description": "Magic Description",
+  "wizard.validation.min_20_chars": "Minimum 20 characters required",
+
+  // Wizard - Photography Guidelines
+  "wizard.photos.best_practice_1": "Photograph in natural daylight",
+  "wizard.photos.best_practice_2": "Include all angles: front, rear, both sides",
+  "wizard.photos.best_practice_3": "Show interior: dashboard, seats, trunk",
+  "wizard.photos.best_practice_4": "Document any damage or wear honestly",
+  "wizard.photos.avoid_1": "Personal information visible (phone, email)",
+  "wizard.photos.avoid_2": "Blurry or poorly lit images",
+  "wizard.photos.avoid_3": "Concealing damage or defects",
+  "wizard.photos.shot_1": "Exterior Front",
+  "wizard.photos.shot_2": "Exterior Rear",
+  "wizard.photos.shot_3": "Driver Side",
+  "wizard.photos.shot_4": "Passenger Side",
+  "wizard.photos.shot_5": "Dashboard",
+  "wizard.photos.shot_6": "Front Seats",
+  "wizard.photos.shot_7": "Rear Seats",
+  "wizard.photos.shot_8": "Engine Bay",
+  "wizard.photos.shot_9": "Trunk/Boot",
+  "wizard.photos.shot_10": "Wheels",
+  "wizard.photos.upload_failed": "{count} photos failed to upload",
+  "wizard.photos.wait_for_uploads": "Please wait for uploads to complete...",
+  "wizard.photos.must_fix_errors": "You must fix errors before continuing.",
+  "wizard.photos.next_enabled": "The 'Next' button will enable automatically.",
+  "wizard.photos.retry_all": "Retry All",
+
+
   // Profile Statistics
   "profile.statistics": "Statistics",
   "profile.statistics.title": "Your Statistics",
@@ -633,6 +672,8 @@ export const en = {
   "wizard.pricing.direct_desc": "Set your asking price for the vehicle",
   "wizard.pricing.asking_price": "Asking Price (MAD)",
   "wizard.pricing.min_price_error": "Price must be at least 10,000 MAD",
+
+
 
   // Pricing Page
   "pricing.title": "Pricing",

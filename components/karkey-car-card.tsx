@@ -128,8 +128,7 @@ export default function KarkeyCarCard({ car, onContact, priority = false }: Kark
                                 { iconUrl: "/icons/mileage.png", label: "km", value: car.mileage.toLocaleString() },
                                 { iconUrl: "/icons/transmission.png", label: "", value: t(`vehicle.transmission.${car.transmission}` as any) },
                                 {
-                                    iconUrl: (car.fuel_type || "").toLowerCase().includes("electric") || (car.fuel_type || "").toLowerCase().includes("hybrid") ? undefined : "/icons/fuel.png",
-                                    IconComponent: (car.fuel_type || "").toLowerCase().includes("electric") ? Zap : ((car.fuel_type || "").toLowerCase().includes("hybrid") ? Fuel : undefined),
+                                    iconUrl: (car.fuel_type || "").toLowerCase().includes("electric") ? "/icons/electric-fuel.png" : "/icons/fuel.png",
                                     label: "",
                                     value: t(`vehicle.fuel.${car.fuel_type}` as any),
                                     variant: (car.fuel_type || "").toLowerCase().includes("electric") || (car.fuel_type || "").toLowerCase().includes("hybrid") ? "green" : "default"

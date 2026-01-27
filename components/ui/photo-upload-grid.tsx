@@ -19,31 +19,32 @@ export interface PhotoItem {
 interface PhotoUploadGridProps {
     photos: PhotoItem[];
     onChange: (photos: PhotoItem[]) => void;
-    minPhotos?: number;
     maxPhotos?: number;
+    minPhotos?: number;
     label?: string;
-    onUpload?: (files: File[]) => Promise<void>; // Optional handler if grid manages upload trigger
+    error?: string;
 }
 
 export function PhotoUploadGrid({
     photos,
     onChange,
-    minPhotos = 5,
     maxPhotos = 10,
+    minPhotos = 5,
     label,
+    error
 }: PhotoUploadGridProps) {
     const { t } = useTranslation();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [isDragOver, setIsDragOver] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [internalError, setInternalError] = useState<string | null>(null);
 
     const MAX_FILE_SIZE_MB = 20;
 
     const handleFileSelect = useCallback(
         (files: FileList | null) => {
             if (!files) return;
-            setError(null);
+            setInternalError(null);
 
             const filesArray = Array.from(files);
             const validNewPhotos: PhotoItem[] = [];
@@ -70,8 +71,8 @@ export function PhotoUploadGrid({
             }
 
             if (lastError) {
-                setError(t(lastError as any) || lastError);
-                setTimeout(() => setError(null), 8000);
+                setInternalError(t(lastError as any) || lastError);
+                setTimeout(() => setInternalError(null), 8000);
             }
 
             if (validNewPhotos.length > 0) {
@@ -171,115 +172,115 @@ export function PhotoUploadGrid({
             </div>
 
             {/* Photo Grid */}
-            {photos.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    {photos.map((photo, index) => (
-                        <div
-                            key={photo.id}
-                            draggable
-                            onDragStart={() => handleDragStart(index)}
-                            onDragEnd={handleDragEnd}
-                            onDragOver={(e) => handleDragOver(e, index)}
-                            className={`group relative aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 cursor-move ${draggedIndex === index ? "opacity-50" : ""
-                                } ${index === 0 ? "ring-2 ring-[#B8071C]" : ""}`}
-                        >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                                src={photo.url}
-                                alt={`Photo ${index + 1}`}
-                                className="w-full h-full object-cover"
-                            />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {photos.map((photo, index) => (
+                    <div
+                        key={photo.id}
+                        draggable
+                        onDragStart={() => handleDragStart(index)}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        className={`group relative aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 cursor-move ${draggedIndex === index ? "opacity-50" : ""
+                            } ${index === 0 ? "ring-2 ring-[#B8071C]" : ""}`}
+                    >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={photo.url}
+                            alt={`Photo ${index + 1}`}
+                            className="w-full h-full object-cover"
+                        />
 
-                            {/* Status Indicators */}
-                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                {photo.status === 'error' && (
+                        {/* Status Indicators */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            {photo.status === 'error' && (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        const newPhotos = [...photos];
+                                        newPhotos[index] = { ...photo, status: 'pending', error: undefined };
+                                        onChange(newPhotos);
+                                    }}
+                                    className="bg-red-500/90 text-white rounded-full p-2 hover:bg-red-600 transition-colors flex flex-col items-center gap-1 z-10 pointer-events-auto"
+                                >
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-[10px] font-bold uppercase">Retry</span>
+                                    </div>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Overlay */}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all">
+                            {/* Main Photo Badge */}
+                            {index === 0 && (
+                                <div className="absolute top-2 left-2 bg-[#B8071C] text-white text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <Star className="w-3 h-3" />
+                                    Main
+                                </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {index !== 0 && photo.status === 'completed' && (
                                     <button
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            const newPhotos = [...photos];
-                                            newPhotos[index] = { ...photo, status: 'pending', error: undefined };
-                                            onChange(newPhotos);
+                                            setAsMain(index);
                                         }}
-                                        className="bg-red-500/90 text-white rounded-full p-2 hover:bg-red-600 transition-colors flex flex-col items-center gap-1 z-10"
+                                        className="w-7 h-7 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
+                                        title="Set as main photo"
                                     >
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-[10px] font-bold uppercase">Retry</span>
-                                        </div>
+                                        <Star className="w-4 h-4 text-gray-600" />
                                     </button>
                                 )}
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        removePhoto(index);
+                                    }}
+                                    className="w-7 h-7 rounded-full bg-red-500/90 flex items-center justify-center hover:bg-red-500 transition-colors"
+                                    title="Remove photo"
+                                >
+                                    <X className="w-4 h-4 text-white" />
+                                </button>
                             </div>
 
-                            {/* Overlay */}
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all">
-                                {/* Main Photo Badge */}
-                                {index === 0 && (
-                                    <div className="absolute top-2 left-2 bg-[#B8071C] text-white text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
-                                        <Star className="w-3 h-3" />
-                                        Main
-                                    </div>
-                                )}
+                            {/* Drag Handle */}
+                            <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <GripVertical className="w-5 h-5 text-white drop-shadow-lg" />
+                            </div>
 
-                                {/* Actions */}
-                                <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {index !== 0 && photo.status === 'completed' && (
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setAsMain(index);
-                                            }}
-                                            className="w-7 h-7 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
-                                            title="Set as main photo"
-                                        >
-                                            <Star className="w-4 h-4 text-gray-600" />
-                                        </button>
-                                    )}
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            removePhoto(index);
-                                        }}
-                                        className="w-7 h-7 rounded-full bg-red-500/90 flex items-center justify-center hover:bg-red-500 transition-colors"
-                                        title="Remove photo"
-                                    >
-                                        <X className="w-4 h-4 text-white" />
-                                    </button>
-                                </div>
-
-                                {/* Drag Handle */}
-                                <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <GripVertical className="w-5 h-5 text-white drop-shadow-lg" />
-                                </div>
-
-                                {/* Photo Number */}
-                                <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {index + 1}
-                                </div>
+                            {/* Photo Number */}
+                            <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                {index + 1}
                             </div>
                         </div>
-                    ))}
+                    </div>
+                ))}
 
-                    {/* Add More Button */}
-                    {photos.length < maxPhotos && (
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="aspect-[4/3] rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-2 hover:border-[#B8071C] hover:bg-gray-50 transition-all"
-                        >
-                            <ImageIcon className="w-6 h-6 text-gray-400" />
-                            <span className="text-xs text-gray-500">Add more</span>
-                        </button>
-                    )}
-                </div>
-            )}
+                {/* Add More Button */}
+                {photos.length < maxPhotos && (
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="aspect-[4/3] rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-2 hover:border-[#B8071C] hover:bg-gray-50 transition-all font-serif"
+                    >
+                        <ImageIcon className="w-6 h-6 text-gray-400" />
+                        <span className="text-xs text-gray-500">
+                            {t("wizard.review.click_to_upload") || "Add more"}
+                        </span>
+                    </button>
+                )}
+            </div>
 
             {/* Error Message */}
-            {error && (
+            {(error || internalError) && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                     <span className="text-red-500 shrink-0 mt-0.5">⚠️</span>
-                    <p className="text-sm text-red-600">{error}</p>
+                    <p className="text-sm text-red-600">{error || internalError}</p>
                 </div>
             )}
 

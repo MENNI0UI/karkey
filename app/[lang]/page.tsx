@@ -44,7 +44,7 @@ export default async function HomePage(props: { params: Promise<{ lang: "en" | "
             </HeroSection>
 
             {/* Card grid (grouped by make when enabled) */}
-            <section className="max-w-[1700px] mx-auto px-2 sm:px-4 py-2 mt-4 relative z-10 bg-transparent">
+            <section className="max-w-[1700px] mx-auto px-2 sm:px-4 py-2 mt-4 relative z-[1] bg-transparent">
                 <div className="home-cards -mt-2">
                     {/* Disable grouping by make — render a flat grid on the client */}
                     <HomePageClient

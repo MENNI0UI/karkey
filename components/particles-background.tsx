@@ -29,10 +29,6 @@ export const ParticlesBackground = () => {
                     enable: true,
                     mode: "repulse",
                 },
-                onClick: {
-                    enable: false,
-                    mode: "push",
-                },
                 resize: {
                     enable: true,
                 },
@@ -41,9 +37,6 @@ export const ParticlesBackground = () => {
                 repulse: {
                     distance: 150,
                     duration: 0.4,
-                },
-                push: {
-                    quantity: 4,
                 },
             },
         },
@@ -62,10 +55,10 @@ export const ParticlesBackground = () => {
                 direction: "none",
                 enable: true,
                 outModes: {
-                    default: "out",
+                    default: "bounce",
                 },
                 random: false,
-                speed: 4,
+                speed: 2,
                 straight: false,
             },
             number: {
@@ -74,7 +67,7 @@ export const ParticlesBackground = () => {
                     width: 1920,
                     height: 1080,
                 },
-                value: 150,
+                value: 115,
                 limit: {
                     value: 200,
                 },

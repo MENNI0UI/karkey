@@ -26,21 +26,21 @@ async function main() {
       // Build where clauses
       const where = ['1=1']
       const values = []
-      if (params.make) { where.push('v.make = ?'); values.push(params.make) }
-      if (params.model) { where.push('v.model = ?'); values.push(params.model) }
-      if (params.year) { where.push('v.year = ?'); values.push(Number(params.year)) }
-      if (params.fuel) { where.push('v.fuel_type = ?'); values.push(params.fuel) }
-      if (params.condition) { where.push('v.`condition` = ?'); values.push(params.condition) }
-      if (params.minPrice) { where.push('(v.price_start >= ? OR v.reserve_price >= ?)'); values.push(Number(params.minPrice)); values.push(Number(params.minPrice)) }
-      if (params.maxPrice) { where.push('(v.price_start <= ? OR (v.reserve_price IS NOT NULL AND v.reserve_price <= ?))'); values.push(Number(params.maxPrice)); values.push(Number(params.maxPrice)) }
-      if (params.minMileage) { where.push('v.mileage >= ?'); values.push(Number(params.minMileage)) }
-      if (params.maxMileage) { where.push('v.mileage <= ?'); values.push(Number(params.maxMileage)) }
-
       // Only new auctions after last_notified_at (or last 24h)
       const since = s.last_notified_at ? new Date(s.last_notified_at) : new Date(Date.now() - 24 * 3600 * 1000)
-      where.push('a.created_at > ?'); values.push(since)
+      where.push('ds.created_at > ?'); values.push(since)
+      where.push('ds.auction_mode = 1');
+      if (params.make) { where.push('ds.make = ?'); values.push(params.make) }
+      if (params.model) { where.push('ds.model = ?'); values.push(params.model) }
+      if (params.year) { where.push('ds.year = ?'); values.push(Number(params.year)) }
+      if (params.fuel) { where.push('ds.fuel_type = ?'); values.push(params.fuel) }
+      if (params.condition) { where.push('ds.vehicle_condition = ?'); values.push(params.condition) }
+      if (params.minPrice) { where.push('(ds.auction_starting_price >= ? OR ds.auction_reserve_price >= ?)'); values.push(Number(params.minPrice)); values.push(Number(params.minPrice)) }
+      if (params.maxPrice) { where.push('(ds.auction_starting_price <= ? OR (ds.auction_reserve_price IS NOT NULL AND ds.auction_reserve_price <= ?))'); values.push(Number(params.maxPrice)); values.push(Number(params.maxPrice)) }
+      if (params.minMileage) { where.push('ds.mileage >= ?'); values.push(Number(params.minMileage)) }
+      if (params.maxMileage) { where.push('ds.mileage <= ?'); values.push(Number(params.maxMileage)) }
 
-      const sql = `SELECT a.id as auction_id, v.id as vehicle_id, v.make, v.model, v.year, v.price_start, a.created_at FROM auctions a JOIN vehicles v ON a.vehicle_id = v.id WHERE ${where.join(' AND ')} LIMIT 100`
+      const sql = `SELECT ds.id as auction_id, ds.id as vehicle_id, ds.make, ds.model, ds.year, ds.auction_starting_price as price_start, ds.created_at FROM direct_sales ds WHERE ${where.join(' AND ')} LIMIT 100`
       const [matches] = await pool.query(sql, values)
       const matchedArr = Array.isArray(matches) ? matches : []
       if (matchedArr.length === 0) {
@@ -69,7 +69,7 @@ async function main() {
   } catch (err) {
     console.error('saved-search-notifier error', err)
   } finally {
-    try { await pool.end() } catch {}
+    try { await pool.end() } catch { }
   }
 }
 

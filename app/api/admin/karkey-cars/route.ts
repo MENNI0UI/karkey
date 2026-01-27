@@ -166,10 +166,10 @@ export async function POST(request: NextRequest) {
         })
 
         // Upload to Cloudflare R2
+        // Upload to Cloudflare R2
         if (photoFiles && photoFiles.length > 0) {
-            for (let i = 0; i < photoFiles.length; i++) {
-                const f = photoFiles[i]
-                if (!f.size) continue
+            const uploadPromises = photoFiles.map(async (f, i) => {
+                if (!f.size) return null;
 
                 const name = sanitizeFilename(f.name || `photo_${i}`)
                 const ext = path.extname(name)
@@ -178,6 +178,7 @@ export async function POST(request: NextRequest) {
 
                 let buffer: Uint8Array = Buffer.from(await f.arrayBuffer())
                 const contentType = getContentTypeFromExt(ext.replace('.', ''))
+
                 // Apply watermark if needed
                 try {
                     const { data } = await maybeApplyWatermark(buffer, contentType, filename)
@@ -195,14 +196,16 @@ export async function POST(request: NextRequest) {
 
                 const photo_url = `${process.env.R2_PUBLIC_DOMAIN}/${key}`
 
-                await prisma.karkey_car_photos.create({
+                return prisma.karkey_car_photos.create({
                     data: {
                         karkey_car_id: car.id,
                         photo_url,
                         position_order: i,
                     },
                 })
-            }
+            })
+
+            await Promise.all(uploadPromises)
         }
 
         // Fetch the complete car with photos

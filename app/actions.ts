@@ -1207,10 +1207,7 @@ export const getHomeCitiesData = unstable_cache(
 
         let cityImage = null;
         if (latestKarkey?.photos?.[0]?.photo_url) {
-          const s = String(latestKarkey.photos[0].photo_url).trim();
-          let filename = s;
-          if (s.includes("/")) filename = s.split("/").pop() || s;
-          cityImage = `/api/uploads/karkey-cars/${filename}`;
+          cityImage = normalizePhotoUrl(latestKarkey.photos[0].photo_url);
         } else if (latestDirectSale?.direct_sale_photos?.[0]?.photo_url) {
           cityImage = normalizePhotoUrl(latestDirectSale.direct_sale_photos[0].photo_url);
         }
@@ -1218,7 +1215,7 @@ export const getHomeCitiesData = unstable_cache(
         return {
           city: city,
           name: city,
-          image: cityImage || "/images/cities/default.webp",
+          image: cityImage || "/zellige.webp",
           count: 0
         };
       });
@@ -1266,90 +1263,94 @@ export async function searchShowroom(filters?: {
 
 /* ---------------- getRecentAuctions ---------------- */
 // 🆕 النظام الجديد: يستخدم direct_sales مع auction_mode = true
-export async function getRecentAuctions(page = 1, limit = 12) {
-  try {
-    const pageNum = Math.max(1, Number(page));
-    const limitNum = Math.max(1, Number(limit));
-    const offset = (pageNum - 1) * limitNum;
+export const getRecentAuctions = unstable_cache(
+  async (page = 1, limit = 12) => {
+    try {
+      const pageNum = Math.max(1, Number(page));
+      const limitNum = Math.max(1, Number(limit));
+      const offset = (pageNum - 1) * limitNum;
 
-    // Query active auctions from direct_sales with auction_mode = true
-    const rows = await prisma.direct_sales.findMany({
-      where: {
-        verification_status: 'approved',
-        auction_mode: true,
-        auction_status: 'active',
-        auction_end_date: { gt: new Date() }
-      },
-      include: {
-        direct_sale_photos: {
-          orderBy: { position_order: 'asc' }
+      // Query active auctions from direct_sales with auction_mode = true
+      const rows = await prisma.direct_sales.findMany({
+        where: {
+          verification_status: 'approved',
+          auction_mode: true,
+          auction_status: 'active',
+          auction_end_date: { gt: new Date() }
         },
-        users_direct_sales_user_idTousers: {
-          select: { id: true, username: true, email: true }
+        include: {
+          direct_sale_photos: {
+            orderBy: { position_order: 'asc' }
+          },
+          users_direct_sales_user_idTousers: {
+            select: { id: true, username: true, email: true }
+          }
+        },
+        orderBy: { created_at: 'desc' },
+        take: limitNum,
+        skip: offset
+      });
+
+      const normalizeUrl = (raw?: string | null) => {
+        if (!raw) return "/assets/images/default-car.png";
+        try {
+          const s = String(raw).trim();
+          if (!s) return "/assets/images/default-car.png";
+          if (s.startsWith("http://") || s.startsWith("https://")) return s;
+          if (s.startsWith("/")) return s;
+          if (s.includes("uploads/vehicles")) return s.startsWith("/") ? s : `/${s}`;
+          const base = path.basename(s);
+          return base ? `/uploads/vehicles/${base}` : "/assets/images/default-car.png";
+        } catch {
+          return "/assets/images/default-car.png";
         }
-      },
-      orderBy: { created_at: 'desc' },
-      take: limitNum,
-      skip: offset
-    });
-
-    const normalizeUrl = (raw?: string | null) => {
-      if (!raw) return "/assets/images/default-car.png";
-      try {
-        const s = String(raw).trim();
-        if (!s) return "/assets/images/default-car.png";
-        if (s.startsWith("http://") || s.startsWith("https://")) return s;
-        if (s.startsWith("/")) return s;
-        if (s.includes("uploads/vehicles")) return s.startsWith("/") ? s : `/${s}`;
-        const base = path.basename(s);
-        return base ? `/uploads/vehicles/${base}` : "/assets/images/default-car.png";
-      } catch {
-        return "/assets/images/default-car.png";
-      }
-    };
-
-    const auctions = rows.map((r) => {
-      const photos = r.direct_sale_photos
-        .map(p => normalizeUrl(p.photo_url))
-        .filter((url): url is string => url !== null);
-
-      return {
-        id: r.id,
-        starting_price: r.auction_starting_price ? Number(r.auction_starting_price) : null,
-        current_bid: r.auction_current_bid ? Number(r.auction_current_bid) : null,
-        vehicle_id: r.id, // In new system, vehicle_id = direct_sale id
-        start_date: r.auction_start_date ? new Date(r.auction_start_date).toISOString() : null,
-        end_date: r.auction_end_date ? new Date(r.auction_end_date).toISOString() : null,
-        created_at: r.created_at,
-        // vehicle fields
-        make: r.make,
-        model: r.model,
-        year: r.year,
-        mileage: r.mileage,
-        transmission: r.transmission,
-        fuel_type: r.fuel_type,
-        engine_size: r.engine_size ? Number(r.engine_size) : null,
-        doors: r.doors,
-        vehicle_condition: r.vehicle_condition,
-        location: r.location,
-        description: r.description,
-        carte_grise_url: r.carte_grise_url,
-        service_history_url: r.service_history_url,
-        vehicle_verification_status: r.verification_status,
-        photos,
-        title: (r.make || r.model) ? `${r.make ?? ""} ${r.model ?? ""}`.trim() : null,
-        seller: r.users_direct_sales_user_idTousers ? {
-          id: r.users_direct_sales_user_idTousers.id,
-          username: r.users_direct_sales_user_idTousers.username,
-          email: r.users_direct_sales_user_idTousers.email,
-        } : null,
       };
-    });
 
-    return { success: true, auctions };
-  } catch (err) {
-    console.error("getRecentAuctions error", err);
-    return { success: false, auctions: [] };
-  }
-}
+      const auctions = rows.map((r) => {
+        const photos = r.direct_sale_photos
+          .map(p => normalizeUrl(p.photo_url))
+          .filter((url): url is string => url !== null);
+
+        return {
+          id: r.id,
+          starting_price: r.auction_starting_price ? Number(r.auction_starting_price) : null,
+          current_bid: r.auction_current_bid ? Number(r.auction_current_bid) : null,
+          vehicle_id: r.id, // In new system, vehicle_id = direct_sale id
+          start_date: r.auction_start_date ? new Date(r.auction_start_date).toISOString() : null,
+          end_date: r.auction_end_date ? new Date(r.auction_end_date).toISOString() : null,
+          created_at: r.created_at,
+          // vehicle fields
+          make: r.make,
+          model: r.model,
+          year: r.year,
+          mileage: r.mileage,
+          transmission: r.transmission,
+          fuel_type: r.fuel_type,
+          engine_size: r.engine_size ? Number(r.engine_size) : null,
+          doors: r.doors,
+          vehicle_condition: r.vehicle_condition,
+          location: r.location,
+          description: r.description,
+          carte_grise_url: r.carte_grise_url,
+          service_history_url: r.service_history_url,
+          vehicle_verification_status: r.verification_status,
+          photos,
+          title: (r.make || r.model) ? `${r.make ?? ""} ${r.model ?? ""}`.trim() : null,
+          seller: r.users_direct_sales_user_idTousers ? {
+            id: r.users_direct_sales_user_idTousers.id,
+            username: r.users_direct_sales_user_idTousers.username,
+            email: r.users_direct_sales_user_idTousers.email,
+          } : null,
+        };
+      });
+
+      return { success: true, auctions };
+    } catch (err) {
+      console.error("getRecentAuctions error", err);
+      return { success: false, auctions: [] };
+    }
+  },
+  ["recent-auctions"],
+  { revalidate: 60, tags: ["auctions", "vehicles"] }
+);
 

@@ -140,13 +140,13 @@ export function MinimalTextInput({
                     value={value}
                     onChange={onChange}
                     className={`w-full bg-transparent border-0 border-b-2 border-gray-200 px-0 py-3 text-base font-medium text-[#103090] placeholder-gray-400 focus:outline-none focus:border-[#B8071C] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-serif ${error ? "border-red-500" : ""
-                        } ${isNumber && suffix ? "pr-16" : suffix ? "pr-8" : ""} ${className}`}
+                        } ${isNumber && suffix ? "ltr:pr-16 rtl:pl-16" : suffix ? "ltr:pr-8 rtl:pl-8" : ""} ${className}`}
                     step={step}
                     {...props}
                 />
 
                 {/* Number Controls + Suffix Container */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <div className="absolute ltr:right-0 rtl:left-0 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     {/* Increment/Decrement Buttons for Number Inputs */}
                     {isNumber && (
                         <div className="flex flex-col -space-y-0.5">
@@ -177,7 +177,7 @@ export function MinimalTextInput({
 
                     {/* Suffix */}
                     {suffix && (
-                        <span className="text-xs font-medium text-gray-400 pl-1">
+                        <span className="text-xs font-medium text-gray-400 ltr:pl-1 rtl:pr-1">
                             {suffix}
                         </span>
                     )}
@@ -260,7 +260,7 @@ export function MinimalTextarea({
                     {...props}
                 />
                 {charCount !== undefined && (
-                    <div className="absolute bottom-3 right-3 text-xs text-gray-400 pointer-events-none">
+                    <div className="absolute bottom-3 ltr:right-3 rtl:left-3 text-xs text-gray-400 pointer-events-none">
                         <span className={charCount < (minChars || 0) ? "text-red-500" : ""}>
                             {charCount}
                         </span>

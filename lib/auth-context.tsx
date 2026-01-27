@@ -58,7 +58,8 @@ export function AuthProvider({ children }: { readonly children: React.ReactNode 
 		}
 	}, [])
 
-	const isLoaded = status !== "loading"
+	// Wait for user state to sync with session when authenticated
+	const isLoaded = status === "unauthenticated" || (status === "authenticated" && !!user)
 
 	// Compute currentUserId from user data
 	const currentUserId = React.useMemo(() => {

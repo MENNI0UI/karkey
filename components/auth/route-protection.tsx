@@ -32,12 +32,9 @@ export default function RouteProtection({ redirectType }: RouteProtectionProps) 
     }, [user, loading]);
 
     // Show loader while checking auth
+    // Show loader while checking auth
     if (loading) {
-        return (
-            <div className="fixed inset-0 bg-white z-[99999] flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#B8071C]"></div>
-            </div>
-        );
+        return null;
     }
 
     // Show auth required screen if not logged in

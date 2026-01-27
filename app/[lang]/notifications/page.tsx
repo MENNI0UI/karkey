@@ -82,7 +82,22 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     fetchNotifications()
-    const interval = setInterval(fetchNotifications, 15000)
+
+    const tick = () => {
+      // Pause polling when tab is in background
+      if (typeof document !== "undefined" && document.hidden) return;
+      fetchNotifications();
+    }
+
+    const interval = setInterval(tick, 15000)
+
+    // Refresh immediately when user returns to tab
+    const onVisChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchNotifications();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisChange);
 
     // Listen for updates from the header (e.g. marking as read from dropdown)
     const onExternalUpdate = (e: Event) => {
@@ -101,6 +116,7 @@ export default function NotificationsPage() {
 
     return () => {
       clearInterval(interval)
+      document.removeEventListener("visibilitychange", onVisChange);
       window.removeEventListener("notifications:updated", onExternalUpdate)
     }
   }, [])

@@ -52,25 +52,7 @@ export async function GET() {
       FROM invoices
     `
 
-    // إحصائيات الاشتراكات (Subscriptions)
-    const subscriptionsStats = await prisma.$queryRaw<any[]>`
-      SELECT 
-        COUNT(*) as total,
-        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
-        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-        SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END) as expired,
-        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
-      FROM subscriptions
-    `
-
-    // إيرادات الاشتراكات
-    const subscriptionRevenue = await prisma.$queryRaw<any[]>`
-      SELECT 
-        COALESCE(SUM(p.price), 0) as totalRevenue
-      FROM subscriptions s
-      JOIN plans p ON s.plan_id = p.id
-      WHERE s.status = 'active'
-    `
+    // Subscription and Plan queries removed as they are no longer supported
 
     // المدفوعات اليوم
     const todayPayments = await prisma.$queryRaw<any[]>`
@@ -111,10 +93,9 @@ export async function GET() {
         p.created_at,
         u.username,
         u.email,
-        CONCAT(v.first_name, ' ', v.last_name) as full_name
+        CONCAT(u.first_name, ' ', u.last_name) as full_name
       FROM payments p
       JOIN users u ON p.user_id = u.id
-      LEFT JOIN verifications v ON u.id = v.user_id
       ORDER BY p.created_at DESC
       LIMIT 10
     `
@@ -129,12 +110,11 @@ export async function GET() {
         d.created_at,
         u.username,
         u.email,
-        a.id as auction_id,
-        CONCAT(vh.make, ' ', vh.model) as vehicle_name
+        ds.id as direct_sale_id,
+        CONCAT(ds.make, ' ', ds.model) as vehicle_name
       FROM deposits d
       JOIN users u ON d.user_id = u.id
-      LEFT JOIN auctions a ON d.auction_id = a.id
-      LEFT JOIN vehicles vh ON a.vehicle_id = vh.id
+      LEFT JOIN direct_sales ds ON d.auction_id = ds.id
       ORDER BY d.created_at DESC
       LIMIT 10
     `
@@ -220,14 +200,6 @@ export async function GET() {
           voided: Number(invoicesStats[0]?.voided) || 0,
           totalPaidAmount: Number(invoicesStats[0]?.totalPaidAmount) || 0,
           totalIssuedAmount: Number(invoicesStats[0]?.totalIssuedAmount) || 0
-        },
-        subscriptions: {
-          total: Number(subscriptionsStats[0]?.total) || 0,
-          active: Number(subscriptionsStats[0]?.active) || 0,
-          pending: Number(subscriptionsStats[0]?.pending) || 0,
-          expired: Number(subscriptionsStats[0]?.expired) || 0,
-          cancelled: Number(subscriptionsStats[0]?.cancelled) || 0,
-          revenue: Number(subscriptionRevenue[0]?.totalRevenue) || 0
         },
         periods: {
           today: {

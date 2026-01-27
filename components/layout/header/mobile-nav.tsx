@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { X, Home, Gavel, Car, Info, User, LogOut, LogIn, UserPlus, ChevronRight, Search } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { normalizePhotoUrl } from "./utils";
 import { HeaderUserSnapshot } from "./types";
 
@@ -89,7 +89,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
             {menuOpen && (
                 <div className="fixed inset-0 z-[100005] lg:hidden overflow-hidden">
                     {/* Magical Backdrop */}
-                    <motion.div
+                    <m.div
                         variants={backdropVariants}
                         initial="hidden"
                         animate="visible"
@@ -99,7 +99,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                     />
 
                     {/* Content Sidebar */}
-                    <motion.div
+                    <m.div
                         dir={isRTL ? "rtl" : "ltr"}
                         variants={containerVariants}
                         initial="hidden"
@@ -112,7 +112,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
 
                         <div className="relative flex flex-col h-full">
                             {/* Header Area */}
-                            <motion.div variants={itemVariants} className="flex items-center justify-between p-6 border-b border-gray-100">
+                            <m.div variants={itemVariants} className="flex items-center justify-between p-6 border-b border-gray-100">
                                 <Link href={`/${language}`} onClick={() => setMenuOpen(false)} className="py-2">
                                     <Image
                                         src="/logo.png"
@@ -128,15 +128,15 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                                 >
                                     <X size={24} strokeWidth={2.5} />
                                 </button>
-                            </motion.div>
+                            </m.div>
 
                             {/* Scrollable Navigation Area */}
                             <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide">
                                 {/* Primary Links */}
                                 <div className="space-y-3">
-                                    <motion.div variants={itemVariants} className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] font-serif">
+                                    <m.div variants={itemVariants} className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] font-serif">
                                         {t("nav.explore")}
-                                    </motion.div>
+                                    </m.div>
                                     <div className="space-y-1">
                                         {[
                                             { href: `/${language}`, icon: Home, label: t("nav.home") },
@@ -144,7 +144,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                                             { href: `/${language}/auctions`, icon: Gavel, label: t("nav.auctions") },
                                             { href: `/${language}/karkey-cars`, label: t("nav.karkey_cars") || "Karkey Cars", simple: true }
                                         ].map((item, idx) => (
-                                            <motion.div key={idx} variants={itemVariants}>
+                                            <m.div key={idx} variants={itemVariants}>
                                                 <Link
                                                     href={item.href}
                                                     onClick={() => setMenuOpen(false)}
@@ -153,26 +153,26 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                                                     {item.icon && <item.icon size={22} className="text-[#1e2a5e]/50 group-hover:text-[#B8071C] transition-colors" />}
                                                     <span className={`text-[16px] font-semibold ${item.simple ? "ml-1 rtl:mr-1" : ""}`}>{item.label}</span>
                                                 </Link>
-                                            </motion.div>
+                                            </m.div>
                                         ))}
                                     </div>
                                 </div>
 
                                 {/* Account Actions */}
                                 <div className="space-y-3">
-                                    <motion.div variants={itemVariants} className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] font-serif">
+                                    <m.div variants={itemVariants} className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] font-serif">
                                         {t("nav.account")}
-                                    </motion.div>
+                                    </m.div>
                                     <div className="space-y-1">
                                         {(isAuthenticated || hasCachedUser) ? (
                                             <>
-                                                <motion.div variants={itemVariants}>
+                                                <m.div variants={itemVariants}>
                                                     <Link href={`/${language}/profile?tab=personal-info`} onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-3.5 rounded-xl text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition-all group font-serif">
                                                         <User size={22} className="text-gray-400 group-hover:text-[#B8071C] transition-colors" />
                                                         <span className="text-[16px] font-semibold group-hover:text-[#B8071C] transition-colors">{t("nav.my_profile")}</span>
                                                     </Link>
-                                                </motion.div>
-                                                <motion.div variants={itemVariants}>
+                                                </m.div>
+                                                <m.div variants={itemVariants}>
                                                     <button
                                                         onClick={() => { setMenuOpen(false); void handleFullLogout(); }}
                                                         className="w-full flex items-center gap-3 px-3 py-3.5 rounded-xl text-red-600 hover:bg-red-50 active:scale-[0.98] transition-all font-serif"
@@ -180,22 +180,22 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                                                         <LogOut size={22} />
                                                         <span className="text-[16px] font-semibold">{t("nav.logout")}</span>
                                                     </button>
-                                                </motion.div>
+                                                </m.div>
                                             </>
                                         ) : shouldShowAuthButtons ? (
                                             <>
-                                                <motion.div variants={itemVariants}>
+                                                <m.div variants={itemVariants}>
                                                     <Link href={`/${language}/auth/login`} onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-3.5 rounded-xl text-[#1e2a5e] hover:bg-gray-50 active:scale-[0.98] transition-all group font-serif">
                                                         <LogIn size={22} className="text-[#1e2a5e]/50 group-hover:text-[#B8071C] transition-colors" />
                                                         <span className="text-[16px] font-semibold group-hover:text-[#B8071C] transition-colors">{t("nav.signin")}</span>
                                                     </Link>
-                                                </motion.div>
-                                                <motion.div variants={itemVariants}>
+                                                </m.div>
+                                                <m.div variants={itemVariants}>
                                                     <Link href={`/${language}/auth/register`} onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-4 rounded-2xl text-white bg-gradient-to-r from-[#B8071C] to-[#d60821] hover:shadow-lg hover:shadow-[#B8071C]/20 active:scale-[0.98] transition-all font-serif">
                                                         <UserPlus size={22} strokeWidth={2.5} />
                                                         <span className="text-[16px] font-bold">{t("nav.signup")}</span>
                                                     </Link>
-                                                </motion.div>
+                                                </m.div>
                                             </>
                                         ) : null}
                                     </div>
@@ -203,10 +203,10 @@ export const MobileNav: React.FC<MobileNavProps> = ({
 
                                 {/* Language Switcher (Mobile) */}
                                 <div className="space-y-3">
-                                    <motion.div variants={itemVariants} className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] font-serif">
+                                    <m.div variants={itemVariants} className="px-3 text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] font-serif">
                                         {t("nav.language") === "nav.language" ? (language === 'ar' ? "اللغة" : "Language") : t("nav.language")}
-                                    </motion.div>
-                                    <motion.div variants={itemVariants} className="space-y-1">
+                                    </m.div>
+                                    <m.div variants={itemVariants} className="space-y-1">
                                         <button
                                             onClick={() => setMobileLangOpen(!mobileLangOpen)}
                                             className="w-full flex items-center justify-between px-4 py-4 rounded-xl bg-gray-50 text-gray-900 font-semibold transition-all hover:bg-gray-100 font-serif"
@@ -222,7 +222,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
 
                                         <AnimatePresence>
                                             {mobileLangOpen && (
-                                                <motion.div
+                                                <m.div
                                                     initial={{ height: 0, opacity: 0 }}
                                                     animate={{ height: "auto", opacity: 1 }}
                                                     exit={{ height: 0, opacity: 0 }}
@@ -252,15 +252,15 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                                                             )
                                                         })}
                                                     </div>
-                                                </motion.div>
+                                                </m.div>
                                             )}
                                         </AnimatePresence>
-                                    </motion.div>
+                                    </m.div>
                                 </div>
 
                                 {/* User Footer (Auth Only) */}
                                 {(isAuthenticated || hasCachedUser) && (
-                                    <motion.div variants={itemVariants} className="mt-8 px-2">
+                                    <m.div variants={itemVariants} className="mt-8 px-2">
                                         <Link
                                             href={`/${language}/profile`}
                                             onClick={() => setMenuOpen(false)}
@@ -311,11 +311,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                                                 <ChevronRight size={16} />
                                             </div>
                                         </Link>
-                                    </motion.div>
+                                    </m.div>
                                 )}
                             </div>
                         </div>
-                    </motion.div>
+                    </m.div>
                 </div>
             )}
         </AnimatePresence>

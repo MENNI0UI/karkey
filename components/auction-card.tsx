@@ -768,8 +768,7 @@ function AuctionCard({ data, priority = false, initialIsWatched }: { data: any, 
               { iconUrl: "/icons/mileage.png", label: t("unit.km"), value: mileage ?? undefined },
               { iconUrl: "/icons/transmission.png", label: "", value: transmission ? t(`vehicle.transmission.${transmission.toLowerCase()}` as any) : undefined },
               {
-                iconUrl: (fuel_type || "").toLowerCase().includes("electric") || (fuel_type || "").toLowerCase().includes("hybrid") ? undefined : (String(fuel_type ?? "").toLowerCase().includes("elect") ? "/icons/electric-fuel.png" : "/icons/fuel.png"),
-                IconComponent: (fuel_type || "").toLowerCase().includes("electric") ? Zap : ((fuel_type || "").toLowerCase().includes("hybrid") ? Fuel : undefined),
+                iconUrl: (fuel_type || "").toLowerCase().includes("electric") ? "/icons/electric-fuel.png" : "/icons/fuel.png",
                 label: "",
                 value: fuel_type ? t(`vehicle.fuel.${fuel_type.toLowerCase()}` as any) : undefined,
                 variant: (fuel_type || "").toLowerCase().includes("electric") || (fuel_type || "").toLowerCase().includes("hybrid") ? "green" : "default"

@@ -148,6 +148,10 @@ export default function CreateDirectSaleWizard() {
       documentsSubtitle: translate("wizard.sections.documents_subtitle"),
       previewTitle: translate("wizard.sections.preview"),
       previewSubtitle: translate("wizard.sections.preview_subtitle"),
+      "unit.km": translate("unit.km"),
+      "unit.liter": translate("unit.liter"),
+      "wizard.placeholders.mileage": translate("wizard.placeholders.mileage"),
+      "wizard.placeholders.engine_size": translate("wizard.placeholders.engine_size"),
       scrollMore: translate("wizard.review.scroll_more"),
       exterior: translate("wizard.review.exterior"),
       interior: translate("wizard.review.interior"),
@@ -376,8 +380,9 @@ export default function CreateDirectSaleWizard() {
           data.exterior_color && data.interior_color
         )
       case "photos":
-        // Allow next if we have enough items, even if status is pending (Optimistic)
-        return Array.isArray(data.photos) && data.photos.length >= 5
+        // DO NOT allow next if photos are still uploading or failed
+        const hasBlockers = data.photos?.some((p: any) => p.status === 'uploading' || p.status === 'error')
+        return Array.isArray(data.photos) && data.photos.length >= 5 && !hasBlockers
       case "documents":
         return Boolean(data.registration_doc)
       case "pricing":
@@ -452,9 +457,17 @@ export default function CreateDirectSaleWizard() {
           }
         }
 
+        // Final Verify: Ensure every photo in state is 'completed'
+        // We re-check the ref or data directly.
+        const finalPhotos = data.photos || []
+        const hasErrors = finalPhotos.some((p: any) => p.status !== 'completed')
+        if (hasErrors) {
+          throw new Error("One or more photos failed to upload. Please fix them and try again.")
+        }
+
         // Final check of status for Photos
-        const finalPhotos = latestPhotosRef.current.filter((p: any) => p.status === 'completed' && p.url)
-        if (finalPhotos.length < 5) {
+        const completedPhotos = latestPhotosRef.current.filter((p: any) => p.status === 'completed' && p.url)
+        if (completedPhotos.length < 5) {
           alert("Not enough photos uploaded (Minimum 5). Please retry failed uploads.")
           setIsSubmitting(false)
           return
@@ -622,7 +635,8 @@ export default function CreateDirectSaleWizard() {
                 onClick={() => goto(step - 1)}
                 className="flex items-center gap-3 px-5 py-3 text-base font-semibold text-gray-600 hover:text-gray-900 transition-colors"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-5 h-5 ltr:block rtl:hidden" />
+                <ChevronRight className="w-5 h-5 ltr:hidden rtl:block" />
                 {t("previous")}
               </button>
             ) : (
@@ -647,7 +661,8 @@ export default function CreateDirectSaleWizard() {
                   }`}
               >
                 {t("nextStep")}
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-5 h-5 ltr:block rtl:hidden" />
+                <ChevronLeft className="w-5 h-5 ltr:hidden rtl:block" />
               </button>
             ) : (
               <button

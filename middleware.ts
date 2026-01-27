@@ -29,7 +29,9 @@ function getLocale(request: NextRequest): string {
 }
 
 export function middleware(request: NextRequest) {
+  const startTime = Date.now();
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
+  // ... rest of header logic ...
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://accounts.google.com;
@@ -44,121 +46,77 @@ export function middleware(request: NextRequest) {
     connect-src 'self' https: http: https://api.stripe.com https://www.paypal.com https://accounts.google.com https://oauth2.googleapis.com;
     upgrade-insecure-requests;
   `
-  // Replace newline characters and extra spaces
-  const contentSecurityPolicyHeaderValue = cspHeader
-    .replace(/\s{2,}/g, ' ')
-    .trim()
+  const contentSecurityPolicyHeaderValue = cspHeader.replace(/\s{2,}/g, ' ').trim()
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-nonce', nonce)
-  requestHeaders.set(
-    'Content-Security-Policy',
-    contentSecurityPolicyHeaderValue
-  )
+  requestHeaders.set('Content-Security-Policy', contentSecurityPolicyHeaderValue)
 
   const { pathname } = request.nextUrl;
-
-  // 1. اكتشاف اللغة الموجودة في الرابط حالياً
   const pathnameHasLocale = locales.some(
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
   );
 
-  // إذا كان الرابط يحتوي على لغة، لا تفعل شيئاً (اترك المستخدم يتصفح ما اختاره)
+  let response: NextResponse;
+
   if (pathnameHasLocale) {
     const localeInUrl = pathname.split('/')[1];
-
-    const response = NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
+    response = NextResponse.next({
+      request: { headers: requestHeaders },
     })
-    response.headers.set(
-      'Content-Security-Policy',
-      contentSecurityPolicyHeaderValue
-    )
+    response.headers.set('Content-Security-Policy', contentSecurityPolicyHeaderValue)
 
-    // تحديث الكوكي ليتناسب مع اختيار المستخدم الحالي في الرابط
     const secure = request.nextUrl.protocol === 'https:';
     response.cookies.set(COOKIE_NAME, localeInUrl, {
       path: '/',
       sameSite: 'lax',
-      httpOnly: false, // نتركه false إذا كنت تحتاجه في الـ Client side
-      maxAge: 60 * 60 * 24 * 365, // سنة واحدة
+      httpOnly: false,
+      maxAge: 60 * 60 * 24 * 365,
       secure: secure
     });
-    // 1.5. Saved Search Redirection Logic (Guest Only for Middleware speed)
-    const listingPages = {
-      'auctions': 'saved_searches_guest',
-      'direct-sales': 'direct_sales_saved_searches_guest'
-    } as const;
 
+    // Saved Search Redirection (simplified for readability)
+    const listingPages = { 'auctions': 'saved_searches_guest', 'direct-sales': 'direct_sales_saved_searches_guest' } as const;
     const pageType = Object.keys(listingPages).find(type => {
-      // Match only listing page paths, NOT detail pages like /direct-sales/123
-      // Pattern: ends with /{type} OR pathname segment is exactly /{type} followed by query params
       const segments = pathname.split('/').filter(Boolean);
-      // Should match: /en/auctions, /en/direct-sales?filters, etc.
-      // Should NOT match: /en/auctions/123, /en/direct-sales/123/edit, etc.
       return segments.length >= 2 && segments[segments.length - 1] === type;
     }) as keyof typeof listingPages | undefined;
 
     if (pageType) {
-      // Check if any filters are present (excluding 'lang' which might be in query or handled by path)
-      const ignoredKeys = new Set(['lang']);
-      let hasUrlFilters = false;
-      request.nextUrl.searchParams.forEach((_, key) => {
-        if (!ignoredKeys.has(key)) hasUrlFilters = true;
-      });
-
-      // Explicit bypass: if ?reset=true is present, do not redirect
       const isReset = request.nextUrl.searchParams.get('reset') === 'true';
+      let hasUrlFilters = false;
+      request.nextUrl.searchParams.forEach((_, key) => { if (key !== 'lang') hasUrlFilters = true; });
 
       if (!hasUrlFilters && !isReset) {
-        const cookieName = listingPages[pageType];
-        const guestRaw = request.cookies.get(cookieName)?.value;
+        const guestRaw = request.cookies.get(listingPages[pageType])?.value;
         if (guestRaw) {
           try {
             const arr = JSON.parse(decodeURIComponent(guestRaw));
-            if (Array.isArray(arr) && arr.length > 0) {
-              const latest = arr[0];
-              const p = latest?.params;
-              if (p) {
-                const paramsStr = canonicalizeParams(parseParams(p));
-                if (paramsStr) {
-                  const lang = pathname.split('/')[1];
-                  const redirectUrl = new URL(`/${lang}/${pageType}?${paramsStr}`, request.url);
-                  console.log(`[Middleware] Fast redirect for guest (${pageType}):`, redirectUrl.toString());
-                  const response = NextResponse.redirect(redirectUrl);
-                  // Apply security headers to redirect response too
-                  response.headers.set('Content-Security-Policy', contentSecurityPolicyHeaderValue);
-                  return response;
-                }
+            if (Array.isArray(arr) && arr.length > 0 && arr[0]?.params) {
+              const paramsStr = canonicalizeParams(parseParams(arr[0].params));
+              if (paramsStr) {
+                const redirectUrl = new URL(`/${localeInUrl}/${pageType}?${paramsStr}`, request.url);
+                const redir = NextResponse.redirect(redirectUrl);
+                redir.headers.set('Content-Security-Policy', contentSecurityPolicyHeaderValue);
+                redir.headers.set('Server-Timing', `mw;dur=${Date.now() - startTime}`);
+                return redir;
               }
             }
-          } catch (e) {
-            console.error(`[Middleware] Error parsing guest cookie ${cookieName}:`, e);
-          }
+          } catch { }
         }
       }
     }
-
-    return response;
+  } else {
+    // No locale in path
+    const cookieLocale = request.cookies.get(COOKIE_NAME)?.value;
+    const locale = (cookieLocale && locales.includes(cookieLocale)) ? cookieLocale : getLocale(request);
+    const redirectUrl = new URL(`/${locale}${pathname === '/' ? '' : pathname}`, request.url);
+    request.nextUrl.searchParams.forEach((v, k) => redirectUrl.searchParams.set(k, v));
+    response = NextResponse.redirect(redirectUrl);
   }
 
-  // 2. إذا لم يكن هناك لغة في الرابط، ابحث عن اللغة المناسبة
-  const cookieLocale = request.cookies.get(COOKIE_NAME)?.value;
-  const locale = (cookieLocale && locales.includes(cookieLocale))
-    ? cookieLocale
-    : getLocale(request);
-
-  // إعادة توجيه للرابط مع اللغة
-  const redirectUrl = new URL(`/${locale}${pathname === '/' ? '' : pathname}`, request.url);
-
-  // نقل الـ Search Params (مثل ?query=123) للرابط الجديد
-  request.nextUrl.searchParams.forEach((value, key) => {
-    redirectUrl.searchParams.set(key, value);
-  });
-
-  return NextResponse.redirect(redirectUrl);
+  response.headers.set('Server-Timing', `mw;dur=${Date.now() - startTime}`);
+  return response;
 }
 
 export const config = {

@@ -16,7 +16,8 @@ export async function getNotificationsForUser(userId: number) {
 				is_read: true,
 				created_at: true
 			},
-			orderBy: { created_at: "desc" }
+			orderBy: { created_at: "desc" },
+			take: 50
 		})
 
 		return notifications

@@ -114,7 +114,7 @@ export function MainLayout({ children, isLoggedIn, email, profilePicture, hideHe
 			intervalId = window.setInterval(() => {
 				if (!mounted || document.hidden) return
 				void runFetch()
-			}, 60000) as unknown as number
+			}, 300000) as unknown as number
 		}
 		const stopPolling = () => {
 			if (intervalId != null) {

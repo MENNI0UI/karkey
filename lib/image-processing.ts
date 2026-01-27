@@ -6,6 +6,19 @@ import path from "node:path";
  * Handles resizing, light enhancements, watermarking, and format enforcement.
  */
 
+let cachedLogoBase64: string | null = null;
+async function getCachedLogo(): Promise<string> {
+    if (cachedLogoBase64) return cachedLogoBase64;
+    try {
+        const logoPath = path.join(process.cwd(), "public", "logo.png");
+        const logoBuffer = await fs.readFile(logoPath);
+        cachedLogoBase64 = logoBuffer.toString('base64');
+        return cachedLogoBase64;
+    } catch (e) {
+        throw e;
+    }
+}
+
 export async function maybeApplyWatermark(
     body: Uint8Array | Buffer,
     contentType: string,
@@ -73,9 +86,7 @@ export async function maybeApplyWatermark(
         if (watermarkEnabled === "1" || watermarkEnabled === "true") {
             try {
                 // Try to load logo for a professional look
-                const logoPath = path.join(process.cwd(), "public", "logo.png");
-                const logoBuffer = await fs.readFile(logoPath);
-                const logoBase64 = logoBuffer.toString('base64');
+                const logoBase64 = await getCachedLogo();
                 const logoMime = "image/png";
 
                 // Implementation matching the client-side style:

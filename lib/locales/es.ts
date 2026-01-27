@@ -270,6 +270,9 @@ export const es: typeof en = {
   "time.short_seconds": "Seg",
   "unit.liter": "L",
   "unit.km": "km",
+  "wizard.placeholders.mileage": "ej. 50000",
+  "wizard.placeholders.engine_size": "ej. 2.0",
+
 
   // Auctions Page
   "auctions.title": "Subastas",
@@ -723,6 +726,8 @@ export const es: typeof en = {
   "wizard.pricing.asking_price": "Precio de venta (MAD)",
   "wizard.pricing.min_price_error": "El precio debe ser de al menos 10,000 MAD",
 
+
+
   // Pricing Page
   "pricing.title": "Precios",
   "pricing.subtitle": "Elija un plan que se adapte a sus necesidades — facturación flexible con una prueba gratuita de 7 días.",
@@ -978,4 +983,40 @@ export const es: typeof en = {
   "profile.statistics.total_listings": "Total de anuncios",
   "profile.statistics.no_listings": "Aún no hay anuncios",
   "profile.statistics.no_listings_desc": "Crea tu primer anuncio para comenzar a rastrear tus estadísticas.",
+
+  // Photography Coach
+  "wizard.coach.front": "Exterior Delantero",
+  "wizard.coach.rear": "Exterior Trasero",
+  "wizard.coach.side": "Lado del Conductor",
+  "wizard.coach.dash": "Tablero",
+  "wizard.coach.interior": "Interior Delantero",
+  "wizard.coach.engine": "Compartimento del Motor",
+
+  // Wizard - Magic Description & Validation
+  "wizard.magic_description": "Descripción Mágica",
+  "wizard.validation.min_20_chars": "Se requieren mínimo 20 caracteres",
+
+  // Wizard - Photography Guidelines
+  "wizard.photos.best_practice_1": "Fotografíe con luz natural",
+  "wizard.photos.best_practice_2": "Incluya todos los ángulos: frente, trasera, ambos lados",
+  "wizard.photos.best_practice_3": "Muestre el interior: tablero, asientos, maletero",
+  "wizard.photos.best_practice_4": "Documente cualquier daño o desgaste honestamente",
+  "wizard.photos.avoid_1": "Información personal visible (teléfono, email)",
+  "wizard.photos.avoid_2": "Imágenes borrosas o mal iluminadas",
+  "wizard.photos.avoid_3": "Ocultar daños o defectos",
+  "wizard.photos.shot_1": "Exterior Delantero",
+  "wizard.photos.shot_2": "Exterior Trasero",
+  "wizard.photos.shot_3": "Lado del Conductor",
+  "wizard.photos.shot_4": "Lado del Pasajero",
+  "wizard.photos.shot_5": "Tablero",
+  "wizard.photos.shot_6": "Asientos Delanteros",
+  "wizard.photos.shot_7": "Asientos Traseros",
+  "wizard.photos.shot_8": "Compartimento del Motor",
+  "wizard.photos.shot_9": "Maletero",
+  "wizard.photos.shot_10": "Ruedas",
+  "wizard.photos.upload_failed": "{count} fotos no pudieron subirse",
+  "wizard.photos.wait_for_uploads": "Por favor espere a que terminen las subidas...",
+  "wizard.photos.must_fix_errors": "Debe corregir los errores antes de continuar.",
+  "wizard.photos.next_enabled": "El botón 'Siguiente' se activará automáticamente.",
+  "wizard.photos.retry_all": "Reintentar Todo",
 };

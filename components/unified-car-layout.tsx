@@ -59,6 +59,7 @@ interface UnifiedCarLayoutProps {
     badges?: React.ReactNode
     extraContent?: React.ReactNode
     backLink?: () => void
+    children?: React.ReactNode
 }
 
 export default function UnifiedCarLayout({
@@ -70,7 +71,8 @@ export default function UnifiedCarLayout({
     galleryFooter,
     badges,
     extraContent,
-    backLink
+    backLink,
+    children
 }: UnifiedCarLayoutProps) {
     const { t, language } = useTranslation()
     const router = useRouter()
@@ -349,15 +351,21 @@ export default function UnifiedCarLayout({
                             {seller && (
                                 <div className="flex items-center gap-3 mb-4">
                                     <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
-                                        <Image
-                                            src={seller.avatar || "/placeholder.svg"}
-                                            alt={seller.name}
-                                            width={40}
-                                            height={40}
-                                            className="w-full h-full object-cover"
-                                            unoptimized
-                                            priority
-                                        />
+                                        {seller.avatar && seller.avatar !== "/placeholder.svg" ? (
+                                            <Image
+                                                src={seller.avatar}
+                                                alt={seller.name}
+                                                width={40}
+                                                height={40}
+                                                className="w-full h-full object-cover"
+                                                unoptimized
+                                                priority
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-[#103090] to-[#B8071C] flex items-center justify-center text-white font-bold font-serif text-lg">
+                                                {seller.name.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
                                     </div>
                                     <div>
                                         <p className="text-sm font-semibold text-[#103090]">{seller.name}</p>
@@ -581,6 +589,7 @@ export default function UnifiedCarLayout({
                 onClose={() => setIsViewerOpen(false)}
                 onChangeIndex={(i) => setCurrentPhotoIndex(i)}
             />
+            {children}
         </div >
     )
 }

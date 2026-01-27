@@ -13,6 +13,8 @@ type StepProps = {
 export function StepPhotos({ data, update, t, onUpload }: StepProps) {
     const { t: translate } = useTranslation()
     const photos: PhotoItem[] = data.photos || []
+    const uploadingCount = photos.filter(p => p.status === 'uploading').length
+    const errorCount = photos.filter(p => p.status === 'error').length
 
     // Simplified Handler
     const handlePhotosChange = (newPhotos: PhotoItem[]) => {
@@ -20,13 +22,16 @@ export function StepPhotos({ data, update, t, onUpload }: StepProps) {
         update({ photos: newPhotos })
 
         // 2. Trigger Uploads for new pending items
-        // We identify new items by 'pending' status.
-        // Important: We must not trigger if already uploading.
-        // Since 'newPhotos' comes from the Grid, pending items are fresh drops.
         newPhotos.forEach(p => {
             if (p.status === 'pending' && p.file) {
-                // Trigger upload in parent
-                // Parent handles state update to 'uploading'
+                onUpload(p.file, p.id)
+            }
+        })
+    }
+
+    const handleRetryAll = () => {
+        photos.forEach(p => {
+            if (p.status === 'error' && p.file) {
                 onUpload(p.file, p.id)
             }
         })
@@ -46,6 +51,38 @@ export function StepPhotos({ data, update, t, onUpload }: StepProps) {
                     maxPhotos={10}
                     label={t("photos")}
                 />
+
+                {/* Upload Safety Guard UI */}
+                {(uploadingCount > 0 || errorCount > 0) && (
+                    <div className={`mt-4 p-4 rounded-xl border-2 flex items-center justify-between animate-in fade-in slide-in-from-top-1 ${errorCount > 0 ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"}`}>
+                        <div className="flex items-center gap-3">
+                            <span className="text-xl">{errorCount > 0 ? "⚠️" : "⏳"}</span>
+                            <div>
+                                <p className={`text-sm font-bold ${errorCount > 0 ? "text-red-700" : "text-blue-700"}`}>
+                                    {errorCount > 0
+                                        ? translate("wizard.photos.upload_failed", { count: errorCount })
+                                        : translate("wizard.photos.wait_for_uploads")
+                                    }
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                    {errorCount > 0
+                                        ? translate("wizard.photos.must_fix_errors")
+                                        : translate("wizard.photos.next_enabled")
+                                    }
+                                </p>
+                            </div>
+                        </div>
+
+                        {errorCount > 0 && (
+                            <button
+                                onClick={handleRetryAll}
+                                className="px-4 py-2 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                            >
+                                {translate("wizard.photos.retry_all")}
+                            </button>
+                        )}
+                    </div>
+                )}
             </WizardCard>
 
             {/* Photography Guidelines */}
@@ -61,19 +98,19 @@ export function StepPhotos({ data, update, t, onUpload }: StepProps) {
                         <ul className="space-y-2">
                             <li className="flex items-start gap-3 text-base text-gray-600">
                                 <span className="text-gray-400 mt-0.5">•</span>
-                                Photograph in natural daylight
+                                {translate("wizard.photos.best_practice_1")}
                             </li>
                             <li className="flex items-start gap-3 text-base text-gray-600">
                                 <span className="text-gray-400 mt-0.5">•</span>
-                                Include all angles: front, rear, both sides
+                                {translate("wizard.photos.best_practice_2")}
                             </li>
                             <li className="flex items-start gap-3 text-base text-gray-600">
                                 <span className="text-gray-400 mt-0.5">•</span>
-                                Show interior: dashboard, seats, trunk
+                                {translate("wizard.photos.best_practice_3")}
                             </li>
                             <li className="flex items-start gap-3 text-base text-gray-600">
                                 <span className="text-gray-400 mt-0.5">•</span>
-                                Document any damage or wear honestly
+                                {translate("wizard.photos.best_practice_4")}
                             </li>
                         </ul>
                     </div>
@@ -84,15 +121,15 @@ export function StepPhotos({ data, update, t, onUpload }: StepProps) {
                         <ul className="space-y-2">
                             <li className="flex items-start gap-3 text-base text-gray-600">
                                 <span className="text-gray-400 mt-0.5">•</span>
-                                Personal information visible (phone, email)
+                                {translate("wizard.photos.avoid_1")}
                             </li>
                             <li className="flex items-start gap-3 text-base text-gray-600">
                                 <span className="text-gray-400 mt-0.5">•</span>
-                                Blurry or poorly lit images
+                                {translate("wizard.photos.avoid_2")}
                             </li>
                             <li className="flex items-start gap-3 text-base text-gray-600">
                                 <span className="text-gray-400 mt-0.5">•</span>
-                                Concealing damage or defects
+                                {translate("wizard.photos.avoid_3")}
                             </li>
                         </ul>
                     </div>
@@ -102,7 +139,18 @@ export function StepPhotos({ data, update, t, onUpload }: StepProps) {
                 <div className="mt-6 pt-5 border-t border-gray-100">
                     <h4 className="text-sm font-bold text-gray-500 uppercase mb-5 font-serif">{t("recommendedShots")}</h4>
                     <div className="flex flex-wrap gap-2">
-                        {["Exterior Front", "Exterior Rear", "Driver Side", "Passenger Side", "Dashboard", "Front Seats", "Rear Seats", "Engine Bay", "Trunk/Boot", "Wheels"].map((shot, i) => (
+                        {[
+                            translate("wizard.photos.shot_1"),
+                            translate("wizard.photos.shot_2"),
+                            translate("wizard.photos.shot_3"),
+                            translate("wizard.photos.shot_4"),
+                            translate("wizard.photos.shot_5"),
+                            translate("wizard.photos.shot_6"),
+                            translate("wizard.photos.shot_7"),
+                            translate("wizard.photos.shot_8"),
+                            translate("wizard.photos.shot_9"),
+                            translate("wizard.photos.shot_10")
+                        ].map((shot, i) => (
                             <span
                                 key={i}
                                 className="px-4 py-2 bg-gray-50 text-gray-700 text-sm font-medium rounded-full border border-gray-200"

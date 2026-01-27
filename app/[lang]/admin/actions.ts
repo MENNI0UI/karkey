@@ -73,6 +73,27 @@ async function getValidatedAdmin() {
   return admin
 }
 
+export async function getAdminSession() {
+  const admin = await getValidatedAdmin()
+  if (!admin) {
+    return { success: false, error: "Not authenticated" }
+  }
+  return {
+    success: true,
+    admin: {
+      id: admin.id,
+      nom: admin.nom,
+      prenom: admin.prenom,
+      role: admin.role
+    }
+  }
+}
+
+export async function adminLogout() {
+  await clearAdminCookie()
+  return { success: true }
+}
+
 // User verification functions removed
 
 export async function getAdminRole() {
@@ -150,10 +171,6 @@ export async function getCEOStats() {
 
   try {
     const totalUsers = await prisma.users.count()
-    // User verifications removed, these counts are 0 now
-    const pendingVerifications = 0
-    const approvedUsers = await prisma.users.count() // All users assumed approved or we remove this distinction
-    const rejectedUsers = 0
     const totalAdmins = await prisma.admins.count()
 
     const adminsList = await prisma.admins.findMany({
@@ -161,26 +178,27 @@ export async function getCEOStats() {
       orderBy: { created_at: "desc" }
     })
 
-    // Removed verification_status from selection
+    // User verifications removed, using basic selection
     const recentUsers = await prisma.users.findMany({
-      select: { id: true, username: true, email: true, user_type: true, created_at: true },
+      select: { id: true, username: true, email: true, user_type: true, created_at: true, is_profile_complete: true },
       orderBy: { created_at: "desc" },
       take: 10
     })
 
-    // Get verification history - Vehicles only
+    // Get verification history - Direct Sales ONLY (replaces vehicles)
     const verificationHistory = await prisma.$queryRaw`
       SELECT 
           'vehicle' as entity_type,
-          vh.id as entity_id,
-          CONVERT(CONCAT(vh.make, ' ', vh.model, ' ', vh.year) USING utf8mb4) as entity_name,
+          ds.id as entity_id,
+          CONVERT(CONCAT(ds.make, ' ', ds.model, ' ', ds.year) USING utf8mb4) as entity_name,
           NULL as cin_number,
-          CONVERT(vh.verification_status USING utf8mb4) as action,
+          CONVERT(ds.verification_status USING utf8mb4) as action,
           NULL as reason,
-          COALESCE(NULLIF(CONVERT(vh.reviewed_by USING utf8mb4), ''), 'Unknown') as admin_name,
-          vh.updated_at as created_at
-        FROM vehicles vh
-        WHERE vh.verification_status IN ('approved', 'rejected')
+          COALESCE(CONCAT(ad.prenom, ' ', ad.nom), 'Unknown') as admin_name,
+          ds.updated_at as created_at
+        FROM direct_sales ds
+        LEFT JOIN admins ad ON ds.reviewed_by = ad.id
+        WHERE ds.verification_status IN ('approved', 'rejected')
       ORDER BY created_at DESC
       LIMIT 50`
 
@@ -188,10 +206,12 @@ export async function getCEOStats() {
     const adminActionStats = await prisma.$queryRaw`
       SELECT admin_name, action, COUNT(*) as count FROM (
         SELECT
-          COALESCE(NULLIF(CONVERT(reviewed_by USING utf8mb4), ''), 'Unknown') AS admin_name,
-          CONVERT(verification_status USING utf8mb4) AS action,
-          updated_at AS action_date
-        FROM vehicles WHERE verification_status IN ('approved', 'rejected')
+          COALESCE(CONCAT(ad.prenom, ' ', ad.nom), 'Unknown') AS admin_name,
+          CONVERT(ds.verification_status USING utf8mb4) AS action,
+          ds.updated_at AS action_date
+        FROM direct_sales ds
+        LEFT JOIN admins ad ON ds.reviewed_by = ad.id
+        WHERE ds.verification_status IN ('approved', 'rejected')
       ) all_time
       GROUP BY admin_name, action`
 
@@ -199,10 +219,12 @@ export async function getCEOStats() {
     const adminStatsToday = await prisma.$queryRaw`
       SELECT admin_name, action, COUNT(*) as count FROM (
         SELECT
-          COALESCE(NULLIF(CONVERT(reviewed_by USING utf8mb4), ''), 'Unknown') AS admin_name,
-          CONVERT(verification_status USING utf8mb4) AS action,
-          updated_at AS action_date
-        FROM vehicles WHERE verification_status IN ('approved', 'rejected')
+          COALESCE(CONCAT(ad.prenom, ' ', ad.nom), 'Unknown') AS admin_name,
+          CONVERT(ds.verification_status USING utf8mb4) AS action,
+          ds.updated_at AS action_date
+        FROM direct_sales ds
+        LEFT JOIN admins ad ON ds.reviewed_by = ad.id
+        WHERE ds.verification_status IN ('approved', 'rejected')
       ) today
       WHERE DATE(action_date) = CURDATE()
       GROUP BY admin_name, action`
@@ -211,10 +233,12 @@ export async function getCEOStats() {
     const adminStatsMonth = await prisma.$queryRaw`
       SELECT admin_name, action, COUNT(*) as count FROM (
         SELECT
-          COALESCE(NULLIF(CONVERT(reviewed_by USING utf8mb4), ''), 'Unknown') AS admin_name,
-          CONVERT(verification_status USING utf8mb4) AS action,
-          updated_at AS action_date
-        FROM vehicles WHERE verification_status IN ('approved', 'rejected')
+          COALESCE(CONCAT(ad.prenom, ' ', ad.nom), 'Unknown') AS admin_name,
+          CONVERT(ds.verification_status USING utf8mb4) AS action,
+          ds.updated_at AS action_date
+        FROM direct_sales ds
+        LEFT JOIN admins ad ON ds.reviewed_by = ad.id
+        WHERE ds.verification_status IN ('approved', 'rejected')
       ) month_stats
       WHERE YEAR(action_date) = YEAR(CURDATE()) AND MONTH(action_date) = MONTH(CURDATE())
       GROUP BY admin_name, action`
@@ -223,10 +247,12 @@ export async function getCEOStats() {
     const adminStatsYear = await prisma.$queryRaw`
       SELECT admin_name, action, COUNT(*) as count FROM (
         SELECT
-          COALESCE(NULLIF(CONVERT(reviewed_by USING utf8mb4), ''), 'Unknown') AS admin_name,
-          CONVERT(verification_status USING utf8mb4) AS action,
-          updated_at AS action_date
-        FROM vehicles WHERE verification_status IN ('approved', 'rejected')
+          COALESCE(CONCAT(ad.prenom, ' ', ad.nom), 'Unknown') AS admin_name,
+          CONVERT(ds.verification_status USING utf8mb4) AS action,
+          ds.updated_at AS action_date
+        FROM direct_sales ds
+        LEFT JOIN admins ad ON ds.reviewed_by = ad.id
+        WHERE ds.verification_status IN ('approved', 'rejected')
       ) year_stats
       WHERE YEAR(action_date) = YEAR(CURDATE())
       GROUP BY admin_name, action`
@@ -235,9 +261,6 @@ export async function getCEOStats() {
       success: true,
       stats: {
         totalUsers,
-        pendingVerifications,
-        approvedUsers,
-        rejectedUsers,
         totalAdmins,
         admins: adminsList,
         recentUsers,

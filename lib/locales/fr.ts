@@ -316,6 +316,8 @@ export const fr: typeof en = {
   "time.short_seconds": "Sec",
   "unit.liter": "L",
   "unit.km": "km",
+  "wizard.placeholders.mileage": "ex: 50000",
+  "wizard.placeholders.engine_size": "ex: 2.0",
   "time.day_singular": "jour",
   "time.day_dual": "jours",
   "time.days_plural": "jours",
@@ -709,6 +711,8 @@ export const fr: typeof en = {
   "wizard.pricing.asking_price": "Prix demandé (MAD)",
   "wizard.pricing.min_price_error": "Le prix doit être d'au moins 10 000 MAD",
 
+
+
   // Pricing Page
   "pricing.title": "Tarifs",
   "pricing.subtitle": "Choisissez un plan adapté à vos besoins — facturation flexible avec un essai gratuit de 7 jours.",
@@ -960,4 +964,40 @@ export const fr: typeof en = {
   "profile.statistics.total_listings": "Total des annonces",
   "profile.statistics.no_listings": "Pas encore d'annonces",
   "profile.statistics.no_listings_desc": "Créez votre première annonce pour commencer à suivre vos statistiques.",
+
+  // Photography Coach
+  "wizard.coach.front": "Extérieur Avant",
+  "wizard.coach.rear": "Extérieur Arrière",
+  "wizard.coach.side": "Côté Conducteur",
+  "wizard.coach.dash": "Tableau de Bord",
+  "wizard.coach.interior": "Intérieur Avant",
+  "wizard.coach.engine": "Compartiment Moteur",
+
+  // Wizard - Magic Description & Validation
+  "wizard.magic_description": "Description Magique",
+  "wizard.validation.min_20_chars": "Minimum 20 caractères requis",
+
+  // Wizard - Photography Guidelines
+  "wizard.photos.best_practice_1": "Photographiez en lumière naturelle",
+  "wizard.photos.best_practice_2": "Incluez tous les angles: avant, arrière, les deux côtés",
+  "wizard.photos.best_practice_3": "Montrez l'intérieur: tableau de bord, sièges, coffre",
+  "wizard.photos.best_practice_4": "Documentez tout dommage ou usure honnêtement",
+  "wizard.photos.avoid_1": "Informations personnelles visibles (téléphone, email)",
+  "wizard.photos.avoid_2": "Images floues ou mal éclairées",
+  "wizard.photos.avoid_3": "Dissimuler des dommages ou défauts",
+  "wizard.photos.shot_1": "Extérieur Avant",
+  "wizard.photos.shot_2": "Extérieur Arrière",
+  "wizard.photos.shot_3": "Côté Conducteur",
+  "wizard.photos.shot_4": "Côté Passager",
+  "wizard.photos.shot_5": "Tableau de Bord",
+  "wizard.photos.shot_6": "Sièges Avant",
+  "wizard.photos.shot_7": "Sièges Arrière",
+  "wizard.photos.shot_8": "Compartiment Moteur",
+  "wizard.photos.shot_9": "Coffre",
+  "wizard.photos.shot_10": "Roues",
+  "wizard.photos.upload_failed": "{count} photos n'ont pas pu être téléchargées",
+  "wizard.photos.wait_for_uploads": "Veuillez attendre la fin des téléchargements...",
+  "wizard.photos.must_fix_errors": "Vous devez corriger les erreurs avant de continuer.",
+  "wizard.photos.next_enabled": "Le bouton 'Suivant' s'activera automatiquement.",
+  "wizard.photos.retry_all": "Réessayer Tout",
 };
