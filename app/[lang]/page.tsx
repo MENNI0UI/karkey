@@ -39,7 +39,7 @@ export default async function HomePage(props: { params: Promise<{ lang: "en" | "
                 subtitle={t["home.premium.subtitle"] || "Discover the finest selection of vehicles across Morocco"}
             >
                 <div className="flex justify-center mb-10 lg:mb-0 lg:mt-6 pt-4">
-                    <SearchBar className="w-full max-w-[60rem] shadow-xl shadow-[#00A651]/5" options={initialOptions} />
+                    <SearchBar className="w-full max-w-[60rem] shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)]" options={initialOptions} />
                 </div>
             </HeroSection>
 

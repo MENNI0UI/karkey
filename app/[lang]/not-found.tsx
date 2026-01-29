@@ -1,8 +1,14 @@
+"use client";
+
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 import { FileQuestion } from "lucide-react"
+import { useParams } from "next/navigation";
 
 export default function NotFound() {
+    const params = useParams();
+    const lang = (params?.lang as string) || "en";
+
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 px-4">
             <div className="flex flex-col items-center gap-2 text-center">
@@ -16,7 +22,7 @@ export default function NotFound() {
                 </p>
             </div>
             <Button asChild size="lg" className="mt-4">
-                <Link href="/">Return Home</Link>
+                <Link href={`/${lang}`}>Return Home</Link>
             </Button>
         </div>
     )

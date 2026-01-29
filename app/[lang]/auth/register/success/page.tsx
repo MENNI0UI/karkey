@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/i18n-context"
 
 export default function RegistrationSuccessPage() {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
+  const router = useRouter()
 
   const handleGoHome = () => {
-    // Just navigate to home, user is already logged in
-    globalThis.location.href = "/"
+    router.replace(`/${language}`)
   }
 
   return (
@@ -20,7 +20,7 @@ export default function RegistrationSuccessPage() {
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="flex justify-center mb-12">
-          <Link href="/" className="transition-transform hover:scale-110 duration-300">
+          <Link href={`/${language}`} className="transition-transform hover:scale-110 duration-300">
             <Image
               src="/logo.png"
               alt="Karkey Logo"

@@ -7,10 +7,12 @@ import { CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LuxuryLoader } from "@/components/ui/luxury-loader";
+import { useTranslation } from "@/lib/i18n-context";
 
 export default function UnsubscribePage() {
     const searchParams = useSearchParams();
     const token = searchParams.get("token");
+    const { language } = useTranslation();
 
     const [status, setStatus] = useState<"loading" | "success" | "error" | "already">("loading");
     const [message, setMessage] = useState("");
@@ -74,7 +76,7 @@ export default function UnsubscribePage() {
                         </m.div>
                         <h1 className="text-2xl font-serif text-slate-800 mb-2">Unsubscribed</h1>
                         <p className="text-slate-500 mb-6">{message}</p>
-                        <Link href="/auctions">
+                        <Link href={`/${language}/auctions`}>
                             <Button className="bg-[#00A651] hover:bg-[#008C44] text-white rounded-xl">
                                 Back to Auctions
                             </Button>
@@ -93,7 +95,7 @@ export default function UnsubscribePage() {
                         </m.div>
                         <h1 className="text-2xl font-serif text-slate-800 mb-2">Already Unsubscribed</h1>
                         <p className="text-slate-500 mb-6">{message}</p>
-                        <Link href="/auctions">
+                        <Link href={`/${language}/auctions`}>
                             <Button className="bg-[#00A651] hover:bg-[#008C44] text-white rounded-xl">
                                 Back to Auctions
                             </Button>
@@ -112,7 +114,7 @@ export default function UnsubscribePage() {
                         </m.div>
                         <h1 className="text-2xl font-serif text-slate-800 mb-2">Error</h1>
                         <p className="text-slate-500 mb-6">{message}</p>
-                        <Link href="/auctions">
+                        <Link href={`/${language}/auctions`}>
                             <Button variant="outline" className="rounded-xl">
                                 Back to Auctions
                             </Button>

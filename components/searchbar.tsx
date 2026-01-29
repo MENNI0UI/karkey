@@ -754,7 +754,7 @@ export default function SearchBar({ className = "", options }: Props) {
         <div className="w-full max-w-md mx-auto px-4 pb-2">
             <div className="relative">
                 <label
-                    className="relative z-20 flex items-center flex-nowrap gap-2 rounded-full border border-gray-100/20 bg-white/95 backdrop-blur-md shadow-[0_12px_20px_-8px_rgba(180,140,29,0.25)] px-4 py-3 transition-all focus-within:shadow-[0_15px_25px_-5px_rgba(0,166,81,0.2)] cursor-text min-h-[50px]"
+                    className="relative z-20 flex items-center flex-nowrap gap-2 rounded-full border border-gray-100/20 bg-white/95 backdrop-blur-md shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] px-4 py-3 transition-all focus-within:shadow-[0_15px_25px_-5px_rgba(0,166,81,0.2)] cursor-text min-h-[50px]"
                 >
                     <SearchModeBadge mode={searchMode} lang={currentLang} onReset={() => setSearchMode(null)} />
                     <input
@@ -858,7 +858,7 @@ export default function SearchBar({ className = "", options }: Props) {
                     <div className="px-4" style={{ width: "min(420px, 94vw)", margin: "0 auto" }}>
                         <div className="relative">
                             <label
-                                className="relative z-20 flex items-center flex-nowrap gap-2 rounded-full border border-gray-100/20 bg-white/95 backdrop-blur-md shadow-[0_12px_20px_-8px_rgba(180,140,29,0.25)] px-4 py-2 transition-all cursor-text min-h-[44px]"
+                                className="relative z-20 flex items-center flex-nowrap gap-2 rounded-full border border-gray-100/20 bg-white/95 backdrop-blur-md shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] px-4 py-2 transition-all cursor-text min-h-[44px]"
                             >
                                 <SearchModeBadge mode={searchMode} lang={currentLang} onReset={() => setSearchMode(null)} />
                                 <input

@@ -117,7 +117,7 @@ function SmartAuthPill({ language, t }: { language: string; t: any }) {
 
             {/* Dropdown Menu - Responsive */}
             {open && index === 0 && (
-                <div className="absolute top-full right-0 mt-3 w-[85vw] max-w-[340px] lg:w-[380px] bg-white rounded-3xl shadow-[0_30px_60px_-12px_rgba(0,0,0,0.18)] border border-gray-100/50 overflow-hidden z-[1000] animate-in fade-in slide-in-from-top-4 duration-500 ring-1 ring-black/5">
+                <div className="absolute top-full ltr:right-0 rtl:left-0 mt-3 w-[85vw] max-w-[340px] lg:w-[380px] bg-white rounded-3xl shadow-[0_30px_60px_-12px_rgba(0,0,0,0.18)] border border-gray-100/50 overflow-hidden z-[1000] animate-in fade-in slide-in-from-top-4 duration-500 ring-1 ring-black/5">
                     <div className="p-4 space-y-2.5">
                         <div className="px-3 py-1 flex items-center gap-3">
                             <span className="h-px flex-1 bg-gradient-to-r from-transparent to-gray-200"></span>

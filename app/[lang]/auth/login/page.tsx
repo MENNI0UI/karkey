@@ -13,10 +13,10 @@ import { AnimatedCar } from "@/components/auth/animated-car";
 import { motion } from "framer-motion";
 
 export default function LoginPage() {
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const callbackUrl = searchParams.get("callbackUrl") || "/";
+    const callbackUrl = searchParams.get("callbackUrl") || `/${language}`;
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [loginStatus, setLoginStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -113,7 +113,7 @@ export default function LoginPage() {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
             >
-                <Link href="/" className="block transition-transform hover:scale-105 duration-300">
+                <Link href={`/${language}`} className="block transition-transform hover:scale-105 duration-300">
                     <Image
                         src="/logo.png"
                         alt="Karkey Logo"
@@ -272,7 +272,7 @@ export default function LoginPage() {
                             <p className="text-[#888] font-sans text-sm">
                                 {t("auth.login.no_account")}{" "}
                                 <Link
-                                    href="/auth/register"
+                                    href={`/${language}/auth/register`}
                                     className="text-[#103090] font-bold hover:text-[#b8071c] transition-colors ml-1 uppercase text-xs tracking-wide"
                                 >
                                     {t("auth.login.signup")}

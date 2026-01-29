@@ -8,8 +8,9 @@ export default function Footer() {
   const { t, language } = useTranslation();
   const pathname = usePathname() || "/";
 
-  // Hide footer for auth pages
-  if (pathname.startsWith("/auth/register") || pathname.startsWith("/auth/login")) {
+  // Hide footer for auth, admin, and profile routes (consistent with ClientLayout)
+  const shouldHide = /^(\/[a-z]{2})?\/(auth\/|admin|profile)/.test(pathname);
+  if (shouldHide) {
     return null;
   }
 

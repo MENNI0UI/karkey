@@ -422,7 +422,7 @@ export default function RegisterPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
         <div className="absolute bottom-0 left-0 p-12 text-white z-10">
-          <Link href="/" className="inline-block mb-6 group transition-transform hover:scale-110 duration-300">
+          <Link href={`/${lang}`} className="inline-block mb-6 group transition-transform hover:scale-110 duration-300">
             <Image
               src="/logo.png"
               alt="Karkey Logo"
@@ -443,14 +443,14 @@ export default function RegisterPage() {
 
       {/* Right Side - Registration Form (Scrollable) */}
       <div className="w-full lg:fixed lg:top-0 lg:right-0 lg:h-full lg:w-1/2 lg:overflow-y-auto flex flex-col p-4 md:p-8 lg:p-8 bg-white relative z-10">
-        <Link href="/" aria-label="Karkey home" className="lg:hidden absolute top-6 right-6">
+        <Link href={`/${lang}`} aria-label="Karkey home" className="lg:hidden absolute top-6 right-6">
           <X className="w-6 h-6 text-gray-400" />
         </Link>
 
         <div className="max-w-3xl mx-auto w-full my-auto">
           {/* Mobile Logo */}
           <div className="lg:hidden mb-12 text-center flex justify-center">
-            <Link href="/" className="inline-block transform active:scale-95 transition-transform">
+            <Link href={`/${lang}`} className="inline-block transform active:scale-95 transition-transform">
               <Image
                 src="/logo.png"
                 alt="Karkey Logo"
@@ -766,7 +766,7 @@ export default function RegisterPage() {
 
           {currentStep === 1 && (
             <div className="mt-4 text-center text-sm text-gray-500">
-              {t("auth.register.has_account")} <Link href="/auth/login" className="text-[#B8071C] font-semibold hover:underline">{t("auth.login.submit")}</Link>
+              {t("auth.register.has_account")} <Link href={`/${lang}/auth/login`} className="text-[#B8071C] font-semibold hover:underline">{t("auth.login.submit")}</Link>
             </div>
           )}
         </div>
