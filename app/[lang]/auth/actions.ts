@@ -144,7 +144,7 @@ export async function registerUser(formData: {
       })
       debug("[v0 SERVER] ✓ Welcome notification created")
     } catch (notifError) {
-      console.error("[v0 SERVER] ⚠️ Failed to create notification (non-critical):", notifError)
+      logError("[v0 SERVER] ⚠️ Failed to create notification (non-critical):", notifError)
     }
 
     debug("[v0 SERVER] ✅ REGISTRATION COMPLETED SUCCESSFULLY")
@@ -168,10 +168,7 @@ export async function registerUser(formData: {
   } catch (error) {
     const err: any = error
     logError("[v0 SERVER] ❌ CRITICAL ERROR:", err)
-    console.log("[v0 SERVER] ========== REGISTRATION ACTION ENDED WITH ERROR ==========")
+    logError("[v0 SERVER] ========== REGISTRATION ACTION ENDED WITH ERROR ==========")
     return { success: false, error: "Registration failed. Please check server logs." }
   }
 }
-
-
-

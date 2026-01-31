@@ -128,7 +128,6 @@ export default function PhotoViewer({ photos, index, isOpen, onClose, onChangeIn
                         className="object-contain"
                         sizes="100vw"
                         priority
-                        unoptimized
                         draggable={false}
                     />
                 )}
@@ -158,7 +157,6 @@ export default function PhotoViewer({ photos, index, isOpen, onClose, onChangeIn
                         width={10}
                         height={10}
                         priority
-                        unoptimized
                     />
                 )}
                 {prevPhoto && (
@@ -168,7 +166,6 @@ export default function PhotoViewer({ photos, index, isOpen, onClose, onChangeIn
                         width={10}
                         height={10}
                         priority
-                        unoptimized
                     />
                 )}
             </div>

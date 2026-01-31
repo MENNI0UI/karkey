@@ -8,7 +8,7 @@ import FetchGuard from "@/components/fetch-guard"
 import { Toaster } from "@/components/ui/toaster"
 import BackButton, { saveLastNonProfilePage } from "@/app/[lang]/profile/back-button";
 import { SessionProvider } from "next-auth/react"
-import { LazyMotion, domAnimation } from "framer-motion"
+import { LazyMotion, domAnimation, AnimatePresence, motion } from "framer-motion"
 
 export default function ClientLayout({ children, isLoggedIn }: { children: React.ReactNode; isLoggedIn?: boolean }) {
   const pathname = usePathname() || "/"
@@ -134,7 +134,17 @@ export default function ClientLayout({ children, isLoggedIn }: { children: React
             </div>
           )}
 
-          <main>{children}</main>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <main>{children}</main>
+            </motion.div>
+          </AnimatePresence>
 
           {!shouldHideHeaderFooter ? (
             <Footer />

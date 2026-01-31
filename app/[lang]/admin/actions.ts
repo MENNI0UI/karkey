@@ -5,25 +5,25 @@ import bcrypt from "bcryptjs"
 
 export async function adminLogin(nom: string, prenom: string, password: string) {
   try {
-    console.log(`[v0] Login attempt for: ${prenom} ${nom}`)
+    // Admin login attempt
     const admin = await prisma.admins.findFirst({
       where: { nom, prenom }
     })
 
     if (!admin) {
-      console.log(`[v0] Admin not found: ${prenom} ${nom}`)
+      // Admin not found
       return { success: false, error: "Invalid login credentials" }
     }
 
-    console.log(`[v0] Admin found: ${admin.id}, comparing password...`)
+    // Admin found, comparing password
     const isValidPassword = await bcrypt.compare(password, admin.password_hash)
 
     if (!isValidPassword) {
-      console.log(`[v0] Invalid password for: ${prenom} ${nom}`)
+      // Invalid password
       return { success: false, error: "Invalid login credentials" }
     }
 
-    console.log(`[v0] Password valid, creating token...`)
+    // Password valid, creating token
     const token = await createAdminToken({
       id: admin.id,
       nom: admin.nom,
@@ -32,9 +32,9 @@ export async function adminLogin(nom: string, prenom: string, password: string) 
       passwordVersion: admin.password_version || 1,
     })
 
-    console.log(`[v0] Token created, setting cookie...`)
+    // Token created, setting cookie
     await setAdminCookie(token)
-    console.log(`[v0] Login successful for: ${prenom} ${nom}`)
+    // Login successful
     return { success: true }
   } catch (error: any) {
     console.error("[v0] Admin login error:", error)
@@ -347,7 +347,7 @@ export async function getPendingDirectSales() {
   }
 
   try {
-    console.log("[v0 SERVER] Fetching pending direct sales...")
+    // Fetching pending direct sales
 
     const pendingDirectSales = await prisma.direct_sales.findMany({
       where: { verification_status: "pending" },
@@ -403,7 +403,7 @@ export async function getPendingDirectSales() {
       };
     })
 
-    console.log("[v0 SERVER] Found", directSalesWithPhotos.length, "pending direct sale(s)")
+    // Found pending direct sales
 
     // Get total count
     const totalPending = await prisma.direct_sales.count({

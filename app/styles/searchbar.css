@@ -6,9 +6,8 @@
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-radius: 999px !important;
   box-shadow:
-    0 4px 6px -1px rgba(0, 166, 81, 0.02),
-    0 10px 30px -5px rgba(0, 166, 81, 0.04),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+    0 10px 40px -10px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
   transition:
     transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
     opacity 200ms ease,
@@ -287,7 +286,8 @@ select option[value="All"] {
   gap: 0.375rem;
   align-items: center;
   width: 100%;
-  padding: 0.15rem;
+  padding: 0.65rem 0.85rem;
+  /* Increased padding for more height */
   /* desktop / large screens: keep original single-row behavior */
   flex-wrap: nowrap;
   white-space: nowrap;

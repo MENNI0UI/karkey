@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Too many upload requests" }, { status: 429 })
     }
 
-    console.log("[api/upload] Starting upload request processing...")
+    // Starting upload request processing
 
     let formData;
     try {
@@ -79,22 +79,21 @@ export async function POST(request: Request) {
     const contentTypeFromExt = getContentTypeFromExt(ext.replace('.', ''))
     const isClientOptimized = request.headers.get("x-optimized") === "1"
 
-    console.log(`[api/upload] Processing: ${safeName} (Optimized: ${isClientOptimized}, Size: ${buffer.length})`)
+    // Processing file
 
     // Only apply server-side watermark if client didn't already do it
     if (!isClientOptimized) {
       try {
-        console.log("[api/upload] Applying server-side watermark...")
+        // Applying server-side watermark
         const { data } = await maybeApplyWatermark(buffer, contentTypeFromExt, uniqueName)
         buffer = data as Uint8Array
-        console.log("[api/upload] Server-side watermark applied.")
+        // Server-side watermark applied
       } catch (e) {
         console.error("Watermark/Processing failed", e)
       }
     } else {
       // Client handled it (High Performance Path)
       // We trust the client-side watermark
-      console.log("[api/upload] Skipping server watermark (Client handled).")
     }
 
     // Generate Placeholder (BlurHash equivalent)
@@ -111,7 +110,7 @@ export async function POST(request: Request) {
     // Upload to Cloudflare R2
     const key = `vehicles/${uniqueName}`
 
-    console.log(`[api/upload] Sending to R2: ${key}`)
+    // Sending to R2
 
     await R2.send(new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
@@ -120,7 +119,7 @@ export async function POST(request: Request) {
       ContentType: file.type || contentTypeFromExt || 'application/octet-stream',
     }))
 
-    console.log(`[api/upload] Upload success: ${key}`)
+    // Upload success
 
     // URL to be used by client (served from R2 Public Domain)
     const url = `${process.env.R2_PUBLIC_DOMAIN}/${key}`

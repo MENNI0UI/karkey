@@ -19,6 +19,8 @@ export interface FilterOptionsResult {
         modelsByMake?: Record<string, string[]>;
         yearsByMake?: Record<string, string[]>;
         makeModels?: Record<string, string[]>; // alias
+        makeCounts?: Record<string, number>;
+        modelCounts?: Record<string, number>;
         years: string[];
         locations: string[];
         fuelTypes: FilterOption[];

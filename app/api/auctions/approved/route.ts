@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import path from "path"
 import { Prisma } from "@prisma/client"
+import logger from "@/lib/logger"
 
 /**
  * 🆕 النظام الجديد: المزادات الآن في direct_sales مع auction_mode=true
@@ -68,19 +69,12 @@ export async function GET(request: Request) {
     // Engine size range
     const minEngine = q.get('minEngine')
     const maxEngine = q.get('maxEngine')
-    console.log("[DEBUG][API/auctions/approved] raw engine params:", { minEngine, maxEngine });
 
     if (minEngine || maxEngine) {
       where.engine_size = {}
       if (minEngine) (where.engine_size as any).gte = String(minEngine)
       if (maxEngine) (where.engine_size as any).lte = String(maxEngine)
     }
-
-    console.log("[DEBUG][API/auctions/approved] where.engine_size:", JSON.stringify(where.engine_size));
-    console.log("[DEBUG][API/auctions/approved] where types:", {
-      gte: typeof (where.engine_size as any)?.gte,
-      lte: typeof (where.engine_size as any)?.lte
-    });
 
     // Color filters
     const exteriorColors = getMultiVal('exteriorColor')
@@ -185,10 +179,10 @@ export async function GET(request: Request) {
     )
   } catch (err: any) {
     if (err?.code === "DB_UNAVAILABLE" || String(err).includes("ECONNREFUSED")) {
-      console.warn("[API][auctions/approved] DB unavailable:", err?.message ?? err)
+      logger.warn("[API/auctions/approved] DB unavailable:", err?.message ?? err)
       return NextResponse.json({ auctions: [], error: "database_unavailable" }, { status: 503 })
     }
-    console.error("[API][auctions/approved] unexpected error:", err)
+    logger.error("[API/auctions/approved] unexpected error:", err)
     return NextResponse.json({ auctions: [], error: "server_error" }, { status: 500 })
   }
 }

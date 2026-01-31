@@ -1,27 +1,56 @@
-import React, { useState } from "react"
-import { useTranslation } from "@/lib/i18n-context"
-import { CAR_COLORS } from "@/lib/car-colors"
-import { ChevronLeft, ChevronRight, MapPin } from "lucide-react"
-import { PhotoItem } from "@/components/ui/photo-upload-grid"
+"use client"
 
-type StepProps = {
+import React, { useState, useRef, useEffect } from "react"
+import { useTranslation } from "@/lib/i18n-context"
+import Image from "next/image"
+import {
+    MapPin,
+    ChevronLeft,
+    ChevronRight,
+    PaintBucket,
+    Car,
+    Fuel,
+    Settings2,
+    ChevronUp,
+    ChevronDown,
+} from "lucide-react"
+import { WizardCard } from "@/components/ui/wizard-card"
+import PhotoViewer from "@/components/photo-viewer"
+import type { TranslationKey } from "@/lib/locales"
+
+type StepReviewProps = {
     data: any
     t: (key: string) => string
+    errors?: Record<string, string>
 }
 
-export function StepReview({ data, t }: StepProps) {
-    const { t: translate } = useTranslation()
-    const [mainPhotoIndex, setMainPhotoIndex] = useState(0)
-    const thumbnailsRef = React.useRef<HTMLDivElement>(null)
+export function StepReview({ data, t }: StepReviewProps) {
+    const { t: translate, language } = useTranslation()
+    const isRTL = language === "ar"
+    const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
+    const [isViewerOpen, setIsViewerOpen] = useState(false)
+    const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
+    const [isSpecialFeaturesExpanded, setIsSpecialFeaturesExpanded] = useState(false)
+    const thumbnailsRef = useRef<HTMLDivElement>(null)
 
-    const photos: PhotoItem[] = data.photos || []
-    const mainPhoto = photos[mainPhotoIndex]
+    // Touch swipe state
+    const touchStartX = useRef<number>(0)
+    const touchEndX = useRef<number>(0)
+    const isSwiping = useRef<boolean>(false)
+
+    // Ensure we have photos array even if empty or data.photos is undefined
+    const rawPhotos = data.photos || []
+    // Normalize photos for the viewer and display
+    const photos = rawPhotos.map((p: any, idx: number) => ({
+        id: p.id || idx,
+        url: typeof p === 'string' ? p : (p.url || p.preview || "/placeholder-car.jpg")
+    }))
 
     // Auto-scroll thumbnails when main photo changes
-    React.useEffect(() => {
+    useEffect(() => {
         if (thumbnailsRef.current && photos.length > 0) {
             const container = thumbnailsRef.current
-            const thumbnail = container.children[mainPhotoIndex] as HTMLElement
+            const thumbnail = container.children[currentPhotoIndex] as HTMLElement
             if (thumbnail) {
                 const containerWidth = container.offsetWidth
                 const thumbnailLeft = thumbnail.offsetLeft
@@ -30,81 +59,117 @@ export function StepReview({ data, t }: StepProps) {
                 container.scrollTo({ left: scrollPosition, behavior: 'smooth' })
             }
         }
-    }, [mainPhotoIndex, photos.length])
+    }, [currentPhotoIndex, photos.length])
 
-    const exteriorColor = CAR_COLORS.find(c => c.value === data.exterior_color)
-    const interiorColor = CAR_COLORS.find(c => c.value === data.interior_color)
-
-    // Icon helper
-    const getIcon = (type: string) => {
-        switch (type) {
-            case "mileage": return "/icons/mileage.png"
-            case "transmission": return "/icons/transmission.png"
-            case "fuel": return data.fuel_type?.toLowerCase() === "electric" ? "/icons/electric-fuel.png" : "/icons/fuel.png"
-            case "condition": return "/icons/condition.png"
-            case "engine": return "/icons/engine.png"
-            case "doors": return "/icons/car-door.png"
-            default: return "/icons/condition.png"
-        }
+    const nextPhoto = () => {
+        setCurrentPhotoIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1))
     }
 
-    const goToPrev = () => setMainPhotoIndex(prev => (prev === 0 ? photos.length - 1 : prev - 1))
-    const goToNext = () => setMainPhotoIndex(prev => (prev === photos.length - 1 ? 0 : prev + 1))
+    const prevPhoto = () => {
+        setCurrentPhotoIndex((prev) => (prev === 0 ? photos.length - 1 : prev - 1))
+    }
+
+    // Touch handlers
+    const handleTouchStart = (e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX
+        isSwiping.current = true
+    }
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (!isSwiping.current) return
+        touchEndX.current = e.touches[0].clientX
+    }
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (!isSwiping.current) return
+        isSwiping.current = false
+
+        const diff = touchStartX.current - touchEndX.current
+        const minSwipeDistance = 50
+
+        if (Math.abs(diff) > minSwipeDistance) {
+            if (diff > 0) nextPhoto()
+            else prevPhoto()
+        }
+
+        touchStartX.current = 0
+        touchEndX.current = 0
+    }
+
+    const normalizePhotoUrl = (p: string | null | undefined) => {
+        if (!p) return "/placeholder-car.jpg"
+        const s = String(p).trim()
+        if (s.startsWith("/") || s.startsWith("data:") || s.startsWith("http://") || s.startsWith("https://")) return s
+        // Helper for blob urls if needed, but usually strictly handled
+        return s
+    }
+
+    const formatPrice = (price: string | number | undefined) => {
+        if (price === undefined || price === null || price === "") return null
+        const numPrice = typeof price === "string" ? parseFloat(price) : price
+        if (isNaN(numPrice)) return price
+        return new Intl.NumberFormat(language === "ar" ? "ar-MA" : "fr-MA", {
+            style: "decimal",
+            maximumFractionDigits: 0,
+        }).format(numPrice) + " " + translate("common.mad")
+    }
 
     return (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="space-y-6 animate-fade-in-up">
+            <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-lg font-semibold text-[#103090]">{t("previewTitle")}</h2>
-                    <p className="text-sm text-gray-500">{t("previewSubtitle")}</p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">
+                        {translate("wizard.review.preview" as any) || "Preview your listing"}
+                    </p>
+                    <h2 className="text-2xl font-bold font-serif text-[#103090]">
+                        {translate("wizard.review.title" as any) || "Review & Publish"}
+                    </h2>
                 </div>
-                <span className="text-xs font-medium text-gray-400 bg-gray-50 px-3 py-1 rounded-full">
-                    {translate("wizard.progress.step_of", { current: 5, total: 5 }) || "Step 5 of 5"}
-                </span>
             </div>
 
-            <div className="p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Left: Photo Gallery */}
+            {/* Main Content Area - Replicating UnifiedCarLayout Structure */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 lg:p-8 animate-fade-in-up delay-100">
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
+                    {/* Left: Photos Area */}
                     <div className="space-y-4">
-                        {/* Main Photo with Navigation */}
-                        <div className="aspect-[4/3] rounded-xl overflow-hidden bg-gray-100 relative group">
-                            {mainPhoto ? (
+                        <div
+                            className="relative aspect-square md:aspect-[16/10] bg-gray-100 rounded-2xl overflow-hidden shadow-sm touch-pan-y"
+                            onTouchStart={handleTouchStart}
+                            onTouchMove={handleTouchMove}
+                            onTouchEnd={handleTouchEnd}
+                        >
+                            {photos.length > 0 ? (
                                 <>
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                        src={mainPhoto.url}
-                                        alt="Main photo"
-                                        className="w-full h-full object-cover"
-                                    />
-                                    {/* Navigation Arrows */}
+                                    <div className="w-full h-full cursor-zoom-in" onClick={() => { setIsViewerOpen(true); setCurrentPhotoIndex(currentPhotoIndex) }}>
+                                        <Image
+                                            src={normalizePhotoUrl(photos[currentPhotoIndex]?.url)}
+                                            alt={`${data.make} ${data.model}`}
+                                            fill
+                                            className="object-contain object-center bg-gray-100"
+                                            sizes="(max-width: 768px) 100vw, 800px"
+                                        />
+                                    </div>
                                     {photos.length > 1 && (
                                         <>
                                             <button
-                                                type="button"
-                                                onClick={goToPrev}
-                                                className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-[#103090] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={(e) => { e.stopPropagation(); prevPhoto() }}
+                                                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center text-[#103090] shadow-lg hover:bg-white transition-all z-20 hidden md:flex"
                                             >
-                                                <ChevronLeft className="w-5 h-5" />
+                                                <ChevronLeft className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
                                             </button>
                                             <button
-                                                type="button"
-                                                onClick={goToNext}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-[#103090] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={(e) => { e.stopPropagation(); nextPhoto() }}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center text-[#103090] shadow-lg hover:bg-white transition-all z-20 hidden md:flex"
                                             >
-                                                <ChevronRight className="w-5 h-5" />
+                                                <ChevronRight className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
                                             </button>
                                         </>
                                     )}
-                                    {/* Photo Counter */}
-                                    <div className="absolute bottom-4 right-4 bg-black/60 text-white text-sm px-3 py-1 rounded-full">
-                                        {mainPhotoIndex + 1} / {photos.length}
-                                    </div>
                                 </>
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                    No photos
+                                <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                                    <Car className="w-16 h-16 mb-4 opacity-20" />
+                                    <p>{translate("wizard.review.no_photos" as any) || "No photos"}</p>
                                 </div>
                             )}
                         </div>
@@ -113,179 +178,257 @@ export function StepReview({ data, t }: StepProps) {
                         {photos.length > 1 && (
                             <div
                                 ref={thumbnailsRef}
-                                className="flex gap-2 overflow-x-auto py-1 px-1 -mx-1 scrollbar-hide"
+                                className="flex gap-2 overflow-x-auto py-1 px-1 -mx-1"
                                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                             >
-                                {photos.map((photo: PhotoItem, i: number) => (
+                                {photos.map((photo: any, idx: number) => (
                                     <button
-                                        key={i}
-                                        type="button"
-                                        onClick={() => setMainPhotoIndex(i)}
-                                        className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden bg-gray-100 transition-all ${i === mainPhotoIndex
-                                            ? "ring-2 ring-[#B8071C] ring-offset-1"
-                                            : "opacity-70 hover:opacity-100"
+                                        key={photo.id || idx}
+                                        onClick={() => setCurrentPhotoIndex(idx)}
+                                        className={`flex-shrink-0 w-20 h-14 relative rounded-lg overflow-hidden transition-all ${idx === currentPhotoIndex
+                                            ? "ring-2 ring-[#B8071C] ring-offset-1 opacity-100 scale-105"
+                                            : "opacity-60 hover:opacity-100 scale-100"
                                             }`}
                                     >
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img
-                                            src={photo.url}
-                                            alt={`Thumbnail ${i + 1}`}
-                                            className="w-full h-full object-cover"
+                                        <Image
+                                            src={normalizePhotoUrl(photo.url)}
+                                            alt=""
+                                            fill
+                                            className="object-cover"
+                                            sizes="80px"
                                         />
                                     </button>
                                 ))}
                             </div>
                         )}
+
+                        {/* DESKTOP ONLY: Description & Features */}
+                        <div key="desktop-descriptive-sections" className="hidden lg:block animate-fade-in-up delay-200">
+                            {/* Special Features */}
+                            {data.special_features && (
+                                <div className="mt-8 pt-8 border-t border-gray-100">
+                                    <h3 className="text-xl font-bold text-[#103090] mb-4 flex items-center gap-2 font-serif">
+                                        <svg className="w-5 h-5 text-[#B8071C]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
+                                        </svg>
+                                        {translate("vehicle.special_features")}
+                                    </h3>
+                                    <div className="relative">
+                                        <p className={`text-gray-600 leading-relaxed whitespace-pre-wrap text-[16px] font-sans ${!isSpecialFeaturesExpanded ? 'line-clamp-4' : ''}`}>
+                                            {data.special_features}
+                                        </p>
+                                        {(data.special_features.length > 150 || (data.special_features.match(/\n/g) || []).length > 2) && (
+                                            <button
+                                                onClick={() => setIsSpecialFeaturesExpanded(!isSpecialFeaturesExpanded)}
+                                                className="mt-2 text-[#B8071C] font-semibold flex items-center gap-1 hover:underline font-sans text-sm"
+                                            >
+                                                {isSpecialFeaturesExpanded ? (
+                                                    <>
+                                                        {translate("common.show_less")} <ChevronUp className="w-4 h-4" />
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        {translate("common.show_more")} <ChevronDown className="w-4 h-4" />
+                                                    </>
+                                                )}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Description */}
+                            <div className="mt-8 pt-8 border-t border-gray-100">
+                                <h3 className="text-xl font-bold text-[#103090] mb-4 font-serif">{translate("vehicle.description")}</h3>
+                                <div className="relative">
+                                    <p className={`text-gray-600 leading-relaxed whitespace-pre-wrap text-[16px] font-sans ${!isDescriptionExpanded ? 'line-clamp-4' : ''}`}>
+                                        {data.description}
+                                    </p>
+                                    {data.description && (data.description.length > 150 || (data.description.match(/\n/g) || []).length > 2) && (
+                                        <button
+                                            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                                            className="mt-2 text-[#B8071C] font-semibold flex items-center gap-1 hover:underline font-sans text-sm"
+                                        >
+                                            {isDescriptionExpanded ? (
+                                                <>
+                                                    {translate("common.show_less")} <ChevronUp className="w-4 h-4" />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {translate("common.show_more")} <ChevronDown className="w-4 h-4" />
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Right: Vehicle Info */}
-                    <div className="space-y-6">
-                        {/* Title & Price */}
-                        <div>
-                            <h1 className="text-2xl font-bold text-[#103090]">
+                    {/* Right: Info Area */}
+                    <div className="flex flex-col animate-fade-in-up delay-300">
+                        <div className="flex-1">
+                            <h1 className="text-3xl md:text-5xl font-bold font-serif text-[#103090] mb-2 leading-tight">
                                 {data.make} {data.model}
                             </h1>
-                            <div className="flex items-center gap-2 mt-2">
-                                <span className="bg-[#103090] text-white text-xs font-semibold px-3 py-1 rounded-full">
+                            <div className="flex items-center gap-3 mb-6">
+                                <span className="bg-[#103090] text-white font-bold px-4 py-1 rounded-full text-sm">
                                     {data.year}
                                 </span>
-                                <span className="flex items-center gap-1 text-gray-500 text-sm">
-                                    <MapPin className="w-4 h-4" />
-                                    {data.location}
-                                </span>
-                            </div>
-                            <p className="text-3xl font-bold text-[#B8071C] mt-4">
-                                {data.price ? `${Number(data.price).toLocaleString()} ${translate('common.mad')}` : "—"}
-                            </p>
-                            <p className="text-sm text-gray-500">{t("askingPrice")}</p>
-                        </div>
-
-                        {/* Specs Grid with Icons */}
-                        <div className="bg-gray-50 rounded-xl p-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                {/* Mileage */}
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{t("mileage")}</span>
-                                    <div className="flex items-center gap-2">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={getIcon("mileage")} alt="" className="w-5 h-5 opacity-70" />
-                                        <span className="font-semibold text-[#103090]">
-                                            {data.mileage ? `${Number(data.mileage).toLocaleString()} ${translate("unit.km")}` : "—"}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Transmission */}
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{t("transmission")}</span>
-                                    <div className="flex items-center gap-2">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={getIcon("transmission")} alt="" className="w-5 h-5 opacity-70" />
-                                        <span className="font-semibold text-[#103090]">{data.transmission || "—"}</span>
-                                    </div>
-                                </div>
-
-                                {/* Fuel */}
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{t("fuelType")}</span>
-                                    <div className="flex items-center gap-2">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={getIcon("fuel")} alt="" className="w-5 h-5 opacity-70" />
-                                        <span className="font-semibold text-[#103090]">{data.fuel_type || "—"}</span>
-                                    </div>
-                                </div>
-
-                                {/* Condition */}
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{t("condition")}</span>
-                                    <div className="flex items-center gap-2">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={getIcon("condition")} alt="" className="w-5 h-5 opacity-70" />
-                                        <span className="font-semibold text-[#103090]">{data.condition || "—"}</span>
-                                    </div>
-                                </div>
-
-                                {/* Engine */}
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{t("engineSize")}</span>
-                                    <div className="flex items-center gap-2">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={getIcon("engine")} alt="" className="w-5 h-5 opacity-70" />
-                                        <span className="font-semibold text-[#103090]">{data.engine_size ? `${data.engine_size}` : "—"}</span>
-                                    </div>
-                                </div>
-
-                                {/* Doors */}
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">{t("doors")}</span>
-                                    <div className="flex items-center gap-2">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={getIcon("doors")} alt="" className="w-5 h-5 opacity-70" />
-                                        <span className="font-semibold text-[#103090]">{data.doors || "—"}</span>
-                                    </div>
+                                <div className="flex items-center gap-1.5 text-gray-500 font-medium text-sm">
+                                    <MapPin className="w-4 h-4 text-[#B8071C]" />
+                                    {translate(`location.city.${(data.location || "").toLowerCase().replace(/\s+/g, '')}` as any) || data.location}
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Special Features */}
-                        {data.special_features && (
-                            <div className="bg-gray-50 rounded-xl p-6">
-                                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 font-serif flex items-center gap-2">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
-                                    </svg>
-                                    {t("specialFeatures")}
-                                </h3>
-                                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-base">
-                                    {data.special_features}
-                                </p>
+                            {/* Price */}
+                            {data.price && (
+                                <div className="text-3xl md:text-4xl font-bold font-serif text-[#B8071C] mb-8">
+                                    {formatPrice(data.price)}
+                                </div>
+                            )}
+
+                            {/* Jewel-Case Specs Grid */}
+                            <div className="grid grid-cols-2 gap-4 mb-8">
+                                <div className="jewel-card p-4 rounded-xl flex flex-col justify-center group h-full">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{translate("vehicle.mileage")}</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative w-4 h-4">
+                                            <Image src="/icons/mileage.png" alt="" fill className="object-contain" style={{ filter: 'invert(16%) sepia(95%) saturate(3500%) hue-rotate(348deg) brightness(85%) contrast(95%)' }} />
+                                        </div>
+                                        <p className="text-lg font-bold text-[#103090] group-hover:text-[#B8071C] transition-colors">{Number(data.mileage || 0).toLocaleString()} <span className="text-sm font-normal text-gray-500">{translate("unit.km")}</span></p>
+                                    </div>
+                                </div>
+
+                                <div className="jewel-card p-4 rounded-xl flex flex-col justify-center group h-full">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{translate("vehicle.transmission")}</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative w-4 h-4">
+                                            <Image src="/icons/transmission.png" alt="" fill className="object-contain" style={{ filter: 'invert(16%) sepia(95%) saturate(3500%) hue-rotate(348deg) brightness(85%) contrast(95%)' }} />
+                                        </div>
+                                        <p className="text-lg font-bold text-[#103090] capitalize group-hover:text-[#B8071C] transition-colors">
+                                            {translate(`vehicle.transmission.${String(data.transmission).toLowerCase()}` as any) !== `vehicle.transmission.${String(data.transmission).toLowerCase()}` ? translate(`vehicle.transmission.${String(data.transmission).toLowerCase()}` as any) : data.transmission}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="jewel-card p-4 rounded-xl flex flex-col justify-center group h-full">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{translate("vehicle.fuel")}</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative w-4 h-4">
+                                            <Image src="/icons/fuel.png" alt="" fill className="object-contain" style={{ filter: 'invert(16%) sepia(95%) saturate(3500%) hue-rotate(348deg) brightness(85%) contrast(95%)' }} />
+                                        </div>
+                                        <p className="text-lg font-bold text-[#103090] capitalize group-hover:text-[#B8071C] transition-colors">
+                                            {translate(`vehicle.fuel.${String(data.fuel_type).toLowerCase()}` as any) !== `vehicle.fuel.${String(data.fuel_type).toLowerCase()}` ? translate(`vehicle.fuel.${String(data.fuel_type).toLowerCase()}` as any) : data.fuel_type}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="jewel-card p-4 rounded-xl flex flex-col justify-center group h-full">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{translate("vehicle.condition")}</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative w-4 h-4">
+                                            <Image src="/icons/condition.png" alt="" fill className="object-contain" style={{ filter: 'invert(16%) sepia(95%) saturate(3500%) hue-rotate(348deg) brightness(85%) contrast(95%)' }} />
+                                        </div>
+                                        <p className="text-lg font-bold text-[#103090] capitalize group-hover:text-[#B8071C] transition-colors">
+                                            {translate(`vehicle.condition.${String(data.condition).toLowerCase()}` as any) !== `vehicle.condition.${String(data.condition).toLowerCase()}` ? translate(`vehicle.condition.${String(data.condition).toLowerCase()}` as any) : data.condition}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {data.engine_size && (
+                                    <div className="jewel-card p-4 rounded-xl flex flex-col justify-center group h-full">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{translate("vehicle.engine_size")}</p>
+                                        <div className="flex items-center gap-2">
+                                            <div className="relative w-4 h-4">
+                                                <Image src="/icons/engine.png" alt="" fill className="object-contain" style={{ filter: 'invert(16%) sepia(95%) saturate(3500%) hue-rotate(348deg) brightness(85%) contrast(95%)' }} />
+                                            </div>
+                                            <p className="text-lg font-bold text-[#103090] group-hover:text-[#B8071C] transition-colors">{data.engine_size} {translate("unit.liter")}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {data.doors && (
+                                    <div className="jewel-card p-4 rounded-xl flex flex-col justify-center group h-full">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{translate("vehicle.doors")}</p>
+                                        <div className="flex items-center gap-2">
+                                            <div className="relative w-4 h-4">
+                                                <Image src="/icons/car-door.png" alt="" fill className="object-contain" style={{ filter: 'invert(16%) sepia(95%) saturate(3500%) hue-rotate(348deg) brightness(85%) contrast(95%)' }} />
+                                            </div>
+                                            <p className="text-lg font-bold text-[#103090] group-hover:text-[#B8071C] transition-colors">{data.doors}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {data.exterior_color && (
+                                    <div className="jewel-card p-4 rounded-xl flex flex-col justify-center group h-full">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{translate("wizard.fields.exterior_color")}</p>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-4 rounded-full border border-gray-200 shadow-sm flex-shrink-0" style={{ backgroundColor: data.exterior_color.hex || data.exterior_color }} />
+                                            <p className="text-lg font-bold text-[#103090] capitalize group-hover:text-[#B8071C] transition-colors">{translate(`colors.${data.exterior_color.value || data.exterior_color}` as any)}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {data.interior_color && (
+                                    <div className="jewel-card p-4 rounded-xl flex flex-col justify-center group h-full">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{translate("wizard.fields.interior_color")}</p>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-4 rounded-full border border-gray-200 shadow-sm flex-shrink-0" style={{ backgroundColor: data.interior_color.hex || data.interior_color }} />
+                                            <p className="text-lg font-bold text-[#103090] capitalize group-hover:text-[#B8071C] transition-colors">{translate(`colors.${data.interior_color.value || data.interior_color}` as any)}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {data.is_original_paint !== undefined && (
+                                    <div className="jewel-card p-4 rounded-xl flex flex-col justify-center group h-full">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{translate("wizard.fields.original_paint" as any) || "Original Paint"}</p>
+                                        <div className="flex items-center gap-2">
+                                            <PaintBucket className="w-4 h-4 text-[#B8071C] flex-shrink-0" />
+                                            <p className="text-lg font-bold text-[#103090] group-hover:text-[#B8071C] transition-colors">
+                                                {data.is_original_paint ? translate("common.yes") : translate("common.no")}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        )}
 
-                        {/* Appearance */}
-                        <div className="bg-gray-50 rounded-xl p-6">
-                            {exteriorColor && (
-                                <div className="flex items-center gap-2">
-                                    <span
-                                        className={`w-5 h-5 rounded-full ${exteriorColor.border ? "border border-gray-300" : ""}`}
-                                        style={{ background: exteriorColor.hex }}
-                                    />
-                                    <span className="text-sm text-gray-600">
-                                        {translate(`colors.${exteriorColor.value}` as any)} {t("exterior")}
-                                    </span>
-                                </div>
-                            )}
-                            {interiorColor && (
-                                <div className="flex items-center gap-2">
-                                    <span
-                                        className={`w-5 h-5 rounded-full ${interiorColor.border ? "border border-gray-300" : ""}`}
-                                        style={{ background: interiorColor.hex }}
-                                    />
-                                    <span className="text-sm text-gray-600">
-                                        {translate(`colors.${interiorColor.value}` as any)} {t("interior")}
-                                    </span>
-                                </div>
-                            )}
-                            {data.is_original_paint && (
-                                <span className="text-sm text-green-600 font-medium">✓ {t("originalPaint")}</span>
-                            )}
+                            {/* MOBILE ONLY: Features & Description */}
+                            <div key="mobile-descriptive-sections" className="lg:hidden animate-fade-in-up delay-400">
+                                {data.special_features && (
+                                    <div className="mt-6 pt-6 border-t border-gray-100">
+                                        <h3 className="text-lg font-bold text-[#103090] mb-2 flex items-center gap-2 font-serif">
+                                            <svg className="w-4 h-4 text-[#B8071C]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
+                                            </svg>
+                                            {translate("vehicle.special_features")}
+                                        </h3>
+                                        <p className="text-gray-600 leading-relaxed whitespace-pre-wrap text-sm font-sans line-clamp-4">
+                                            {data.special_features}
+                                        </p>
+                                    </div>
+                                )}
+                                {data.description && (
+                                    <div className="mt-6 pt-6 border-t border-gray-100">
+                                        <h3 className="text-lg font-bold text-[#103090] mb-2 font-serif">{translate("vehicle.description")}</h3>
+                                        <p className="text-gray-600 leading-relaxed whitespace-pre-wrap text-sm font-sans line-clamp-4">
+                                            {data.description}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                {/* Description */}
-                {data.description && (
-                    <div className="mt-8 pt-6 border-t border-gray-100">
-                        <h3 className="text-lg font-semibold text-[#103090] mb-3">{t("description")}</h3>
-                        <div className="max-h-48 overflow-y-auto">
-                            <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{data.description}</p>
-                        </div>
-                        {data.description.length > 500 && (
-                            <p className="text-xs text-gray-400 mt-2">{t("scrollMore")}</p>
-                        )}
-                    </div>
-                )}
             </div>
+
+            <PhotoViewer
+                photos={photos}
+                index={currentPhotoIndex}
+                isOpen={isViewerOpen}
+                onClose={() => setIsViewerOpen(false)}
+                onChangeIndex={(i) => setCurrentPhotoIndex(i)}
+            />
         </div>
     )
 }

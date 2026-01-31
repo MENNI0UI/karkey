@@ -2,12 +2,13 @@
 
 import React, { useEffect, useState, useRef } from "react"
 import Link from "next/link"
-import { X } from "lucide-react"
+import { X, LayoutGrid, StretchHorizontal } from "lucide-react"
 import dynamic from "next/dynamic"
 import AuctionCard from "@/components/auction-card"
-import { CarCardSkeleton } from "@/components/ui/car-card-skeleton"
+import { CarCardSkeleton, CarGridSkeleton } from "@/components/ui/car-card-skeleton"
 import { LuxuryLoader } from "@/components/ui/luxury-loader"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import { motion, AnimatePresence } from "framer-motion"
 import { useRouter as useNextRouter, useSearchParams } from "next/navigation"
 import { useTranslation } from "@/lib/i18n-context"
 import { useToast } from "@/hooks/use-toast"
@@ -49,6 +50,32 @@ export default function AuctionsPageClient({
   const router = useNextRouter()
   const searchParams = useSearchParams()
   const filtersRef = useRef<AuctionFiltersSidebarRef>(null)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    if (typeof window === 'undefined') return 'grid'
+    const saved = localStorage.getItem('karkey_view_mode') as 'grid' | 'list'
+    if (saved && (saved === 'grid' || saved === 'list')) {
+      if (window.innerWidth >= 768 || saved === 'grid') return saved
+    }
+    return 'grid'
+  })
+
+  // Wrapped setter to handle persistence
+  const handleSetViewMode = (mode: 'grid' | 'list') => {
+    setViewMode(mode)
+    localStorage.setItem('karkey_view_mode', mode)
+  }
+
+  // Enforce grid mode on small screens even if state is set to list
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768 && viewMode === 'list') {
+        setViewMode('grid')
+      }
+    }
+    handleResize() // Run on mount
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [viewMode])
 
   const handleCloseFilters = () => {
     filtersRef.current?.applyFilters()
@@ -459,10 +486,11 @@ export default function AuctionsPageClient({
         )}
 
         <div className={`flex-1 w-full min-w-0 px-4 pt-4 ${isPlaceholderVisible ? 'max-w-7xl mx-auto' : 'lg:px-6 xl:px-8'}`}>
-          <NewItemsNotifier fetchUrl={fetchUrl} initialTopId={initialVehicles?.[0]?.id ?? null} />
           <AuctionsGridClient
             initialVehiclesFromServer={initialVehicles}
             onPlaceholderVisibilityChange={setIsPlaceholderVisible}
+            viewMode={viewMode}
+            setViewMode={handleSetViewMode}
           />
           {/* sentinel placed after main content so sidebar can detect when footer is approaching */}
           <div id="filters-footer-sentinel" className="w-full h-px" aria-hidden="true" />
@@ -557,12 +585,66 @@ function getField(obj: any, ...keys: string[]) {
 // New client component for fetching and displaying auctions (used by /auctions page)
 export function AuctionsGridClient({
   initialVehiclesFromServer,
-  onPlaceholderVisibilityChange
+  onPlaceholderVisibilityChange,
+  viewMode: controlledViewMode,
+  setViewMode: controlledSetViewMode
 }: {
   initialVehiclesFromServer?: any[];
   onPlaceholderVisibilityChange?: (visible: boolean) => void;
+  viewMode?: 'grid' | 'list';
+  setViewMode?: (mode: 'grid' | 'list') => void;
 } = {}) {
-  const { t } = useTranslation()
+  const [internalViewMode, setInternalViewMode] = useState<'grid' | 'list'>(() => {
+    if (typeof window === 'undefined') return 'grid'
+    const saved = localStorage.getItem('karkey_view_mode') as 'grid' | 'list'
+    return (saved === 'grid' || saved === 'list') ? saved : 'grid'
+  })
+  const viewMode = controlledViewMode ?? internalViewMode
+
+  // Custom setter that handles localStorage
+  const setViewMode = (mode: 'grid' | 'list') => {
+    if (controlledSetViewMode) {
+      controlledSetViewMode(mode)
+    } else {
+      setInternalViewMode(mode)
+    }
+    localStorage.setItem('karkey_view_mode', mode)
+  }
+
+  const toggleViewMode = () => {
+    const newMode = viewMode === 'grid' ? 'list' : 'grid'
+    setViewMode(newMode)
+  }
+
+  // Load view mode preference on mount
+  useEffect(() => {
+    // We already initialize from localStorage in useState, but we keep this to sync
+    // if there are multiple instances or external changes, while avoiding the initial flicker.
+    const savedMode = localStorage.getItem('karkey_view_mode') as 'grid' | 'list'
+    if (savedMode && (savedMode === 'grid' || savedMode === 'list')) {
+      if (window.innerWidth >= 768 || savedMode === 'grid') {
+        if (controlledSetViewMode) {
+          controlledSetViewMode(savedMode)
+        } else {
+          setInternalViewMode(savedMode)
+        }
+      }
+    }
+  }, [controlledSetViewMode])
+
+  // Enforce grid mode on small screens even if state is set to list
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768 && viewMode === 'list') {
+        setViewMode('grid')
+      }
+    }
+    handleResize() // Run on mount
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [viewMode])
+
+  const { t, language } = useTranslation()
   const params = useSearchParams()
   const paramString = params ? params.toString() : ""
   const router = useNextRouter()
@@ -755,13 +837,8 @@ export function AuctionsGridClient({
     }
 
     return (
-      <div className="w-full flex flex-col items-center gap-8">
-        <LuxuryLoader size="lg" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 tv:grid-cols-6 4xl:grid-cols-8 gap-3 lg:gap-4 w-full">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <CarCardSkeleton key={`init-skel-${i}`} />
-          ))}
-        </div>
+      <div className="w-full">
+        <CarGridSkeleton count={12} viewMode={internalViewMode} />
       </div>
     )
   }
@@ -785,17 +862,99 @@ export function AuctionsGridClient({
     return <UpcomingAuctionsPlaceholder />
   }
 
+  // Determine if there are active search filters - if so, disable the notifier
+  // to prevent false positives when the user is actively searching
+  const hasActiveSearchFilters = hasActiveFilters(params)
+
+  // Only show notifier when no active filters (browsing mode, not search mode)
+  const notifierFetchUrl = `/api/auctions/approved?limit=1`
+  const notifierTopId = loading ? null : (vehicles?.[0]?.id ?? null)
+  const shouldShowNotifier = !hasActiveSearchFilters && !loading
+
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 tv:grid-cols-6 4xl:grid-cols-8 gap-3 lg:gap-4">
-        {vehicles!.map((it: any, idx: number) => {
-          const key = it?.id ?? it?.auction_id ?? JSON.stringify(it)
-          return (
-            <ScrollReveal key={String(key)} delay={idx * 50}>
-              <AuctionCard data={it} priority={idx < 4} initialIsWatched={it.is_watched} />
-            </ScrollReveal>
-          )
-        })}
+      {/* Only show notifier when not actively searching to prevent false positives */}
+      {shouldShowNotifier && (
+        <NewItemsNotifier
+          key={notifierFetchUrl}
+          fetchUrl={notifierFetchUrl}
+          initialTopId={notifierTopId}
+          isLoading={loading}
+        />
+      )}
+      {/* Search Result Stats & View Controls */}
+      <div className="hidden md:flex justify-end mb-4">
+        <button
+          onClick={toggleViewMode}
+          className="p-2 rounded-xl transition-all border-2 bg-white text-[#103090] border-[#DEB735]/60 hover:border-[#DEB735] hover:shadow-md shadow-sm active:scale-90 flex items-center justify-center"
+          title={viewMode === 'grid' ? t("common.list_view" as any) : t("common.grid_view" as any)}
+        >
+          {viewMode === 'grid' ? <StretchHorizontal size={20} strokeWidth={2.5} /> : <LayoutGrid size={20} strokeWidth={2.5} />}
+        </button>
+      </div>
+
+      <div className="relative min-h-[400px]">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={viewMode}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.12,
+                  delayChildren: 0.1,
+                  ease: [0.22, 1, 0.36, 1]
+                }
+              },
+              exit: {
+                opacity: 0,
+                transition: { duration: 0.3 }
+              }
+            }}
+            className={viewMode === 'grid'
+              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 tv:grid-cols-6 4xl:grid-cols-8 gap-3 lg:gap-4 w-full"
+              : "flex flex-col gap-4 w-full"
+            }
+          >
+            {vehicles!.map((it: any) => {
+              const key = it?.id ?? it?.auction_id ?? JSON.stringify(it)
+              return (
+                <motion.div
+                  key={String(key)}
+                  variants={{
+                    hidden: { opacity: 0, y: 30, filter: "blur(10px)", scale: 0.98 },
+                    visible: {
+                      opacity: 1,
+                      y: 0,
+                      filter: "blur(0px)",
+                      scale: 1,
+                      transition: {
+                        duration: 0.8,
+                        ease: [0.22, 1, 0.36, 1]
+                      }
+                    },
+                    exit: {
+                      opacity: 0,
+                      scale: 0.96,
+                      transition: { duration: 0.2 }
+                    }
+                  }}
+                >
+                  <AuctionCard
+                    data={it}
+                    priority={false}
+                    initialIsWatched={it.is_watched}
+                    viewMode={viewMode}
+                  />
+                </motion.div>
+              )
+            })}
+          </motion.div>
+        </AnimatePresence>
       </div>
       {/* Load more button / end marker */}
       <div className="flex justify-center mt-6">

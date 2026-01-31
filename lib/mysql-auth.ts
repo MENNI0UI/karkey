@@ -74,8 +74,7 @@ export async function setAuthCookie(token: string, options?: { maxAge?: number }
       secure,
       maxAge,
     })
-    // optional debug
-    console.log("[mysql-auth] set auth_token cookie length:", token ? token.length : 0)
+    // auth_token cookie set successfully
   } catch (e) {
     console.error("[mysql-auth] Failed to set auth cookie:", e)
     throw e

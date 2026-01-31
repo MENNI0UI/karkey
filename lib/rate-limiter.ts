@@ -28,7 +28,7 @@ const MAX_CACHE_SIZE = 10000; // Maximum entries to prevent memory issues
 // Redis instance (singleton)
 let redis: Redis | null = null;
 if (process.env.REDIS_URL) {
-    console.log("⚡ [RateLimiter] Using Redis storage");
+    // Using Redis storage for rate limiting
     redis = new Redis(process.env.REDIS_URL);
 }
 

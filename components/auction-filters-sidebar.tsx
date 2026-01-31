@@ -21,6 +21,8 @@ export type FilterOptions = {
   makes?: string[]
   models?: string[]
   modelsByMake?: Record<string, string[]>
+  makeCounts?: Record<string, number>
+  modelCounts?: Record<string, number>
   years?: Array<string | number>
   fuelTypes?: Array<{ value: string; label: string } | string>
   transmissions?: string[]
@@ -268,11 +270,14 @@ export const AuctionFiltersSidebar = forwardRef<
 
 
   // --- Collapsible UI ---
-  const [collapsed, setCollapsed] = useState(false)
-  useEffect(() => {
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false
     const saved = localStorage.getItem('sidebar-collapsed-auctions')
-    if (saved) setCollapsed(JSON.parse(saved))
-  }, [])
+    return saved ? JSON.parse(saved) : false
+  })
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
   const updateCollapsed = (val: boolean) => {
     setCollapsed(val)
     localStorage.setItem('sidebar-collapsed-auctions', JSON.stringify(val))
@@ -280,7 +285,7 @@ export const AuctionFiltersSidebar = forwardRef<
 
   const asideClass = mobile
     ? `w-full max-w-full bg-white border border-[#e5e7eb] rounded-none shadow-sm relative flex flex-col ${className ?? ""}`
-    : `hidden lg:flex ${collapsed ? "w-[60px]" : "w-full max-w-full lg:w-[320px] xl:w-[360px] 2xl:w-[400px] 3xl:w-[450px] 4xl:w-[500px]"} bg-white border border-[#e5e7eb] border-t-0 rounded-none shadow-sm relative lg:sticky lg:top-[var(--site-header-height,76px)] lg:h-[calc(100vh-var(--site-header-height,76px))] flex-col transition-all duration-300 ${className ?? ""}`
+    : `hidden lg:flex ${collapsed ? "w-[60px]" : "w-full max-w-full lg:w-[320px] xl:w-[360px] 2xl:w-[400px] 3xl:w-[450px] 4xl:w-[500px]"} bg-white border border-[#e5e7eb] border-t-0 rounded-none shadow-sm relative lg:sticky lg:top-[var(--site-header-height,76px)] lg:h-[calc(100vh-var(--site-header-height,76px))] flex-col ${mounted ? "transition-all duration-300" : ""} ${className ?? ""}`
 
   if (!mobile && collapsed) {
     return (
@@ -335,7 +340,10 @@ export const AuctionFiltersSidebar = forwardRef<
           <CustomMultiSelect
             value={localFilters.make}
             onChange={(val) => updateLocal("make", val)}
-            options={makes.map(m => ({ value: m.toLowerCase(), label: m }))}
+            options={makes.map(m => ({
+              value: m.toLowerCase(),
+              label: options?.makeCounts?.[m] ? `${m} (${options.makeCounts[m]})` : m
+            }))}
             placeholder={t("filters.any")}
             className="sb-dropdown-trigger-bordered"
           />
@@ -346,7 +354,10 @@ export const AuctionFiltersSidebar = forwardRef<
           <CustomMultiSelect
             value={localFilters.model}
             onChange={(val) => updateLocal("model", val)}
-            options={filteredModels.map(m => ({ value: m.toLowerCase(), label: m }))}
+            options={filteredModels.map(m => ({
+              value: m.toLowerCase(),
+              label: options?.modelCounts?.[m] ? `${m} (${options.modelCounts[m]})` : m
+            }))}
             disabled={selectedMakes.length === 0 && !options?.models?.length}
             placeholder={t("filters.any")}
             className="sb-dropdown-trigger-bordered"

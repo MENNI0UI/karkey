@@ -1,6 +1,7 @@
 "use client";
 
 import { getUserAuctions, getUserDirectSales, getWatchlistForUser, getDirectSalesWatchlistForUser, updateUserProfile, checkEmailAvailability } from "./actions"; // Import Server Actions
+import logger from "@/lib/logger";
 import React, { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
@@ -131,7 +132,7 @@ export default function SectionsSwitcher({
           return;
         }
       } catch (err) {
-        console.error(err);
+        logger.error("[sections-switcher] Error checking email availability:", err);
         setIsSaving(false);
         return;
       }
@@ -171,22 +172,16 @@ export default function SectionsSwitcher({
   useEffect(() => {
     if (typeof favoritesState !== "undefined") return;
     if (!userId) {
-      console.warn("[SectionsSwitcher] No userId provided, skipping favorites fetch.");
+      // logger.warn("[SectionsSwitcher] No userId provided, skipping favorites fetch.");
       return;
     }
 
-    console.log("[SectionsSwitcher] Fetching favorites for userId:", userId);
     const fetchAll = async () => {
       try {
         const [watchRes, dsWatchRes] = await Promise.all([
           getWatchlistForUser(userId),
           getDirectSalesWatchlistForUser(userId)
         ]);
-
-        console.log("[SectionsSwitcher] Favorites fetch results:", {
-          watchlist: watchRes?.length,
-          dsWatchlist: dsWatchRes?.length
-        });
 
         // Merge and sort
         const merged = [...(watchRes || []), ...(dsWatchRes || [])].sort((a, b) => {
@@ -195,10 +190,9 @@ export default function SectionsSwitcher({
           return dateB - dateA;
         });
 
-        console.log("[SectionsSwitcher] Setting favoritesState with", merged.length, "items");
         setFavoritesState(merged);
       } catch (err) {
-        console.error("[SectionsSwitcher] Error fetching favorites:", err);
+        logger.error("[SectionsSwitcher] Error fetching favorites:", err);
         setFavoritesState([]);
       }
     };
@@ -210,18 +204,12 @@ export default function SectionsSwitcher({
     if (typeof auctionsState !== "undefined") return;
     if (!userId) return;
 
-    console.log("[SectionsSwitcher] Fetching my listings for userId:", userId);
     const fetchListings = async () => {
       try {
         const [aucRes, dsRes] = await Promise.all([
           getUserAuctions(userId),
           getUserDirectSales(userId)
         ]);
-
-        console.log("[SectionsSwitcher] My listings fetch results:", {
-          auctions: aucRes?.success ? aucRes.auctions?.length : "failed",
-          directSales: dsRes?.success ? dsRes.directSales?.length : "failed"
-        });
 
         const aucs = aucRes?.success && aucRes?.auctions ? aucRes.auctions : [];
         const dSales = dsRes?.success && dsRes?.directSales ? dsRes.directSales : [];
@@ -233,10 +221,9 @@ export default function SectionsSwitcher({
           return dateB - dateA;
         });
 
-        console.log("[SectionsSwitcher] Setting auctionsState with", merged.length, "items");
         setAuctionsState(merged);
       } catch (err) {
-        console.error("[SectionsSwitcher] Error fetching my listings:", err);
+        logger.error("[SectionsSwitcher] Error fetching my listings:", err);
         setAuctionsState([]);
       }
     };

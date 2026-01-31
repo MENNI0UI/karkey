@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react"
 import { X, Send, Phone, Mail, User, MessageSquare, LogIn, CheckCircle, AlertCircle } from "lucide-react"
 import { useTranslation } from "@/lib/i18n-context"
 import { LuxuryLoader } from "@/components/ui/luxury-loader"
+import logger from "@/lib/logger"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
 
@@ -87,7 +88,7 @@ export default function KarkeyInquiryModal({ car, isOpen, onClose, inline = fals
                         }
                     })
                     .catch((err) => {
-                        console.error("Error fetching inquiry status", err)
+                        logger.error("Error fetching inquiry status", err)
                     })
                     .finally(() => setInquiryLoading(false))
             } else {

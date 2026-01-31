@@ -105,10 +105,10 @@ export async function createDirectSale(prevState: any, formData: FormData) {
 
         if (carteGriseUrlOptimistic) {
             carte_grise_url = carteGriseUrlOptimistic
-            console.log(`[direct-sales] Using optimistic carte_grise: ${carte_grise_url}`)
+            // Using optimistic carte_grise
         } else if (carteGriseFile && carteGriseFile.size > 0) {
             // Legacy slow path
-            console.log(`[direct-sales] Processing carte_grise: ${carteGriseFile.name} (${carteGriseFile.size} bytes)`)
+            // Processing carte_grise (legacy path)
             const name = sanitizeFilename(carteGriseFile.name || `carte_${Date.now()}`)
             const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${name}`
             const key = `direct-sales/${filename}`
@@ -132,7 +132,7 @@ export async function createDirectSale(prevState: any, formData: FormData) {
                 }))
 
                 carte_grise_url = `${process.env.R2_PUBLIC_DOMAIN}/${key}`
-                console.log(`[direct-sales] carte_grise uploaded: ${carte_grise_url}`)
+                // carte_grise uploaded
             } catch (e) {
                 console.warn("[direct-sales] Carte grise upload failed:", e)
             }
@@ -141,16 +141,16 @@ export async function createDirectSale(prevState: any, formData: FormData) {
         const serviceDocPaths: string[] = []
 
         if (serviceDocUrlsOptimistic.length > 0) {
-            console.log(`[direct-sales] Using ${serviceDocUrlsOptimistic.length} optimistic service docs`)
+            // Using optimistic service docs
             serviceDocPaths.push(...serviceDocUrlsOptimistic)
         } else if (serviceFiles && serviceFiles.length > 0) {
             // Legacy slow path
-            console.log(`[direct-sales] Processing ${serviceFiles.length} service docs`)
+            // Processing service docs (legacy path)
             for (let i = 0; i < serviceFiles.length; i++) {
                 const f = serviceFiles[i]
                 if (f.size === 0) continue
 
-                console.log(`[direct-sales] Processing service doc ${i + 1}/${serviceFiles.length}: ${f.name}`)
+                // Processing service doc
                 const name = sanitizeFilename(f.name || `service_${i}`)
                 const ext = path.extname(name)
                 const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${name}`
@@ -175,7 +175,7 @@ export async function createDirectSale(prevState: any, formData: FormData) {
 
                     const url = `${process.env.R2_PUBLIC_DOMAIN}/${key}`
                     serviceDocPaths.push(url)
-                    console.log(`[direct-sales] Service doc ${i + 1} uploaded: ${url}`)
+                    // Service doc uploaded
                 } catch (e) {
                     console.warn(`[direct-sales] Service doc ${i + 1} failed:`, e)
                 }
@@ -227,7 +227,7 @@ export async function createDirectSale(prevState: any, formData: FormData) {
         const photoPaths: { url: string; blurhash: string | null }[] = []
 
         if (hasOptimisticPhotos) {
-            console.log(`[direct-sales] Using ${photoUrls.length} optimistic photos`)
+            // Using optimistic photos
             photoUrls.forEach((url, i) => {
                 photoPaths.push({
                     url,
@@ -237,7 +237,7 @@ export async function createDirectSale(prevState: any, formData: FormData) {
         } else {
             // FALLBACK: Legacy Monolithic Upload
             const photos = photosFiles
-            console.log(`[direct-sales] Starting batched processing of ${photos.length} photos (concurrency: 3)`)
+            // Batched processing of photos
 
             // Process photos in batches of 3 to speed up but avoid crashing server
             for (let i = 0; i < photos.length; i += 3) {
@@ -246,7 +246,7 @@ export async function createDirectSale(prevState: any, formData: FormData) {
                     const globalIndex = i + index
                     if (f.size === 0) return null
 
-                    console.log(`[direct-sales] Processing photo ${globalIndex + 1}/${photos.length}: ${f.name}`)
+                    // Processing photo
                     const startTime = Date.now()
                     const name = sanitizeFilename(f.name || `photo_${globalIndex}`)
                     const ext = path.extname(name)
@@ -273,7 +273,7 @@ export async function createDirectSale(prevState: any, formData: FormData) {
                         }))
 
                         const url = `${process.env.R2_PUBLIC_DOMAIN}/${key}`
-                        console.log(`[direct-sales] Photo ${globalIndex + 1} uploaded in ${Date.now() - startTime}ms`)
+                        // Photo uploaded
                         return { url, blurhash }
                     } catch (e) {
                         console.warn(`[direct-sales] Photo ${globalIndex + 1} failed:`, e)

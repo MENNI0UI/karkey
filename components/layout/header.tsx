@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import React from "react";
 import { LuxuryLoader } from "@/components/ui/luxury-loader";
+import logger from "@/lib/logger";
 
 // Components
 import { LanguageSwitcher } from "./header/language-switcher";
@@ -299,7 +300,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 		return { hasError: true };
 	}
 	componentDidCatch(error: any, info: any) {
-		console.error("[Header] caught error:", error, info);
+		logger.error("[Header] caught error:", error, info);
 	}
 	render() {
 		if (this.state.hasError) {

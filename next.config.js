@@ -131,6 +131,15 @@ const nextConfig = {
           { key: 'Link', value: '<https://accounts.google.com>; rel=preconnect, <https://img.karkey.space>; rel=preconnect' }
         ],
       },
+      {
+        source: '/_next/image(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
     ];
 
     if (process.env.NODE_ENV === 'production') {

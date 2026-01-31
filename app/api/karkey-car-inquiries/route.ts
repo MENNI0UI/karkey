@@ -10,15 +10,15 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url)
         const karkey_car_id = searchParams.get("karkey_car_id")
         const session = await auth()
-        console.log("DEBUG_API: Session:", JSON.stringify(session, null, 2))
+        // Check authentication
 
         if (!session?.user?.id) {
-            console.log("DEBUG_API: No User ID in session")
+            // No User ID in session
             return NextResponse.json({ userInfo: null, existingInquiry: null })
         }
 
         const userId = parseInt(session.user.id)
-        console.log("DEBUG_API: UserID:", userId)
+        // User Authenticated
 
         // Fetch user info
         const user = await prisma.users.findUnique({

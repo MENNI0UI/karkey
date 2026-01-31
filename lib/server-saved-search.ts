@@ -29,12 +29,10 @@ const COOKIE_NAMES: Record<SavedSearchType, string> = {
 async function fetchLatestSavedSearch(type: SavedSearchType, userId: string) {
     const id = Number(userId);
     const orderBy = { created_at: 'desc' } as const;
-    console.log(`[ServerSavedSearch] Fetching for type=${type}, userId=${userId} (as num=${id})`);
+    // Fetching saved search for type, userId
     if (type === 'auctions') return prisma.saved_searches.findFirst({ where: { user_id: id }, orderBy });
     if (type === 'direct-sales') {
-        console.log(`[ServerSavedSearch] Querying direct_sales_saved_searches with user_id=${userId}`);
         const text_res = await prisma.direct_sales_saved_searches.findFirst({ where: { user_id: Number(userId) }, orderBy });
-        console.log(`[ServerSavedSearch] Direct Sales result:`, text_res ? `Found ID ${text_res.id}` : 'null');
         return text_res;
     }
     return null;

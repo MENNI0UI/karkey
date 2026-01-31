@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
+import logger from "@/lib/logger";
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, saved }, { status: 200 });
   } catch (error: unknown) {
-    console.error("[api/direct-sales-watchlist/check] error:", error);
+    logger.error("[api/direct-sales-watchlist/check] error:", error);
     return NextResponse.json({ success: false, saved: false, error: error instanceof Error ? error.message : "Server error" }, { status: 500 });
   }
 }

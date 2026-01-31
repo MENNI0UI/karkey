@@ -5,9 +5,10 @@ import { useTranslation } from "@/lib/i18n-context"
 import KarkeyCarCard from "@/components/karkey-car-card"
 import HomeCityCard from "@/components/home-city-card"
 import { useParams } from "next/navigation"
-import { StaggerContainer, StaggerItem, FadeIn, Reveal } from "@/components/ui/motion-wrappers"
+import { StaggerContainer, StaggerItem, FadeIn } from "@/components/ui/motion-wrappers"
 import { CarGridSkeleton } from "@/components/ui/car-card-skeleton"
 import { LuxuryLoader } from "@/components/ui/luxury-loader"
+import logger from "@/lib/logger"
 import dynamic from "next/dynamic"
 
 const ParticlesCursor = dynamic(() => import("@/components/ui/particles-cursor"), {
@@ -49,7 +50,7 @@ export default function HomePageClient({
 					setKarkeyItems([]);
 				}
 			} catch (err) {
-				console.error("[HomePageClient] search error:", err);
+				logger.error("[HomePageClient] search error:", err);
 				setKarkeyItems([]);
 			} finally {
 				setLoading(false);

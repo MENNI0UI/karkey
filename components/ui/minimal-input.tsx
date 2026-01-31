@@ -8,6 +8,7 @@ interface MinimalInputProps {
     required?: boolean;
     error?: string;
     hint?: string;
+    tooltip?: string;
     children: React.ReactNode;
 }
 
@@ -16,20 +17,36 @@ export function MinimalInputWrapper({
     required,
     error,
     hint,
+    tooltip,
     children,
 }: MinimalInputProps) {
     return (
-        <div className="space-y-1.5">
-            <label className="block text-[13px] font-bold text-gray-600 uppercase tracking-wider font-serif">
-                {label}
-                {required && <span className="text-[#B8071C] ml-1">*</span>}
-            </label>
-            {children}
+        <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+                <label className="block text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] font-serif">
+                    {label}
+                    {required && <span className="text-[#B8071C] ms-1">*</span>}
+                </label>
+                {tooltip && (
+                    <div className="group relative">
+                        <div className="w-5 h-5 rounded-full border border-gray-400 flex items-center justify-center text-[12px] font-black text-gray-500 cursor-help hover:border-[#103090] hover:text-[#103090] transition-colors bg-white/50">
+                            !
+                        </div>
+                        <div className="absolute bottom-full left-0 mb-4 w-80 p-5 bg-gray-900/95 backdrop-blur-md text-white text-[13px] font-medium leading-[1.7] rounded-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] pointer-events-none border border-white/20">
+                            {tooltip}
+                            <div className="absolute top-full left-2.5 border-[7px] border-transparent border-t-gray-900/95" />
+                        </div>
+                    </div>
+                )}
+            </div>
+            <div className={`luxury-input-container ${error ? "!border-red-300 !bg-red-50/30" : ""}`}>
+                {children}
+            </div>
             {hint && !error && (
-                <p className="text-sm text-gray-400">{hint}</p>
+                <p className="text-[10px] text-gray-400 font-sans ps-1">{hint}</p>
             )}
             {error && (
-                <p className="text-sm text-red-500">{error}</p>
+                <p className="text-xs text-red-500 font-medium font-sans ps-1">{error}</p>
             )}
         </div>
     );
@@ -139,8 +156,7 @@ export function MinimalTextInput({
                     type={type}
                     value={value}
                     onChange={onChange}
-                    className={`w-full bg-transparent border-0 border-b-2 border-gray-200 px-0 py-3 text-base font-medium text-[#103090] placeholder-gray-400 focus:outline-none focus:border-[#B8071C] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-serif ${error ? "border-red-500" : ""
-                        } ${isNumber && suffix ? "ltr:pr-16 rtl:pl-16" : suffix ? "ltr:pr-8 rtl:pl-8" : ""} ${className}`}
+                    className={`w-full bg-transparent border-0 px-0 py-1 text-base font-medium text-[#103090] placeholder-gray-400 focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-serif ${isNumber && suffix ? "ltr:pr-16 rtl:pl-16" : suffix ? "ltr:pr-8 rtl:pl-8" : ""} ${className}`}
                     step={step}
                     {...props}
                 />
@@ -209,8 +225,7 @@ export function MinimalSelect({
     return (
         <MinimalInputWrapper label={label} required={required} error={error} hint={hint}>
             <select
-                className={`w-full bg-transparent border-0 border-b-2 border-gray-200 px-0 py-3 text-base font-medium text-[#103090] focus:outline-none focus:border-[#B8071C] transition-colors cursor-pointer font-serif ${error ? "border-red-500" : ""
-                    } ${!props.value ? "text-gray-400" : ""} ${className}`}
+                className={`w-full bg-transparent border-0 px-0 py-1 text-base font-medium text-[#103090] focus:outline-none transition-colors cursor-pointer font-serif ${!props.value ? "text-gray-400" : ""} ${className}`}
                 {...props}
             >
                 <option value="" className="text-gray-400">{placeholder}</option>

@@ -14,8 +14,8 @@ async function getCachedLogo(): Promise<string> {
         const logoBuffer = await fs.readFile(logoPath);
         cachedLogoBase64 = logoBuffer.toString('base64');
         return cachedLogoBase64;
-    } catch (e) {
-        throw e;
+    } catch {
+        throw new Error("Failed to load logo");
     }
 }
 
@@ -25,10 +25,10 @@ export async function maybeApplyWatermark(
     filename?: string
 ): Promise<{ data: Uint8Array | Buffer; contentType: string }> {
     try {
-        console.log(`[image-processing] Processing buffer of length: ${body.length}, contentType: ${contentType}, filename: ${filename}`);
+        // Processing buffer
 
         // Only process images
-        if (!contentType || !contentType.startsWith("image/")) {
+        if (!contentType?.startsWith("image/")) {
             return { data: body, contentType };
         }
 
@@ -123,7 +123,7 @@ export async function maybeApplyWatermark(
                     input: Buffer.from(svg),
                     gravity: 'center'
                 }]);
-                console.log("[image-processing] Applied unified logo-based watermark.");
+                // Applied unified logo-based watermark
             } catch (logoError) {
                 console.warn("[image-processing] Logo watermark failed, falling back to basic text:", logoError);
                 // Basic Text Fallback (Old logic)
@@ -154,16 +154,16 @@ export async function maybeApplyWatermark(
         try {
             if (isActuallyPNG) {
                 const out = await img.png({ quality: PNG_QUALITY, compressionLevel: 6 }).toBuffer();
-                console.log(`[image-processing] Processed PNG: ${body.length} -> ${out.length} bytes`);
+                // Processed PNG
                 return { data: out, contentType: "image/png" };
             } else if (isActuallyJPEG) {
                 const out = await img.jpeg({ quality: JPEG_QUALITY, mozjpeg: false }).toBuffer();
-                console.log(`[image-processing] Processed JPEG: ${body.length} -> ${out.length} bytes`);
+                // Processed JPEG
                 return { data: out, contentType: "image/jpeg" };
             } else {
                 try {
                     const out = await img.webp({ quality: WEBP_QUALITY }).toBuffer();
-                    console.log(`[image-processing] Processed WebP: ${body.length} -> ${out.length} bytes`);
+                    // Processed WebP
                     return { data: out, contentType: "image/webp" };
                 } catch (webpError) {
                     console.warn("[image-processing] WebP encoding failed, falling back to JPEG:", webpError);

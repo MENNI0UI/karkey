@@ -40,7 +40,7 @@ export async function sendVerificationEmail(
       return { success: false, error: error.message };
     }
 
-    console.log('[Email] Verification email sent successfully:', data?.id);
+    // Verification email sent successfully
     return { success: true, messageId: data?.id };
   } catch (err) {
     console.error('[Email] Error sending verification email:', err);
@@ -178,7 +178,7 @@ export async function sendAuctionReminderEmail(
       return { success: false, error: error.message };
     }
 
-    console.log('[Email] Auction reminder sent successfully:', data?.id);
+    // Auction reminder sent successfully
     return { success: true, messageId: data?.id };
   } catch (err) {
     console.error('[Email] Error sending auction reminder:', err);

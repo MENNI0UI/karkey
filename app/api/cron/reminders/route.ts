@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendAuctionReminderEmail } from "@/lib/email";
+import logger from "@/lib/logger";
 
 // This endpoint should be called by a cron job (e.g., Vercel Cron) every Saturday at 00:00
 export async function GET(req: NextRequest) {
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ success: true, message: "No active subscribers found" });
         }
 
-        console.log(`[Cron] Sending auction reminders to ${subscribers.length} users`);
+        logger.info(`[Cron/Reminders] Sending auction reminders to ${subscribers.length} users`);
 
         // 2. Send emails in batches to avoid rate limits
         const results = {
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
         });
 
     } catch (error) {
-        console.error("Cron error:", error);
+        logger.error("[Cron/Reminders] Error:", error);
         return NextResponse.json(
             { success: false, error: "Internal server error" },
             { status: 500 }

@@ -162,7 +162,7 @@ export default function StatisticsSection({ userId }: StatisticsSectionProps) {
                 <div className="space-y-6 mb-12">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-2xl font-serif text-[#008E46] font-bold">
-                            Listing Performance
+                            {t("profile.statistics.listing_performance")}
                         </h2>
                     </div>
 
@@ -189,9 +189,10 @@ export default function StatisticsSection({ userId }: StatisticsSectionProps) {
                                     )}
                                     <span className={`absolute top-2 left-2 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider text-white shadow-md ${item.status === 'Active' ? 'bg-emerald-500' :
                                         item.status === 'Sold' ? 'bg-amber-500' :
-                                            'bg-gray-500'
+                                            item.status === 'Rejected' ? 'bg-rose-500' :
+                                                'bg-gray-500'
                                         }`}>
-                                        {item.status}
+                                        {t(`profile.status.${item.status.toLowerCase()}` as any)}
                                     </span>
                                 </div>
 
@@ -263,9 +264,10 @@ export default function StatisticsSection({ userId }: StatisticsSectionProps) {
                                     )}
                                     <span className={`absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider text-white shadow-md ${item.status === 'Active' ? 'bg-emerald-500' :
                                         item.status === 'Sold' ? 'bg-amber-500' :
-                                            'bg-gray-500'
+                                            item.status === 'Rejected' ? 'bg-rose-500' :
+                                                'bg-gray-500'
                                         }`}>
-                                        {item.status}
+                                        {t(`profile.status.${item.status.toLowerCase()}` as any)}
                                     </span>
                                 </div>
 

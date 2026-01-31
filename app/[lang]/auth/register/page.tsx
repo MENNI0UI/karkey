@@ -166,14 +166,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("[v0] ========== FORM SUBMISSION STARTED ==========")
-    console.log("[v0] Current form data:", {
-      email: formData.email,
-      phone: formData.phone_number,
-      prenom: formData.prenom,
-      nom: formData.nom,
-      user_type: formData.user_type,
-    })
+    // Form submission started
 
     const finalErrors: Record<string, string> = {}
 
@@ -193,7 +186,7 @@ export default function RegisterPage() {
     }
 
     if (Object.keys(finalErrors).length > 0) {
-      console.log("[v0] ❌ Validation failed:", finalErrors)
+      // Validation failed
       setValidationErrors(finalErrors)
       return
     }
@@ -202,7 +195,7 @@ export default function RegisterPage() {
     setError("")
 
     try {
-      console.log("[v0] Calling registerUser server action...")
+      // Calling registerUser server action
       const dataToSend = {
         username: formData.username,
         email: formData.email,
@@ -214,18 +207,10 @@ export default function RegisterPage() {
         user_type: formData.user_type,
       }
 
-      console.log("[v0] Data being sent:", {
-        ...dataToSend,
-        password: "***REDACTED***",
-        confirmPassword: "***REDACTED***",
-      })
-
       const result = await registerUser(dataToSend)
 
-      console.log("[v0] Registration result:", result)
-
       if (result.success) {
-        console.log("[v0] ✅ Registration successful!")
+        // Registration successful
 
         // Auto-login using NextAuth
         const { signIn } = await import("next-auth/react")
@@ -241,7 +226,7 @@ export default function RegisterPage() {
           return
         }
 
-        console.log("[v0] ✅ Auto-login successful!")
+        // Auto-login successful
 
         // Notify other windows/components
         try {
@@ -257,9 +242,8 @@ export default function RegisterPage() {
           window.location.href = "/"
         }
       } else {
-        console.log("[v0] ❌ Registration failed")
+        // Registration failed
         const resultError = (result as any).error
-        console.log("[v0] Error message:", resultError)
         const errorMsg = typeof resultError === 'object' && resultError?.message
           ? resultError.message
           : (typeof resultError === 'string' ? resultError : "Registration failed. Please try again.")
@@ -271,7 +255,7 @@ export default function RegisterPage() {
       setError(error?.message || "An unexpected error occurred. Please try again.")
     } finally {
       setLoading(false)
-      console.log("[v0] ========== FORM SUBMISSION ENDED ==========")
+      // Form submission ended
     }
   }
 

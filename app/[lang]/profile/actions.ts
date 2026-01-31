@@ -1,8 +1,8 @@
 "use server"
 
 import prisma from "@/lib/prisma"
-import { verifyToken } from "@/lib/mysql-auth" // used to decode token for userId
-import { UserProfile, AuctionItem, DirectSaleItem, StatisticsResponse, UserStatistics } from "./types"
+import logger from "@/lib/logger"
+import { UserProfile, AuctionItem, DirectSaleItem, StatisticsResponse } from "./types"
 
 export async function getUserProfile(userId: number): Promise<UserProfile | null> {
   try {
@@ -45,8 +45,7 @@ export async function getUserProfile(userId: number): Promise<UserProfile | null
 
     return profileData
   } catch (error) {
-    console.error("[v0] ❌ Error fetching user profile:", error)
-    console.error("[v0] Error stack:", error instanceof Error ? error.stack : "No stack trace")
+    logger.error("[profile] Error fetching user profile:", error)
     return null
   }
 }
@@ -68,9 +67,8 @@ export async function getUserAuctions(userId: number): Promise<{ success: boolea
       orderBy: { created_at: "desc" }
     })
 
-    console.log(`[v0] getUserAuctions: fetched ${auctions.length} rows for userId=${userId}`)
+    logger.debug(`[profile] getUserAuctions: fetched ${auctions.length} rows for userId=${userId}`)
 
-    const now = new Date()
     const result = auctions.map((a) => {
       const title = [a.make, a.model].filter(Boolean).join(" ").trim()
       const imageUrl = a.direct_sale_photos?.[0]?.photo_url ?? null
@@ -99,7 +97,7 @@ export async function getUserAuctions(userId: number): Promise<{ success: boolea
 
     return { success: true, auctions: result }
   } catch (error) {
-    console.error("[v0] Error fetching user auctions:", error)
+    logger.error("[profile] Error fetching user auctions:", error)
     return { success: false, error: "Failed to fetch auctions", auctions: [] }
   }
 }
@@ -116,19 +114,18 @@ export async function updateProfilePicture(userId: number, profilePictureUrl: st
 
     return { success: true }
   } catch (error: any) {
-    console.error("[v0] ========== updateProfilePicture ERROR ==========")
-    console.error("[v0] ❌ Error updating profile picture:", error)
-    console.error("[v0] Error message:", error.message)
-    console.error("[v0] Error code:", error.code)
-    console.error("[v0] Error stack:", error.stack)
+    logger.error("[profile] Error updating profile picture:", {
+      error: error.message,
+      code: error.code,
+      userId
+    })
 
     // Check if it's a column not found error
     if (error.message && error.message.includes("profile_picture")) {
-      console.error("[v0] ⚠️ The 'profile_picture' column doesn't exist in the users table")
-      console.error("[v0] Please run: npm run db:add-profile-picture")
+      logger.error("[profile] profile_picture column missing - run migration")
       return {
         success: false,
-        error: "Database not configured. Please run: npm run db:add-profile-picture",
+        error: "Database not configured. Please contact support.",
       }
     }
 
@@ -149,8 +146,7 @@ export async function updateUserProfile(userId: number, data: { email?: string, 
 
     return { success: true }
   } catch (error: any) {
-    console.error("[v0] ========== updateUserProfile ERROR ==========")
-    console.error("[v0] ❌ Error updating user profile:", error)
+    logger.error("[profile] Error updating user profile:", error)
     return { success: false, error: "Failed to update profile information" }
   }
 }
@@ -170,7 +166,7 @@ export async function checkEmailAvailability(email: string) {
 
     return { available: true }
   } catch (error) {
-    console.error("[v0] Error checking email availability:", error)
+    logger.error("[profile] Error checking email availability:", error)
     return { available: false, error: "Failed to check email availability" }
   }
 }
@@ -180,87 +176,17 @@ export async function logoutUser() {
     const { cookies } = await import("next/headers")
     const cookieStore = await cookies()
 
-    // Debug: log which cookies server sees in this request
-    try {
-      const authTokenCookie = cookieStore.get("auth_token")?.value ?? null
-      const refreshTokenCookie = cookieStore.get("refresh_token")?.value ?? null
-      const sessionCookie = cookieStore.get("session")?.value ?? cookieStore.get("sid")?.value ?? null
-      console.debug("[logoutUser] cookieStore auth_token present:", Boolean(authTokenCookie))
-      console.debug("[logoutUser] cookieStore refresh_token present:", Boolean(refreshTokenCookie))
-      console.debug("[logoutUser] cookieStore session/sid present:", Boolean(sessionCookie))
-    } catch (inner) {
-      console.debug("[logoutUser] unable to read individual cookies from cookieStore:", inner)
-    }
-
-    // Attempt: if auth_token exists, try to verify and remove refresh tokens in DB for that user
-    try {
-      const authToken = cookieStore.get("auth_token")?.value ?? null
-      if (authToken) {
-        try {
-          const payload: any = await verifyToken(authToken).catch(() => null)
-          if (payload && typeof payload.userId === "number") {
-            const uid = payload.userId
-            try {
-              // best-effort: delete refresh tokens for this user if table exists
-              await prisma.$executeRawUnsafe('DELETE FROM refresh_tokens WHERE user_id = ?', uid)
-              console.debug(`[logoutUser] deleted refresh_tokens rows for userId=${uid}`)
-            } catch (dbErr) {
-              const msg = typeof dbErr === "object" && dbErr && "message" in dbErr && typeof (dbErr as any).message === "string"
-                ? (dbErr as any).message
-                : String(dbErr)
-              console.warn("[logoutUser] failed to delete refresh_tokens (maybe table missing):", msg)
-            }
-          } else {
-            console.debug("[logoutUser] verifyToken did not return a numeric userId")
-          }
-        } catch (vErr) {
-          console.warn("[logoutUser] token verify failed:", vErr)
-        }
-      } else {
-        console.debug("[logoutUser] no auth_token cookie found to verify")
-      }
-    } catch (payloadErr) {
-      console.warn("[logoutUser] error during token->userId handling:", payloadErr)
-    }
-
-    // Attempt to remove server-side session rows - use raw queries for best-effort cleanup
-    try {
-      const sess = cookieStore.get("session")?.value ?? cookieStore.get("sid")?.value ?? cookieStore.get("connect.sid")?.value ?? null
-      if (sess) {
-        // best-effort cleanup of session tables using raw queries
-        try {
-          await prisma.$executeRawUnsafe("DELETE FROM sessions WHERE sid = ?", sess)
-        } catch { /* ignore */ }
-        try {
-          await prisma.$executeRawUnsafe("DELETE FROM session_store WHERE session_id = ?", sess)
-        } catch { /* ignore */ }
-        try {
-          await prisma.$executeRawUnsafe("DELETE FROM connect_sessions WHERE sid = ?", sess)
-        } catch { /* ignore */ }
-        try {
-          await prisma.$executeRawUnsafe("DELETE FROM refresh_tokens WHERE session_id = ?", sess)
-        } catch { /* ignore */ }
-        console.debug("[logoutUser] attempted session-store cleanup")
-      } else {
-        console.debug("[logoutUser] no session cookie found to cleanup server-side")
-      }
-    } catch (sessErr) {
-      console.warn("[logoutUser] server-side session cleanup attempt failed:", sessErr)
-    }
-
     // Finally, delete the cookie from cookieStore
     try {
       cookieStore.delete("auth_token")
       cookieStore.delete("refresh_token")
-      // log after deletion attempt
-
     } catch (delErr) {
-
+      // ignore
     }
 
     return { success: true }
   } catch (error) {
-    console.error("[v0] Error logging out:", error)
+    logger.error("[profile] Error logging out:", error)
     return { success: false, error: "Failed to logout" }
   }
 }
@@ -322,7 +248,7 @@ export async function getWatchlistForUser(userId: number): Promise<AuctionItem[]
         }
       })
   } catch (err) {
-    console.error("[v0] Error fetching watchlist:", err)
+    logger.error("[profile] Error fetching watchlist:", err)
     return []
   }
 }
@@ -380,7 +306,7 @@ export async function getDirectSalesWatchlistForUser(userId: number): Promise<Di
       }
     })
   } catch (err) {
-    console.error("[v0] Error fetching direct sales watchlist:", err)
+    logger.error("[profile] Error fetching direct sales watchlist:", err)
     return []
   }
 }
@@ -429,7 +355,7 @@ export async function getUserDirectSales(userId: number): Promise<{ success: boo
 
     return { success: true, directSales: result }
   } catch (error) {
-    console.error("[v0] Error fetching user direct sales:", error)
+    logger.error("[profile] Error fetching user direct sales:", error)
     return { success: false, error: "Failed to fetch direct sales", directSales: [] }
   }
 }
@@ -474,7 +400,7 @@ export async function getUserStatistics(userId: number): Promise<StatisticsRespo
           });
         }
       } catch (e) {
-        console.error("Error fetching specific views", e);
+        logger.error("[profile] Error fetching statistics views", e);
       }
     }
 
@@ -523,17 +449,28 @@ export async function getUserStatistics(userId: number): Promise<StatisticsRespo
     ).length;
 
     // 6. Build detailed listing performance array
-    const listingPerformance = directSales.map((ds: any) => ({
-      id: ds.id,
-      title: `${ds.make} ${ds.model} ${ds.year}`,
-      image_url: ds.direct_sale_photos?.[0]?.photo_url || null,
-      price: ds.price ? Number(ds.price) : 0,
-      status: ds.sale_status === 'sold' ? 'Sold' : (ds.verification_status === 'approved' ? 'Active' : 'Pending'),
-      views: viewsMap[ds.id] || 0,
-      saves: watchlistCounts[ds.id] || 0,
-      contacts: contactsCounts[ds.id] || 0,
-      created_at: ds.created_at,
-    }));
+    const listingPerformance = directSales.map((ds: any) => {
+      let status = 'Pending';
+      if (ds.sale_status === 'sold') {
+        status = 'Sold';
+      } else if (ds.verification_status === 'approved') {
+        status = 'Active';
+      } else if (ds.verification_status === 'rejected') {
+        status = 'Rejected';
+      }
+
+      return {
+        id: ds.id,
+        title: `${ds.make} ${ds.model} ${ds.year}`,
+        image_url: ds.direct_sale_photos?.[0]?.photo_url || null,
+        price: ds.price ? Number(ds.price) : 0,
+        status,
+        views: viewsMap[ds.id] || 0,
+        saves: watchlistCounts[ds.id] || 0,
+        contacts: contactsCounts[ds.id] || 0,
+        created_at: ds.created_at,
+      };
+    });
 
     return {
       success: true,
@@ -550,7 +487,7 @@ export async function getUserStatistics(userId: number): Promise<StatisticsRespo
       },
     };
   } catch (error) {
-    console.error("[v0] Error fetching user statistics:", error);
+    logger.error("[profile] Error fetching user statistics:", error)
     return {
       success: false,
       error: "Failed to fetch statistics",

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { getAdminFromCookie } from "@/lib/admin-auth"
 import { errorResponse, ErrorCode } from "@/lib/errors"
+import logger from "@/lib/logger"
 
 export const dynamic = "force-dynamic"
 
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
         ORDER BY date ASC
       `
     } catch (e) {
-      console.log("Auction daily query error:", e)
+      logger.error("Query error in admin charts:", e)
     }
 
     try {
@@ -71,7 +72,7 @@ export async function GET(request: Request) {
       `
       auctionByStatus = Array.isArray(result) ? result : []
     } catch (e) {
-      console.log("Auction status query error:", e)
+      logger.error("Query error in admin charts (auction status):", e)
     }
 
     try {
@@ -86,7 +87,7 @@ export async function GET(request: Request) {
         LIMIT 10
       `
     } catch (e) {
-      console.log("Top brands query error:", e)
+      logger.error("Query error in admin charts (top brands):", e)
     }
 
     // Users data (Unchanged)
@@ -101,7 +102,7 @@ export async function GET(request: Request) {
         ORDER BY date ASC
       `
     } catch (e) {
-      console.log("User daily query error:", e)
+      logger.error("Query error in admin charts (user daily):", e)
     }
 
     try {
@@ -114,7 +115,7 @@ export async function GET(request: Request) {
         GROUP BY user_type
       `
     } catch (e) {
-      console.log("User type query error:", e)
+      logger.error("Query error in admin charts (user type):", e)
     }
 
     try {
@@ -127,7 +128,7 @@ export async function GET(request: Request) {
         GROUP BY verification_status
       `
     } catch (e) {
-      console.log("User status query error:", e)
+      logger.error("Query error in admin charts (user status):", e)
     }
 
     // Vehicles data (from direct_sales, potentially excluding auctions or including all)
@@ -143,7 +144,7 @@ export async function GET(request: Request) {
         ORDER BY date ASC
       `
     } catch (e) {
-      console.log("Vehicle daily query error:", e)
+      logger.error("Query error in admin charts (vehicle daily):", e)
     }
 
     try {
@@ -159,7 +160,7 @@ export async function GET(request: Request) {
         GROUP BY type
       `
     } catch (e) {
-      console.log("Vehicle type query error:", e)
+      logger.error("Query error in admin charts (vehicle type):", e)
     }
 
     try {
@@ -176,7 +177,7 @@ export async function GET(request: Request) {
         LIMIT 10
       `
     } catch (e) {
-      console.log("Top cities query error:", e)
+      logger.error("Query error in admin charts (top cities):", e)
     }
 
     // Format daily data to include all days in range
@@ -256,7 +257,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ success: true, data: chartData })
   } catch (error) {
-    console.error("Charts API Error:", error)
+    logger.error("Charts API Error:", error)
     return NextResponse.json(errorResponse(error), { status: 500 })
   }
 }

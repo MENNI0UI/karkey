@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { searchVehicles } from "@/app/actions";
 import { createMetricsContext } from "@/lib/metrics";
+import logger from "@/lib/logger";
 
 export async function GET(request: Request) {
   const metrics = createMetricsContext();
@@ -66,7 +67,7 @@ export async function GET(request: Request) {
     });
   } catch (err) {
     metrics.info("api-search-error", String(err));
-    console.error("[api/search] error:", err);
+    logger.error("[api/search] error:", err);
     return NextResponse.json({ success: false, error: "server_error", results: [], reqId: metrics.reqId }, { status: 500 });
   }
 }
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
     const res = await searchVehicles(body ?? {});
     return NextResponse.json(res, { status: 200 });
   } catch (err) {
-    console.error("[api/search] error:", err);
+    logger.error("[api/search] error:", err);
     return NextResponse.json({ success: false, error: "Server error", vehicles: [] }, { status: 500 });
   }
 }

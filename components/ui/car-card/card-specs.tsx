@@ -13,23 +13,33 @@ interface SpecItem {
 
 interface CarSpecsGridProps {
     specs: SpecItem[]
+    compact?: boolean
+    iconSize?: number
+    gridCols?: string
 }
 
-export function CarSpecsGrid({ specs }: Readonly<CarSpecsGridProps>) {
+export function CarSpecsGrid({
+    specs,
+    compact = false,
+    iconSize = 4,
+    gridCols
+}: Readonly<CarSpecsGridProps>) {
     const { language } = useTranslation()
     const validSpecs = specs.filter((s: SpecItem) => s.value && s.value !== "—" && s.value !== "")
 
     if (validSpecs.length === 0) return null
 
+    const defaultGridCols = compact ? 'grid-cols-1' : 'grid-cols-2';
+
     return (
-        <div className="grid grid-cols-2 gap-x-5 gap-y-2.5 text-sm text-gray-600 mb-4 font-serif">
+        <div className={`grid ${gridCols || defaultGridCols} gap-x-5 gap-y-2.5 text-sm text-gray-600 mb-4 font-serif`}>
             {validSpecs.map((spec: SpecItem) => {
                 const specKey = `${spec.label}-${spec.value}`;
 
                 return (
                     <div key={specKey} className="flex items-center gap-2.5">
                         {spec.iconUrl ? (
-                            <div className="relative w-4 h-4 flex-shrink-0">
+                            <div className="flex-shrink-0" style={{ width: `${iconSize * 0.25}rem`, height: `${iconSize * 0.25}rem` }}>
                                 <img
                                     src={spec.iconUrl}
                                     alt=""
@@ -42,7 +52,14 @@ export function CarSpecsGrid({ specs }: Readonly<CarSpecsGridProps>) {
                                 />
                             </div>
                         ) : spec.IconComponent ? (
-                            <spec.IconComponent className={`w-4 h-4 flex-shrink-0 ${spec.variant === "green" ? "text-[#00A651]" : "text-[#B8071C]"}`} />
+                            <spec.IconComponent
+                                className="flex-shrink-0"
+                                style={{
+                                    width: `${iconSize * 0.25}rem`,
+                                    height: `${iconSize * 0.25}rem`,
+                                    color: spec.variant === "green" ? "#00A651" : "#B8071C"
+                                }}
+                            />
                         ) : null}
                         <span className="truncate flex items-baseline gap-1">
                             <span className={`text-base ${language === 'ar' ? 'font-bold' : 'font-medium'} ${spec.variant === "green" ? "text-[#00A651]" : "text-[#103090]"}`}>{spec.value}</span>

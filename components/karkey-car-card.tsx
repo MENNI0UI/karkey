@@ -152,7 +152,7 @@ export default function KarkeyCarCard({ car, onContact, priority = false }: Kark
                     <div className="flex gap-2 mt-auto">
                         <Link
                             href={`/${language}/karkey-cars/${car.id}`}
-                            className={`flex-1 border-2 border-gray-100 hover:border-[#DEB735] hover:text-[#DEB735] text-[#103090] font-serif py-1.5 px-2 rounded-2xl flex items-center justify-center gap-1 transition-all text-sm whitespace-nowrap ${language === 'ar' ? 'font-bold' : 'font-medium'}`}
+                            className={`flex-1 bg-[#B8071C] hover:bg-[#910515] text-white font-serif py-2 px-2 rounded-2xl flex items-center justify-center gap-1 transition-all text-sm whitespace-nowrap ${language === 'ar' ? 'font-bold' : 'font-medium'}`}
                         >
                             {t("common.view_details")}
                         </Link>

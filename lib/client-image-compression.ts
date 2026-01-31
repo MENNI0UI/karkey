@@ -52,7 +52,7 @@ export async function compressImage(
     // HEIC Conversion Support
     if (isHeic(file)) {
         try {
-            console.log(`[ImageCompression] Converting HEIC: ${file.name}`);
+            // Converting HEIC
             const heic2any = (await import("heic2any")).default;
             const convertedBlob = await heic2any({
                 blob: file,
@@ -170,9 +170,7 @@ export async function compressImage(
                         lastModified: Date.now(),
                     });
 
-                    console.log(
-                        `[ImageCompression] Processed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`
-                    );
+                    // Processed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB
 
                     resolve(compressedFile);
                 },

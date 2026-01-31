@@ -3,26 +3,12 @@ import React, { useEffect, useRef, useState, useLayoutEffect, useMemo } from "re
 import { MainFilterPanel, PinnedFilterPanel } from "@/components/search/filter-panels"
 import { useRouter, usePathname } from "next/navigation"
 import { useTranslation } from "@/lib/i18n-context"
-import CustomSelect from "@/components/ui/custom-select"
-import CustomMultiSelect from "@/components/ui/custom-multi-select"
-import { ScaleButton, SlideUp } from "@/components/ui/motion-wrappers"
-import { SearchSuggestions } from "@/components/search/search-suggestions"
-
-type FilterOptions = {
-    makes?: string[]
-    models?: string[]
-    modelsByMake?: Record<string, string[]>
-    yearsByMake?: Record<string, string[]>
-    years?: Array<string | number>
-    fuelTypes?: Array<string | { value: string; label: string }>
-    transmissions?: Array<string | { value: string; label: string }>
-    locations?: string[]
-    conditions?: Array<string | { value: string; label: string }>
-}
+import { DesktopSearchView } from "@/components/search/desktop-search-view"
+import { PinnedSearchView } from "@/components/search/pinned-search-view"
+import { MobileSearchView } from "@/components/search/mobile-search-view"
+import { FilterOptions } from "@/components/search/types"
 
 type Props = { className?: string; options?: FilterOptions }
-
-import { SearchModeBadge } from "@/components/search/search-mode-badge"
 
 export default function SearchBar({ className = "", options }: Props) {
     const { t } = useTranslation()
@@ -423,202 +409,6 @@ export default function SearchBar({ className = "", options }: Props) {
 
     // State for minimizing the search bar (user requested capability to hide it) -> REMOVED
 
-
-    const fullInner = (
-        <div className="searchbar-grid-main px-3 py-2.5 relative">
-            <div className="sb-cell">
-                <CustomMultiSelect
-                    label={t("filters.make")}
-                    value={make}
-                    onChange={(val) => { setMake(val); setModel([]); }}
-                    options={[
-                        ...makesList.map((m) => ({ value: String(m), label: String(m) }))
-                    ]}
-                />
-            </div>
-
-            <div className="sb-cell">
-                <CustomMultiSelect
-                    label={t("filters.model")}
-                    value={model}
-                    onChange={setModel}
-                    options={[
-                        ...modelsList.map((m) => ({ value: String(m), label: String(m) }))
-                    ]}
-                />
-            </div>
-
-            <div className="sb-cell">
-                <CustomSelect
-                    label={t("filters.year_range")}
-                    value={year}
-                    onChange={setYear}
-                    isAll={year === "All"}
-                    options={[
-                        { value: "All", label: t("filters.all") },
-                        ...effectiveYearsList.map((y) => ({ value: String(y), label: String(y) }))
-                    ]}
-                />
-            </div>
-
-            <div className="sb-cell">
-                <CustomMultiSelect
-                    label={t("filters.fuel")}
-                    value={fuel}
-                    onChange={setFuel}
-                    options={[
-                        ...fuelsList.map((f) => ({ value: String(f.value), label: String(f.label) }))
-                    ]}
-                />
-            </div>
-
-            <div className="sb-cell">
-                <CustomSelect
-                    label={t("wizard.fields.transmission")}
-                    value={transmission}
-                    onChange={setTransmission}
-                    isAll={transmission === "All"}
-                    options={[
-                        { value: "All", label: t("filters.all") },
-                        ...transList.map((tr) => ({ value: tr.value, label: tr.label }))
-                    ]}
-                />
-            </div>
-
-            <div className="sb-cell">
-                <CustomMultiSelect
-                    label={t("wizard.fields.location")}
-                    value={location}
-                    onChange={setLocation}
-                    options={[
-                        ...locationsList.map((l) => ({
-                            value: l,
-                            label: t(`location.city.${l.toLowerCase().replace(/\s+/g, '')}` as any) || l
-                        }))
-                    ]}
-                />
-            </div>
-
-            {/* Hide Button (Left of Filters) -> REMOVED */}
-
-            {/* compact container: use CSS class to keep sizing consistent (no inline styles) */}
-            {/* remove right divider for the filter cell */}
-            <div className="sb-cell sb-cell--tight sb-cell--no-divider flex items-center justify-center min-w-[50px]">
-                <button
-                    ref={filterBtnRef}
-                    type="button"
-                    onClick={() => openFilters(false)}
-                    title="Filters"
-                    className="w-8 h-8 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center transition-all hover:border-primary hover:shadow-md hover:-translate-y-0.5"
-                    aria-label="Open filters"
-                >
-                    <img src="/icons/filtre.png" alt="Filters" className="w-4 h-4 opacity-70 group-hover:opacity-100" />
-                </button>
-            </div>
-
-            <div className="sb-cell searchbar-actions">
-                <button
-                    type="button"
-                    onClick={resetAll}
-                    title="Clear"
-                    className="searchbar-search-btn searchbar-search-btn--clear"
-                    aria-label="Clear filters"
-                >
-                    {/* small clear icon inside pill */}
-                    <span className="text-sm" aria-hidden>✕</span>
-                </button>
-
-                {/* compact settings/filter button kept inside the main pill (already present) */}
-                {/* primary search button: use image icon and slightly larger classes */}
-                <ScaleButton
-                    type="button"
-                    onClick={() => void triggerSearch()}
-                    aria-label="Search"
-                    className="searchbar-search-btn searchbar-search-btn--primary"
-                    title="Search"
-                >
-                    <svg aria-hidden="true" focusable="false" className="search-icon-svg" viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.6" fill="none" />
-                        <line x1="20.5" y1="20.5" x2="16.65" y2="16.65" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                    </svg>
-                </ScaleButton>
-            </div>
-        </div>
-    )
-
-    // COMPACT inner used only for pinned copy
-    const compactInner = (
-        <div className="searchbar-grid-main px-3 py-2.5">
-            <div className="sb-cell">
-                <CustomMultiSelect
-                    label={t("filters.make")}
-                    value={make}
-                    onChange={(val) => { setMake(val); setModel([]); }}
-                    options={[
-                        ...makesList.map((m) => ({ value: String(m), label: String(m) }))
-                    ]}
-                />
-            </div>
-
-            <div className="sb-cell">
-                <CustomMultiSelect
-                    label={t("filters.model")}
-                    value={model}
-                    onChange={setModel}
-                    options={[
-                        ...modelsList.map((m) => ({ value: String(m), label: String(m) }))
-                    ]}
-                />
-            </div>
-
-            <div className="sb-cell">
-                <CustomMultiSelect
-                    label={t("wizard.fields.location")}
-                    value={location}
-                    onChange={setLocation}
-                    options={[
-                        ...locationsList.map((l) => ({
-                            value: l,
-                            label: t(`location.city.${l.toLowerCase().replace(/\s+/g, '')}` as any) || l
-                        }))
-                    ]}
-                />
-            </div>
-
-            {/* Hide Button (Pinned Mode) -> REMOVED */}
-
-            {/* removed expandable spacer in compact/pinned mode to avoid large empty gaps */}
-            {/* small gap now handled by CSS gaps; no grow element here */}
-
-            {/* pinned: same compact treatment via CSS class */}
-            {/* pinned filter cell: also remove the right divider */}
-            <div className="sb-cell sb-cell--tight sb-cell--no-divider flex items-center justify-center">
-                <button
-                    ref={pinnedFilterBtnRef}
-                    type="button"
-                    onClick={() => openFilters(true)}
-                    title="Filters"
-                    className="w-8 h-8 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center transition-all hover:border-primary"
-                    aria-label="Open pinned filters"
-                >
-                    <img src="/icons/filtre.png" alt="Filters" className="w-4 h-4" />
-                </button>
-            </div>
-
-            <div className="sb-cell searchbar-actions">
-                <button type="button" onClick={resetAll} title="Clear" className="searchbar-search-btn searchbar-search-btn--clear">
-                    ✕
-                </button>
-                <button type="button" onClick={() => void triggerSearch()} aria-label="Search" className="searchbar-search-btn searchbar-search-btn--primary">
-                    <svg aria-hidden="true" focusable="false" className="search-icon-svg" viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.6" fill="none" />
-                        <line x1="20.5" y1="20.5" x2="16.65" y2="16.65" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-    )
-
     // MAIN filter panel
     const mainFilterPanel = filtersOpen && filterVariant === "main" ? (
         <MainFilterPanel
@@ -750,182 +540,87 @@ export default function SearchBar({ className = "", options }: Props) {
         }
     }, [isSmallScreen])
 
-    const mobileInlineInner = (
-        <div className="w-full max-w-md mx-auto px-4 pb-2">
-            <div className="relative">
-                <label
-                    className="relative z-20 flex items-center flex-nowrap gap-2 rounded-full border border-gray-100/20 bg-white/95 backdrop-blur-md shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] px-4 py-3 transition-all focus-within:shadow-[0_15px_25px_-5px_rgba(0,166,81,0.2)] cursor-text min-h-[50px]"
-                >
-                    <SearchModeBadge mode={searchMode} lang={currentLang} onReset={() => setSearchMode(null)} />
-                    <input
-                        ref={inlineSearchRef}
-                        type="text"
-                        value={mobileQuery}
-                        onChange={(e) => setMobileQuery(e.target.value)}
-                        onFocus={() => setIsFocused(true)}
-                        onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                                e.preventDefault()
-                                handleMobileSearch()
-                            }
-                        }}
-                        placeholder={searchMode ? "" : (t("nav.search_placeholder") || "Search...")}
-                        className="flex-1 h-full bg-transparent text-base text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
-                        aria-label={t("nav.search_placeholder")}
-                    />
-                    {mobileQuery && (
-                        <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setMobileQuery(""); }}
-                            className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full text-[#475569] hover:bg-slate-100 relative z-30"
-                        >
-                            ✕
-                        </button>
-                    )}
-                    <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); handleMobileSearch(); }}
-                        className="w-10 h-10 flex-shrink-0 rounded-full bg-[#00A651] text-white flex items-center justify-center shadow-lg shadow-[#00A651]/20 hover:scale-105 active:scale-95 transition-all relative z-30"
-                    >
-                        <svg aria-hidden="true" focusable="false" className="search-icon-svg" viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" fill="none" />
-                            <line x1="20.5" y1="20.5" x2="16.65" y2="16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                    </button>
-                </label>
-                {/* Smart Suggestions */}
-                {(isFocused || mobileQuery.length > 0) && (
-                    <SearchSuggestions
-                        query={mobileQuery}
-                        onClose={() => setMobileQuery("")}
-                        searchMode={searchMode}
-                        onSetMode={setSearchMode}
-                    />
-                )}
-            </div>
-        </div>
-    )
-
-    // Unified pinned state to prevent double-rendering overlap
-    const isPinnedState = pinned || showPinnedEarly
+    const commonProps = {
+        t,
+        make, setMake,
+        model, setModel,
+        year, setYear,
+        fuel, setFuel,
+        transmission, setTransmission,
+        location, setLocation,
+        makesList,
+        modelsList,
+        effectiveYearsList,
+        fuelsList,
+        transList,
+        locationsList,
+        openFilters,
+        resetAll,
+        triggerSearch
+    }
 
     return (
         <>
-            {/* Main Search Bar (Desktop) - Animated */}
+            {/* Desktop / Large Screen Structure */}
             {!isSmallScreen && (
-                <SlideUp
-                    ref={wrapperRef}
-                    data-role="main-search"
-                    className={`searchbar-floating py-2 ${className} main-search`}
-                    data-pinned={isPinnedState ? "true" : "false"}
-                    aria-hidden={isPinnedState}
-                    delay={0.2}
-                    style={{
-                        position: "relative",
-                        zIndex: isPinnedState ? undefined : 10020,
-                        pointerEvents: isPinnedState ? "none" : "auto",
-                        opacity: isPinnedState ? 0 : 1,
-                        visibility: isPinnedState ? "hidden" : "visible",
-                    }}
-                >
-                    {fullInner}
-                </SlideUp>
-            )}
+                <>
+                    {/* Main "Inline" Search Bar */}
+                    <div
+                        ref={wrapperRef}
+                        className={`w-full max-w-[900px] mx-auto bg-white rounded-full transition-all duration-300 relative z-[45] shadow-[0_15px_35px_rgba(0,0,0,0.1),0_5px_15px_rgba(0,0,0,0.04)] border border-transparent transform hover:-translate-y-0.5 ${className}`}
+                    >
+                        <DesktopSearchView
+                            {...commonProps}
+                            filterBtnRef={filterBtnRef}
+                        />
+                    </div>
 
-            {/* Mobile Static (Initial) */}
-            {isSmallScreen && !isPinnedState && (
-                <div className={`searchbar-floating ${className} mobile-standalone-search relative z-[100002]`}>
-                    {mobileInlineInner}
-                </div>
-            )}
-
-            {/* Render filter panels as siblings so they float outside the main pill */}
-            {mainFilterPanel}
-            {pinnedFilterPanel}
-
-            {isSmallScreen && isPinnedState && (
-                <div
-                    className="fixed left-1/2 z-[100002] w-full"
-                    style={{
-                        top: `calc(var(--site-header-height, 76px) + 8px)`,
-                        transform: "translateX(-50%)",
-                        opacity: isNavbarVisible ? 1 : 0,
-                        pointerEvents: !isNavbarVisible ? "none" : "auto",
-                        transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                    }}
-                >
-                    <div className="px-4" style={{ width: "min(420px, 94vw)", margin: "0 auto" }}>
-                        <div className="relative">
-                            <label
-                                className="relative z-20 flex items-center flex-nowrap gap-2 rounded-full border border-gray-100/20 bg-white/95 backdrop-blur-md shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] px-4 py-2 transition-all cursor-text min-h-[44px]"
-                            >
-                                <SearchModeBadge mode={searchMode} lang={currentLang} onReset={() => setSearchMode(null)} />
-                                <input
-                                    ref={pinnedSearchRef}
-                                    type="text"
-                                    value={mobileQuery}
-                                    onChange={(e) => setMobileQuery(e.target.value)}
-                                    onFocus={() => setIsFocused(true)}
-                                    onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                            e.preventDefault()
-                                            handleMobileSearch()
-                                        }
-                                    }}
-                                    placeholder={searchMode ? "" : t("nav.search_placeholder")}
-                                    className="flex-1 h-full bg-transparent text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none"
+                    {/* Pinned / Sticky Search Bar - shows when main is scrolled out */}
+                    <div
+                        className={`fixed top-4 left-1/2 transform -translate-x-1/2 w-full z-[50] transition-all duration-500 ease-out sm:px-4 ${showPinnedEarly || pinned // Show if either intersection observer or scroll calculation says so
+                            ? `${isNavbarVisible ? 'translate-y-[calc(var(--site-header-height)-1rem)] opacity-100 pointer-events-auto' : '-translate-y-full opacity-0 pointer-events-none'}`
+                            : '-translate-y-full opacity-0 pointer-events-none' // Hide if not scrolled far enough
+                            }`}
+                    >
+                        <div className="container mx-auto max-w-[1400px]">
+                            <div className="mx-auto w-full max-w-[520px] bg-white/95 backdrop-blur-md rounded-full shadow-[0_12px_40px_rgb(0,0,0,0.15)] border border-gray-100/50">
+                                <PinnedSearchView
+                                    {...commonProps}
+                                    pinnedFilterBtnRef={pinnedFilterBtnRef}
                                 />
-                                {mobileQuery && (
-                                    <button
-                                        type="button"
-                                        onClick={(e) => { e.stopPropagation(); setMobileQuery(""); }}
-                                        className="w-7 h-7 flex-shrink-0 rounded-full border border-[#e2e8f0] text-[#475569] text-xs relative z-30"
-                                    >✕</button>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); handleMobileSearch(); }}
-                                    className="w-9 h-9 flex-shrink-0 rounded-full bg-[#00A651] text-white flex items-center justify-center shadow-lg shadow-[#00A651]/20 hover:scale-105 active:scale-95 transition-all relative z-30"
-                                >
-                                    <svg aria-hidden="true" focusable="false" className="search-icon-svg" viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
-                                        <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.6" fill="none" />
-                                        <line x1="20.5" y1="20.5" x2="16.65" y2="16.65" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                                    </svg>
-                                </button>
-                            </label>
-                            {/* Smart Suggestions */}
-                            {(isFocused || mobileQuery.length > 0) && (
-                                <SearchSuggestions
-                                    query={mobileQuery}
-                                    onClose={() => setMobileQuery("")}
-                                    searchMode={searchMode}
-                                    onSetMode={setSearchMode}
-                                />
-                            )}
+                            </div>
                         </div>
                     </div>
+                </>
+            )}
+
+            {/* Mobile Structure */}
+            {isSmallScreen && (
+                <div
+                    className={`fixed top-[calc(var(--site-header-height)+10px)] left-0 right-0 z-[45] transition-all duration-300 transform ${isNavbarVisible
+                        ? "translate-y-0 opacity-100 pointer-events-auto"
+                        : "-translate-y-full opacity-0 pointer-events-none"
+                        }`}
+                >
+                    <MobileSearchView
+                        t={t}
+                        searchMode={searchMode}
+                        setSearchMode={setSearchMode}
+                        currentLang={currentLang}
+                        mobileQuery={mobileQuery}
+                        setMobileQuery={setMobileQuery}
+                        isFocused={isFocused}
+                        setIsFocused={setIsFocused}
+                        handleMobileSearch={handleMobileSearch}
+                        inlineSearchRef={inlineSearchRef}
+                        triggerSearch={triggerSearch}
+                    />
                 </div>
             )}
 
-            {/* pinned search: desktop */}
-            {!isSmallScreen && isPinnedState && (
-                <div
-                    className="fixed pointer-events-none transition-all duration-400 ease-in-out"
-                    style={{
-                        left: "50%",
-                        top: `calc(var(--pinned-top, var(--site-header-height, 76px)) + 12px)`,
-                        zIndex: 10010,
-                        transform: `translateX(-50%) ${!isNavbarVisible ? "translateY(-150%) scale(0.9)" : "translateY(0) scale(1)"}`,
-                        opacity: !isNavbarVisible ? 0 : 1,
-                    }}
-                >
-                    <div className="searchbar-floating px-3 py-2 pointer-events-auto border-transparent shadow-[0_8px_32px_rgba(0,166,81,0.10)]">
-                        {compactInner}
-                    </div>
-                </div>
-            )}
+            {/* Filter Panels (Portals/Absolute) */}
+            {mainFilterPanel}
+            {pinnedFilterPanel}
         </>
     )
 }

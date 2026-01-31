@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import prisma from "@/lib/prisma"
 import { cookies } from "next/headers"
+import logger from "@/lib/logger"
 
 export async function GET(req: NextRequest) {
     try {
@@ -10,12 +11,12 @@ export async function GET(req: NextRequest) {
         const session = await auth()
 
         if (!session?.user?.email) {
-            console.error("[GoogleSync] No session or email found")
+            logger.error("[GoogleSync] No session or email found")
             return redirectToLogin(req, "no_session")
         }
 
         const userEmail = session.user.email
-        console.log("[GoogleSync] Processing user:", userEmail)
+        logger.info("[GoogleSync] Processing user:", userEmail)
 
         // 2. Find user in database
         const user = await prisma.users.findUnique({
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
         })
 
         if (!user) {
-            console.error("[GoogleSync] User not found:", userEmail)
+            logger.error("[GoogleSync] User not found:", userEmail)
             return redirectToLogin(req, "user_not_found")
         }
 
@@ -42,13 +43,13 @@ export async function GET(req: NextRequest) {
         const finalUrl = `${baseUrl}${redirectPath}`
         const isSecure = baseUrl.startsWith("https://")
 
-        console.log("[GoogleSync] User authenticated, redirecting to:", finalUrl)
+        logger.info("[GoogleSync] User authenticated, redirecting to:", finalUrl)
 
         // 6. Redirect (Session matches)
         return NextResponse.redirect(finalUrl)
 
     } catch (error) {
-        console.error("[GoogleSync] Error:", error)
+        logger.error("[GoogleSync] Error:", error)
         return redirectToLogin(req, "sync_failed")
     }
 }

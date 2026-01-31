@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
+import logger from "@/lib/logger";
 import { getCurrentUser } from "@/lib/mysql-auth";
 import prisma from "@/lib/prisma";
 
 export async function GET() {
   try {
     const currentUser = await getCurrentUser();
-    
+
     if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const userId = (currentUser as any).userId ?? (currentUser as any).id;
-    
+
     if (!userId) {
       return NextResponse.json({ error: "Invalid user" }, { status: 400 });
     }
@@ -24,7 +25,7 @@ export async function GET() {
 
     // Fetch direct sales for these watchlist items
     const directSaleIds = watchlistItems.map(item => item.direct_sale_id);
-    
+
     if (directSaleIds.length === 0) {
       return NextResponse.json([]);
     }
@@ -67,7 +68,7 @@ export async function GET() {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[direct-sales-watchlist/mine] Error:", error);
+    logger.error("[direct-sales-watchlist/mine] Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
+import logger from "@/lib/logger"
 import { getUserProfile } from "@/app/[lang]/profile/actions";
 
 export async function GET(req: NextRequest) {
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
       profile
     })
   } catch (err) {
-    console.error("[api/auth/me] error:", err)
+    logger.error("[api/auth/me] error:", err)
     return NextResponse.json({ success: false, error: "Server error" }, { status: 500 })
   }
 }

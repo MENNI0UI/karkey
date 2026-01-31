@@ -350,6 +350,107 @@
       letter-spacing: 0;
       line-height: 1.2;
     }
+
+    @keyframes pulse-slow {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.7;
+        transform: scale(1.05);
+      }
+    }
+
+    @keyframes spin-slow {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .animate-pulse-slow {
+      animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    .animate-spin-slow {
+      animation: spin-slow 8s linear infinite;
+    }
+
+    /* Premium Glassmorphism */
+    .premium-glass {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .premium-glass-card {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.85) 100%);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.03),
+        0 10px 15px -3px rgba(0, 0, 0, 0.04),
+        0 20px 25px -5px rgba(0, 0, 0, 0.02),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+    }
+
+    /* Radiant Focus States */
+    .radiant-focus {
+      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .radiant-focus:focus-within {
+      box-shadow:
+        0 0 0 3px rgba(16, 48, 144, 0.08),
+        0 4px 12px -2px rgba(16, 48, 144, 0.12);
+      border-color: rgba(16, 48, 144, 0.25);
+      background: rgba(255, 255, 255, 0.95);
+    }
+
+    /* Luxury Input Container */
+    .luxury-input-container {
+      background: rgba(248, 250, 252, 0.6);
+      border: 1px solid rgba(229, 231, 235, 0.8);
+      border-radius: 1rem;
+      padding: 0.875rem 1.25rem;
+      transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .luxury-input-container:hover {
+      background: rgba(255, 255, 255, 0.8);
+      border-color: rgba(209, 213, 219, 0.9);
+    }
+
+    .luxury-input-container:focus-within {
+      background: rgba(255, 255, 255, 1);
+      border-color: rgba(16, 48, 144, 0.3);
+      box-shadow:
+        0 0 0 4px rgba(16, 48, 144, 0.06),
+        0 8px 16px -4px rgba(16, 48, 144, 0.1);
+    }
+
+    /* Cluster Section Styling */
+    .cluster-section {
+      background: linear-gradient(180deg, rgba(248, 250, 252, 0.5) 0%, rgba(255, 255, 255, 0.3) 100%);
+      border-radius: 1.5rem;
+      padding: 2rem;
+      border: 1px solid rgba(229, 231, 235, 0.5);
+    }
+
+    .cluster-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(16, 48, 144, 0.08) 50%, transparent 100%);
+      margin: 2rem 0;
+    }
   }
 
   /* Components layer */
@@ -560,8 +661,8 @@
       background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
     }
 
-    /* Skeleton loading animation */
-    @keyframes shimmer {
+    /* Skeleton luxury shimmer animation */
+    @keyframes luxury-shimmer {
       0% {
         background-position: -200% 0;
       }
@@ -571,10 +672,27 @@
       }
     }
 
-    .skeleton {
-      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    .luxury-shimmer {
+      background: linear-gradient(90deg,
+          #f8fafc 25%,
+          #f1f5f9 50%,
+          #f8fafc 75%);
       background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
+      animation: luxury-shimmer 2s infinite linear;
+    }
+
+    .gold-shimmer {
+      background: linear-gradient(90deg,
+          #fcf9f0 25%,
+          #fef9e7 50%,
+          #fcf9f0 75%);
+      background-size: 200% 100%;
+      animation: luxury-shimmer 2.5s infinite linear;
+    }
+
+    /* Skeleton style overrides */
+    .skeleton-box {
+      @apply bg-slate-100/50 rounded-lg overflow-hidden relative;
     }
 
     /* Optimize font rendering */
@@ -792,7 +910,28 @@
 
     .shine-sweep:hover::before {
       left: 150%;
-      transition: all 0.92s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 1.1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Slow Shine Sweep for wide horizontal cards */
+    .shine-sweep-slow::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -150%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg,
+          transparent,
+          rgba(255, 255, 255, 0.4),
+          transparent);
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .shine-sweep-slow:hover::before {
+      left: 150%;
+      transition: all 2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     /* Glassmorphism Badge */
@@ -836,5 +975,82 @@
 
   .animate-luxury-pulse {
     animation: luxury-pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+  }
+
+  /* Ultra-Luxury Cinematic Entry */
+  @keyframes fade-in-up {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    /* Star hidden */
+  }
+
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .delay-500 {
+    animation-delay: 500ms;
+  }
+
+  /* Jewel Case Card for Specs */
+  .jewel-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 240, 245, 0.6) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.05),
+      inset 0 1px 0 0 rgba(255, 255, 255, 1);
+    transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .jewel-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 10px 20px -5px rgba(184, 7, 28, 0.15),
+      inset 0 1px 0 0 rgba(255, 255, 255, 1);
+    border-color: #B8071C;
+  }
+
+  .jewel-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+    transform: skewX(-15deg);
+    transition: 0.5s;
+    pointer-events: none;
+  }
+
+  .jewel-card:hover::before {
+    left: 100%;
+    transition: 0.7s;
   }
 }

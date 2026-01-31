@@ -133,7 +133,7 @@ export function sanitizeUser(user: User): SafeUser {
   return safeUser as SafeUser
 }
 
-console.info(`[lib/database] Using Prisma Adapter (shimmed legacy pool).`)
+// Using Prisma Adapter (shimmed legacy pool)
 
 // Default export for backward compatibility
 export default db

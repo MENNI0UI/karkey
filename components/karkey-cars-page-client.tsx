@@ -6,6 +6,7 @@ import KarkeyCarCard from "@/components/karkey-car-card"
 import { LuxuryLoader } from "@/components/ui/luxury-loader"
 import { CarCardSkeleton } from "@/components/ui/car-card-skeleton"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import logger from "@/lib/logger"
 
 interface KarkeyCarPhoto {
     id: number
@@ -65,7 +66,7 @@ export default function KarkeyCarsPageClient({ initialCars = [] }: { initialCars
                 throw new Error(data.error || "Failed to fetch cars")
             }
         } catch (err) {
-            console.error("Error fetching Karkey cars:", err)
+            logger.error("Error fetching Karkey cars:", err)
         } finally {
             setLoading(false)
             setLoadingMore(false)

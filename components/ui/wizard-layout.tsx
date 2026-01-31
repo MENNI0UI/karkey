@@ -1,16 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, Info, X, PanelRight, HelpCircle } from "lucide-react";
+import { Check } from "lucide-react";
 import { useTranslation } from "@/lib/i18n-context";
-import { m, AnimatePresence } from "framer-motion";
-import {
-    Drawer,
-    DrawerContent,
-    DrawerHeader,
-    DrawerTitle,
-    DrawerTrigger,
-} from "@/components/ui/drawer";
+import { m } from "framer-motion";
 
 export interface WizardStep {
     id: string;
@@ -24,7 +17,6 @@ interface WizardLayoutProps {
     readonly children: React.ReactNode;
     readonly title: string;
     readonly subtitle?: string;
-    readonly sidebar?: React.ReactNode;
     readonly onStepNav?: (step: number) => void;
 }
 
@@ -34,232 +26,162 @@ export function WizardLayout({
     children,
     title,
     subtitle,
-    sidebar,
 }: WizardLayoutProps) {
     const { dir, t } = useTranslation();
     const isRtl = dir === "rtl";
-    const [isGuideVisible, setIsGuideVisible] = useState(false);
-    const [isMobileGuideOpen, setIsMobileGuideOpen] = useState(false);
 
     return (
-        <div className="min-h-screen bg-[#f8f9fa] font-serif overflow-x-hidden">
-            <m.div
-                className="w-full pt-[85px] lg:pt-8 pb-8 mx-auto px-2 lg:px-4"
-                animate={{
-                    maxWidth: isGuideVisible ? 1920 : 1240,
-                }}
-                transition={{
-                    duration: 1.5, // Even slower expansion for premium feel
-                    ease: [0.165, 0.84, 0.44, 1], // Cinematic easeOutQuart
-                }}
-            >
-                {/* Header - Cinematic Reveal */}
+        <div className="min-h-screen bg-[#FDFDFD] font-serif overflow-x-hidden">
+            {/* Cinematic Background Elements */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden select-none">
+                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-50/30 rounded-full blur-[120px] -translate-y-1/2" />
+                <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-red-50/20 rounded-full blur-[150px] translate-y-1/2" />
+            </div>
+
+            <div className="relative z-10 w-full pt-[85px] lg:pt-8 pb-20 mx-auto px-4 lg:px-6 max-w-[1400px]">
+                {/* Header Section */}
                 <m.div
-                    initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+                    initial={{ opacity: 0, y: -10, filter: "blur(5px)" }}
                     animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    transition={{
-                        duration: 1.2,
-                        ease: [0.22, 1, 0.36, 1]
-                    }}
-                    className="mb-10 px-4 lg:px-4 flex justify-between items-end"
+                    transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+                    className="mb-8 text-center"
                 >
-                    <div>
-                        <h1 className="text-3xl font-bold text-[#103090] font-serif tracking-tight">{title}</h1>
-                        {subtitle && (
-                            <p className="text-base text-gray-500 mt-2 font-sans">{subtitle}</p>
-                        )}
-                    </div>
-                    {sidebar && (
-                        <button
-                            onClick={() => setIsGuideVisible(!isGuideVisible)}
-                            className="hidden xl:flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-[#103090] hover:bg-gray-50 hover:border-[#103090]/30 transition-all shadow-sm hover:shadow-md active:scale-95 group"
-                        >
-                            <PanelRight className={`w-4 h-4 transition-colors ${isGuideVisible ? "text-[#B8071C]" : "text-gray-400 group-hover:text-[#B8071C]"}`} />
-                            <span className="font-sans">
-                                {isGuideVisible ? t("common.hide_guide") : t("common.show_guide")}
-                            </span>
-                        </button>
+                    <h1 className="text-2xl lg:text-3xl font-bold text-[#103090] font-serif tracking-tight mb-2">
+                        {title}
+                    </h1>
+                    {subtitle && (
+                        <p className="text-sm text-gray-500 max-w-2xl mx-auto font-sans leading-relaxed text-balance">
+                            {subtitle}
+                        </p>
                     )}
                 </m.div>
 
-                <div className="flex gap-4">
-                    {/* Sidebar Progress - Cinematic Reveal */}
-                    <m.div
-                        initial={{ opacity: 0, x: -15, filter: "blur(4px)" }}
-                        animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                        transition={{
-                            duration: 1.2,
-                            delay: 0.2, // Staggered entry
-                            ease: [0.22, 1, 0.36, 1]
-                        }}
-                        className={`hidden lg:block w-[270px] flex-shrink-0 ${isRtl ? "pr-4 lg:pr-4" : "pl-4 lg:pl-4"} transition-all duration-500`}
-                    >
-                        <div className="sticky top-8">
-                            <div className="relative">
-                                {/* Vertical Line */}
-                                <div
-                                    className={`absolute ${isRtl ? "right-[11px]" : "left-[11px]"} top-[12px] w-[2px] bg-gray-200`}
-                                    style={{ height: `calc(100% - 24px)` }}
-                                />
+                {/* Horizontal Stepper - The centerpiece */}
+                <m.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.2 }}
+                    className="mb-16 hidden lg:block"
+                >
+                    <div className="relative max-w-7xl mx-auto px-10">
+                        {/* Connector Line Track (Background) */}
+                        <div className="absolute top-[22px] left-[62px] right-[62px] h-[2px] z-0">
+                            {/* Track Background */}
+                            <div className="absolute inset-0 bg-gray-200/40 backdrop-blur-sm rounded-full" />
 
-                                <div className="space-y-20 relative mt-2">
-                                    {steps.map((step, index) => {
-                                        const stepNumber = index + 1;
-                                        const isCompleted = stepNumber < currentStep;
-                                        const isCurrent = stepNumber === currentStep;
+                            {/* Active Progress Segment */}
+                            <m.div
+                                className="absolute inset-y-0 bg-[#103090] rounded-full shadow-sm"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
+                                transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+                                style={{
+                                    [isRtl ? "right" : "left"]: 0,
+                                    transformOrigin: isRtl ? "right" : "left"
+                                }}
+                            />
+                        </div>
 
-                                        // Extracted ternary for better readability
-                                        let labelColor = "text-gray-400";
-                                        if (isCurrent) {
-                                            labelColor = "text-gray-800";
-                                        } else if (isCompleted) {
-                                            labelColor = "text-gray-500";
-                                        }
+                        <div className="relative flex justify-between items-start w-full">
+                            {steps.map((step, index) => {
+                                const stepNumber = index + 1;
+                                const isCompleted = stepNumber < currentStep;
+                                const isCurrent = stepNumber === currentStep;
 
-                                        let indicator;
-                                        if (isCompleted) {
-                                            indicator = (
-                                                <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center">
-                                                    <Check className="w-4 h-4 text-white" />
-                                                </div>
-                                            );
-                                        } else if (isCurrent) {
-                                            indicator = (
-                                                <div className="w-6 h-6 rounded-full bg-[#B8071C] flex items-center justify-center">
-                                                    <div className="w-2.5 h-2.5 rounded-full bg-white" />
-                                                </div>
-                                            );
-                                        } else {
-                                            indicator = (
-                                                <div className="w-6 h-6 rounded-full border-2 border-gray-300 bg-white" />
-                                            );
-                                        }
+                                return (
+                                    <div
+                                        key={step.id}
+                                        className="relative flex flex-col items-center"
+                                        style={{ width: '44px' }} // Width of the node circle
+                                    >
+                                        {/* Node Indicator & content node */}
+                                        <div className="relative z-10 flex flex-col items-center">
+                                            {/* Node Indicator */}
+                                            <div className="relative mb-4 group cursor-default">
+                                                {isCompleted ? (
+                                                    <m.div
+                                                        initial={{ scale: 0.8, opacity: 0 }}
+                                                        animate={{ scale: 1, opacity: 1 }}
+                                                        className="w-11 h-11 rounded-full bg-[#103090] flex items-center justify-center shadow-md shadow-blue-900/10 relative"
+                                                    >
+                                                        <Check className="w-5 h-5 text-white stroke-[3px]" />
+                                                    </m.div>
+                                                ) : isCurrent ? (
+                                                    <m.div
+                                                        initial={{ scale: 0.9 }}
+                                                        animate={{ scale: 1 }}
+                                                        className="relative"
+                                                    >
+                                                        <div className="w-11 h-11 rounded-full bg-white border-[3px] border-[#B8071C] flex items-center justify-center shadow-lg shadow-red-500/5 relative z-10">
+                                                            <span className="text-[#B8071C] font-black font-serif text-lg">{stepNumber}</span>
+                                                        </div>
+                                                    </m.div>
+                                                ) : (
+                                                    <div className="w-11 h-11 rounded-full bg-white border-2 border-gray-100 flex items-center justify-center group-hover:border-gray-200 transition-all duration-300">
+                                                        <span className="text-gray-300 font-bold font-serif text-lg group-hover:text-gray-400">{stepNumber}</span>
+                                                    </div>
+                                                )}
+                                            </div>
 
-                                        return (
-                                            <div
-                                                key={step.id}
-                                                className="flex items-center gap-5"
-                                            >
-                                                {/* Step Indicator */}
-                                                <div className="relative z-10">
-                                                    {indicator}
-                                                </div>
-
-                                                {/* Step Label */}
+                                            {/* Step Labels */}
+                                            <div className="text-center absolute top-14 left-1/2 -translate-x-1/2 w-[160px]">
                                                 <span
-                                                    className={`text-sm font-semibold tracking-wide uppercase font-serif ${labelColor}`}
+                                                    className={`block text-[10px] uppercase tracking-[0.2em] mb-1.5 transition-colors duration-500 ${isCurrent ? "text-[#103090]" : isCompleted ? "text-gray-500" : "text-gray-400"
+                                                        } ${isRtl ? "font-bold" : "font-medium"}`}
                                                 >
                                                     {step.label}
                                                 </span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            <div className="mt-12 pt-6 border-t border-gray-200">
-                                <div className="flex items-center justify-between text-sm mb-3">
-                                    <span className="text-gray-500 uppercase tracking-wider font-semibold">
-                                        {t("wizard.progress.label") || "Progress"}
-                                    </span>
-                                    <span className="font-bold text-[#B8071C]">
-                                        {Math.round(((currentStep - 1) / (steps.length - 1)) * 100)}%
-                                    </span>
-                                </div>
-                                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-[#B8071C] rounded-full transition-all duration-500"
-                                        style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </m.div>
-
-                    {/* Mobile Progress - Fixed below Navbar (76px) */}
-                    <div className="lg:hidden fixed top-[76px] left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-100 z-[9999] px-4 py-3">
-                        <div className="flex items-center justify-between">
-                            <div className="flex flex-col">
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                                    {t("wizard.progress.step_of", { current: currentStep, total: steps.length }) || `Step ${currentStep} of ${steps.length}`}
-                                </span>
-                                <span className="text-sm text-[#103090] font-bold truncate max-w-[150px]">
-                                    {steps[currentStep - 1]?.label}
-                                </span>
-                            </div>
-
-                            {sidebar && (
-                                <Drawer open={isMobileGuideOpen} onOpenChange={setIsMobileGuideOpen}>
-                                    <DrawerTrigger asChild>
-                                        <button className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#B8071C]/5 border border-[#B8071C]/10 rounded-lg text-xs font-bold text-[#B8071C] active:scale-95 transition-transform">
-                                            <HelpCircle className="w-3.5 h-3.5" />
-                                            {t("common.guide") || (dir === "rtl" ? "دليل البيع" : "Guide")}
-                                        </button>
-                                    </DrawerTrigger>
-                                    <DrawerContent className="font-serif">
-                                        <div className="max-h-[80vh] overflow-y-auto px-6 pb-12">
-                                            <DrawerHeader className="px-0 pt-6 pb-4">
-                                                <DrawerTitle className="text-2xl font-bold text-[#103090] text-start">
-                                                    {t("common.guide") || (dir === "rtl" ? "دليل البيع" : "Selling Guide")}
-                                                </DrawerTitle>
-                                            </DrawerHeader>
-                                            <div className="mt-2">
-                                                {sidebar}
+                                                {step.description && isCurrent && (
+                                                    <m.p
+                                                        initial={{ opacity: 0, y: 5 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        className="text-[10px] text-gray-400 font-sans leading-tight px-2 mx-auto"
+                                                    >
+                                                        {step.description}
+                                                    </m.p>
+                                                )}
                                             </div>
                                         </div>
-                                    </DrawerContent>
-                                </Drawer>
-                            )}
-                        </div>
-                        <div className="h-1 bg-gray-100 rounded-full mt-2.5 overflow-hidden">
-                            <div
-                                className="h-full bg-[#B8071C] rounded-full transition-all duration-300"
-                                style={{ width: `${(currentStep / steps.length) * 100}%` }}
-                            />
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
+                </m.div>
 
-                    {/* Main Content - Cinematic Reveal */}
+                {/* Mobile Stepper - Simplified Premium */}
+                <div className="lg:hidden fixed top-[76px] left-0 right-0 bg-white/98 backdrop-blur-xl border-b border-gray-100 z-[9995] px-6 py-4 flex items-center justify-between">
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-[#B8071C] uppercase tracking-[0.2em] mb-0.5">
+                            {t("wizard.progress.step_of", { current: currentStep, total: steps.length })}
+                        </span>
+                        <h2 className="text-base font-bold text-[#103090] font-serif">
+                            {steps[currentStep - 1]?.label}
+                        </h2>
+                    </div>
+                    {/* Progress Fill */}
+                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-50">
+                        <m.div
+                            className="h-full bg-gradient-to-r from-[#103090] to-[#B8071C]"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(currentStep / steps.length) * 100}%` }}
+                        />
+                    </div>
+                </div>
+
+                <div className="relative flex flex-col items-center">
+                    {/* Content Section */}
                     <m.div
-                        initial={{ opacity: 0, scale: 0.98, filter: "blur(6px)" }}
-                        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                        transition={{
-                            duration: 1.2,
-                            delay: 0.4, // Staggered entry
-                            ease: [0.22, 1, 0.36, 1]
-                        }}
-                        className="flex-grow min-w-0 px-2 lg:px-4"
+                        key={currentStep}
+                        initial={{ opacity: 0, y: 20, filter: "blur(4px)" }}
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                        className="w-full max-w-7xl"
                     >
                         {children}
                     </m.div>
-
-                    {/* Right Sidebar (Guide) - Ultra-smooth entry */}
-                    <AnimatePresence mode="popLayout">
-                        {sidebar && isGuideVisible && (
-                            <m.div
-                                initial={{ opacity: 0, x: isRtl ? -20 : 20, filter: "blur(4px)" }}
-                                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                                exit={{
-                                    opacity: 0,
-                                    x: isRtl ? -150 : 150,
-                                    filter: "blur(4px)",
-                                    transition: { duration: 0.15, ease: "easeIn" }
-                                }}
-                                transition={{
-                                    duration: 1.2,
-                                    delay: 0.2,
-                                    ease: [0.22, 1, 0.36, 1]
-                                }}
-                                className="hidden xl:block w-[360px] shrink-0 sticky top-8 h-fit px-6 lg:px-0"
-                            >
-                                <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
-                                    {sidebar}
-                                </div>
-                            </m.div>
-                        )}
-                    </AnimatePresence>
                 </div>
-            </m.div>
-        </div>
+            </div >
+        </div >
     );
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Loader2, Car, Gavel } from "lucide-react"
 import Image from "next/image"
 import { useTranslation } from "@/lib/i18n-context"
+import logger from "@/lib/logger"
 
 interface SearchResult {
     id: number;
@@ -55,7 +56,7 @@ export function SearchSuggestions({ query, onClose, className, searchMode, onSet
                     setResults(list)
                 }
             } catch (err) {
-                console.error("[SearchSuggestions] Fetch failed", err)
+                logger.error("[SearchSuggestions] Fetch failed", err)
             } finally {
                 setLoading(false)
             }

@@ -10,9 +10,10 @@ interface ColorDropdownProps {
     onChange: (value: string) => void;
     placeholder?: string;
     className?: string;
+    minimal?: boolean;
 }
 
-export function ColorDropdown({ value, onChange, placeholder, className }: ColorDropdownProps) {
+export function ColorDropdown({ value, onChange, placeholder, className, minimal }: ColorDropdownProps) {
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -30,13 +31,17 @@ export function ColorDropdown({ value, onChange, placeholder, className }: Color
 
     const selectedColor = CAR_COLORS.find(c => c.value === value);
 
+    const buttonClasses = minimal
+        ? "w-full bg-transparent border-0 px-0 py-1 text-base font-medium text-[#103090] placeholder-gray-400 focus:outline-none transition-colors flex items-center justify-between gap-2 font-serif"
+        : "w-full bg-white border border-gray-300 px-3 py-2 rounded-md text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#B8071C] focus:border-transparent transition-all flex items-center justify-between gap-2";
+
     return (
         <div ref={dropdownRef} className={`relative ${className || ""}`}>
             {/* Trigger Button */}
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full bg-white border border-gray-300 px-3 py-2 rounded-md text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#B8071C] focus:border-transparent transition-all flex items-center justify-between gap-2"
+                className={buttonClasses}
             >
                 <div className="flex items-center gap-2">
                     {selectedColor ? (

@@ -5,6 +5,8 @@ export type DirectSalesFilterOptions = {
     makes?: string[]
     models?: string[]
     makeModels?: Record<string, string[]>
+    makeCounts?: Record<string, number>
+    modelCounts?: Record<string, number>
     years?: Array<string | number>
     fuelTypes?: Array<{ value: string; label: string } | string>
     transmissions?: string[]

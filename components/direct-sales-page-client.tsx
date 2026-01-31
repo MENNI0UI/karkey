@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useRef } from "react"
-import { X } from "lucide-react"
+import { X, LayoutGrid, StretchHorizontal } from "lucide-react"
 import { DirectSaleCard } from "@/components/direct-sale-card"
 import NewItemsNotifier from "@/components/NewItemsNotifier"
 import { useRouter as useNextRouter, useSearchParams } from "next/navigation"
@@ -10,9 +10,10 @@ import type { DirectSalesFilterOptions } from "@/lib/filter-utils"
 import { useTranslation } from "@/lib/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { DraggableFilterButton } from "@/components/DraggableFilterButton"
-import { CarCardSkeleton } from "@/components/ui/car-card-skeleton"
+import { CarCardSkeleton, CarGridSkeleton } from "@/components/ui/car-card-skeleton"
 import { LuxuryLoader } from "@/components/ui/luxury-loader"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import { motion, AnimatePresence } from "framer-motion"
 
 const PAGE_SIZE = 20
 
@@ -29,6 +30,33 @@ export default function DirectSalesPageClient({
   const { toast } = useToast()
   const [showFiltersMobile, setShowFiltersMobile] = useState(false)
   const filtersRef = useRef<DirectSalesFiltersSidebarRef>(null)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    if (typeof window === 'undefined') return 'grid'
+    const saved = localStorage.getItem('karkey_view_mode') as 'grid' | 'list'
+    if (saved && (saved === 'grid' || saved === 'list')) {
+      if (window.innerWidth >= 768 || saved === 'grid') return saved
+    }
+    return 'grid'
+  })
+
+  // Save view mode preference whenever it changes
+  const toggleViewMode = () => {
+    const newMode = viewMode === 'grid' ? 'list' : 'grid'
+    setViewMode(newMode)
+    localStorage.setItem('karkey_view_mode', newMode)
+  }
+
+  // Enforce grid mode on small screens even if state is set to list
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768 && viewMode === 'list') {
+        setViewMode('grid')
+      }
+    }
+    handleResize() // Run on mount
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [viewMode])
 
   const handleCloseFilters = () => {
     filtersRef.current?.applyFilters()
@@ -77,8 +105,21 @@ export default function DirectSalesPageClient({
   const [hasMore, setHasMore] = useState(true)
 
   // For NewItemsNotifier
-  const notifierFetchUrl = paramString ? `/api/direct-sales/approved?${paramString}&limit=1` : `/api/direct-sales/approved?limit=1`
-  const notifierTopId = items?.[0]?.id ?? null
+  // Determine if there are active search filters - if so, disable the notifier
+  // to prevent false positives when the user is actively searching
+  const hasActiveFilters = (() => {
+    if (!searchParams) return false
+    const filterKeys = ["make", "model", "year", "fuel", "fuelType", "transmission", "location",
+      "minPrice", "maxPrice", "minMileage", "maxMileage", "minEngine", "maxEngine",
+      "condition", "doors", "exteriorColor", "interiorColor", "originalPaint", "q"]
+    return filterKeys.some(k => Boolean(searchParams.get(k)))
+  })()
+
+  // Only show notifier when no active filters (browsing mode, not search mode)
+  const notifierFetchUrl = `/api/direct-sales/approved?limit=1`
+  const notifierTopId = loading ? null : (items?.[0]?.id ?? null)
+  // Completely disable notifier during active search to prevent false positives
+  const shouldShowNotifier = !hasActiveFilters && !loading
 
   const [isAuth, setIsAuth] = useState<boolean>(() => {
     try {
@@ -399,24 +440,83 @@ export default function DirectSalesPageClient({
         />
         <div className="flex-1 w-full min-w-0 px-4 lg:px-6 xl:px-8 pt-4">
           {loading ? (
-            <div className="w-full flex flex-col items-center gap-8">
-              <LuxuryLoader size="lg" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 tv:grid-cols-6 4xl:grid-cols-8 gap-3 lg:gap-4 w-full">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <CarCardSkeleton key={`direct-skel-${i}`} />
-                ))}
-              </div>
+            <div className="w-full">
+              <CarGridSkeleton count={12} viewMode={viewMode} />
             </div>
           ) : items.length === 0 ? (
             <div className="text-center py-20 text-[#103090] font-serif font-bold text-lg">{t("direct_sales.no_listings")}</div>
           ) : (
             <div className="w-full">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 tv:grid-cols-6 4xl:grid-cols-8 gap-3 lg:gap-4">
-                {items.map((it, idx) => (
-                  <ScrollReveal key={it.id} delay={idx * 60}>
-                    <DirectSaleCard item={it} linkPrefix="/direct-sales" priority={idx < 4} />
-                  </ScrollReveal>
-                ))}
+              {/* Single Toggle View Switcher - Hidden on Mobile */}
+              <div className="hidden md:flex justify-end mb-4">
+                <button
+                  onClick={toggleViewMode}
+                  className="p-2 rounded-xl transition-all border-2 bg-white text-[#103090] border-[#DEB735]/60 hover:border-[#DEB735] hover:shadow-md shadow-sm active:scale-90 flex items-center justify-center"
+                  title={viewMode === 'grid' ? t("common.list_view" as any) : t("common.grid_view" as any)}
+                >
+                  {viewMode === 'grid' ? <StretchHorizontal size={20} strokeWidth={2.5} /> : <LayoutGrid size={20} strokeWidth={2.5} />}
+                </button>
+              </div>
+
+              <div className="relative min-h-[400px]">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={viewMode}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    variants={{
+                      hidden: { opacity: 0 },
+                      visible: {
+                        opacity: 1,
+                        transition: {
+                          staggerChildren: 0.12,
+                          delayChildren: 0.1,
+                          ease: [0.22, 1, 0.36, 1]
+                        }
+                      },
+                      exit: {
+                        opacity: 0,
+                        transition: { duration: 0.3 }
+                      }
+                    }}
+                    className={viewMode === 'grid'
+                      ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 tv:grid-cols-6 4xl:grid-cols-8 gap-3 lg:gap-4 w-full"
+                      : "flex flex-col gap-4 w-full"
+                    }
+                  >
+                    {items.map((it) => (
+                      <motion.div
+                        key={it.id}
+                        variants={{
+                          hidden: { opacity: 0, y: 30, filter: "blur(10px)", scale: 0.98 },
+                          visible: {
+                            opacity: 1,
+                            y: 0,
+                            filter: "blur(0px)",
+                            scale: 1,
+                            transition: {
+                              duration: 0.8,
+                              ease: [0.22, 1, 0.36, 1]
+                            }
+                          },
+                          exit: {
+                            opacity: 0,
+                            scale: 0.96,
+                            transition: { duration: 0.2 }
+                          }
+                        }}
+                      >
+                        <DirectSaleCard
+                          item={it}
+                          linkPrefix="/direct-sales"
+                          priority={false}
+                          viewMode={viewMode}
+                        />
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                </AnimatePresence>
               </div>
               {/* Load more / end marker */}
               {items.length > 0 ? (
@@ -503,11 +603,16 @@ export default function DirectSalesPageClient({
           </div>
         </div>
       ) : null}
-      <NewItemsNotifier
-        fetchUrl={notifierFetchUrl}
-        initialTopId={notifierTopId}
-        label={t("direct_sales.new_listings_label")}
-      />
+      {/* Only show notifier when not actively searching to prevent false positives */}
+      {shouldShowNotifier && (
+        <NewItemsNotifier
+          key={notifierFetchUrl}
+          fetchUrl={notifierFetchUrl}
+          initialTopId={notifierTopId}
+          label={t("direct_sales.new_listings_label")}
+          isLoading={loading}
+        />
+      )}
       {/* Mobile / small screens: Draggable Filter control */}
       {!showFiltersMobile ? (
         <DraggableFilterButton

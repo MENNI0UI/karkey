@@ -8,45 +8,49 @@ type Props = {
   initialTopId?: string | number | null;
   pollIntervalMs?: number;
   label?: string;
+  isLoading?: boolean; // New prop to sync with parent loading state
 };
 
-export default function NewItemsNotifier({ fetchUrl, initialTopId = null, pollIntervalMs = 30000, label = "Show new auctions" }: Props) {
+export default function NewItemsNotifier({
+  fetchUrl,
+  initialTopId = null,
+  pollIntervalMs = 30000,
+  label = "Show new auctions",
+  isLoading = false
+}: Props) {
   const [hasNew, setHasNew] = useState(false);
-  const [checking, setChecking] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+    // If parent is loading, we silent everything and reset.
+    if (isLoading) {
+      setHasNew(false);
+      return;
+    }
+
     let mounted = true;
     let lastTop = initialTopId ?? null;
-    // If we have an initial ID, we are already "initialized" baseline-wise, 
-    // but we still want to handle the first check carefully to avoid false positives if logic differs.
-    // Actually, trusting initialTopId allows immediate updates on the very first fetch if freshness drift occurred.
     let initialized = initialTopId != null;
 
+    // We establish a baseline. 
+    // Since we now use a key and isLoading prop, this baseline is much more reliable.
+    const initialDelay = 3000; // Increased delay to ensure search effects have settled
+
     const check = async () => {
-      // Skip check if tab is not visible to save server resources
       if (typeof document !== "undefined" && document.hidden) return;
+      if (!mounted) return;
 
       try {
-        setChecking(true);
         const res = await fetch(fetchUrl, { cache: "no-store" });
         if (!mounted) return;
         const data = await res.json();
-        // defensively extract a top-level array from common API shapes
+
         const tryExtractArray = (obj: any): any[] | null => {
           if (!obj) return null
           if (Array.isArray(obj)) return obj
           const keys = ["direct_sales", "results", "vehicles", "auctions", "items", "data"]
           for (const k of keys) {
-            try {
-              if (Array.isArray(obj[k])) return obj[k]
-            } catch { }
-          }
-          // sometimes payload is { success: true, direct_sales: [...] }
-          for (const k of Object.keys(obj || {})) {
-            try {
-              if (Array.isArray((obj as any)[k])) return (obj as any)[k]
-            } catch { }
+            try { if (Array.isArray(obj[k])) return obj[k] } catch { }
           }
           return null
         }
@@ -54,12 +58,10 @@ export default function NewItemsNotifier({ fetchUrl, initialTopId = null, pollIn
         const arr = tryExtractArray(data)
         let latest: any = null
         if (arr && arr.length > 0) {
-          // Prefer the item with the newest timestamp if available
           const tsKeys = ["created_at", "createdAt", "created", "updated_at", "updatedAt", "ts", "timestamp"]
           let bestItem: any = arr[0]
           let bestTs: number | null = null
           for (const it of arr) {
-            // extract a numeric timestamp if possible
             let foundTs: number | null = null
             for (const k of tsKeys) {
               try {
@@ -69,11 +71,9 @@ export default function NewItemsNotifier({ fetchUrl, initialTopId = null, pollIn
                 if (!Number.isNaN(n) && Number.isFinite(n)) { foundTs = n; break }
               } catch { }
             }
-            if (foundTs != null) {
-              if (bestTs == null || foundTs > bestTs) {
-                bestTs = foundTs
-                bestItem = it
-              }
+            if (foundTs != null && (bestTs == null || foundTs > bestTs)) {
+              bestTs = foundTs
+              bestItem = it
             }
           }
           const first = bestItem ?? arr[0]
@@ -84,23 +84,15 @@ export default function NewItemsNotifier({ fetchUrl, initialTopId = null, pollIn
 
         if (!initialized) {
           initialized = true;
-          if (lastTop == null && latest != null) {
-            lastTop = latest;
-          }
+          if (latest != null) lastTop = latest;
           return;
         }
 
-        if (latest == null) return;
-
-        if (lastTop == null) {
-          lastTop = latest;
-          // No prompt on first initialization or if we just lost track
+        if (latest == null || lastTop == null) {
+          if (latest != null) lastTop = latest;
           return;
         }
 
-        // Only trigger if IDs are numeric and the new one is higher, 
-        // OR if they are strings and they definitely changed.
-        // This reduces false positives from reordering/deletion.
         const latestVal = typeof latest === "number" ? latest : parseInt(String(latest), 10);
         const lastVal = typeof lastTop === "number" ? lastTop : parseInt(String(lastTop), 10);
 
@@ -108,29 +100,30 @@ export default function NewItemsNotifier({ fetchUrl, initialTopId = null, pollIn
         const isStringDifferent = isNaN(latestVal) && String(latest) !== String(lastTop);
 
         if (isNumericallyNewer || isStringDifferent) {
+          // Double check: if it's already in the search params or results, it's not "new"
+          // This is a safety layer.
           lastTop = latest;
           setHasNew(true);
         }
       } catch (e) {
-        // ignore network errors
-      } finally {
-        if (mounted) setChecking(false);
+        // ignore
       }
     };
 
     const id = setInterval(check, pollIntervalMs);
-    // run initial check immediately to establish baseline quickly
-    void check();
+    const initialTimer = setTimeout(() => {
+      if (mounted) void check();
+    }, initialDelay);
 
     return () => {
       mounted = false;
       clearInterval(id);
+      clearTimeout(initialTimer);
     };
-  }, [fetchUrl, initialTopId, pollIntervalMs]);
+  }, [fetchUrl, initialTopId, pollIntervalMs, isLoading]);
 
-  if (!hasNew) return null;
+  if (!hasNew || isLoading) return null;
 
-  // Centered top notification - more professional and less overlapping
   return (
     <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200000] animate-in fade-in slide-in-from-top-4 duration-300">
       <div className="flex items-center gap-2 bg-white border border-[#e6f4ff] shadow-xl rounded-full px-4 py-2 pr-2">

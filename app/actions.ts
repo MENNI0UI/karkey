@@ -126,7 +126,7 @@ export async function unifiedSearch(filters?: {
     metrics.end("unifiedSearch-total");
     return { success: true, vehicles };
   } catch (err) {
-    console.error("unifiedSearch error", err);
+    logError("unifiedSearch error", err);
     return { success: false, vehicles: [] };
   }
 }
@@ -271,12 +271,6 @@ async function searchAuctions(filters?: {
       if (minE !== null) (where.engine_size as any).gte = String(minE);
       if (maxE !== null) (where.engine_size as any).lte = String(maxE);
     }
-
-    console.log("[DEBUG][searchAuctions] where.engine_size:", JSON.stringify(where.engine_size));
-    console.log("[DEBUG][searchAuctions] where types:", {
-      gte: typeof (where.engine_size as any)?.gte,
-      lte: typeof (where.engine_size as any)?.lte
-    });
 
     if ((safeFilters as any).originalPaint === 'yes') where.is_original_paint = true;
     else if ((safeFilters as any).originalPaint === 'no') where.is_original_paint = false;
@@ -496,7 +490,7 @@ export const getFilterOptions = unstable_cache(
       };
 
       // Use Promise.all for parallel fetching
-      const [makesData, modelsData, makeModelData, yearsData, locationsRows, fuelData, transData, condData] = await dbQueryWithTimeout(
+      const [makesData, modelsData, makeModelData, yearsData, locationsRows, fuelData, transData, condData, makeCountsData, modelCountsData] = await dbQueryWithTimeout(
         Promise.all([
           prisma.direct_sales.findMany({
             where: { verification_status: 'approved', auction_mode: true },
@@ -525,9 +519,8 @@ export const getFilterOptions = unstable_cache(
           prisma.$queryRaw<Array<{ location: string }>>`
             SELECT DISTINCT TRIM(SUBSTRING_INDEX(location, ',', 1)) AS location 
             FROM direct_sales 
-            WHERE verification_status = 'approved' AND auction_mode = true
-            ORDER BY location
-            `,
+            WHERE verification_status = 'approved' AND auction_mode = 1
+            ORDER BY location ASC`,
           prisma.direct_sales.findMany({
             where: { verification_status: 'approved', auction_mode: true },
             distinct: ['fuel_type'],
@@ -542,9 +535,20 @@ export const getFilterOptions = unstable_cache(
             where: { verification_status: 'approved', auction_mode: true },
             distinct: ['vehicle_condition'],
             select: { vehicle_condition: true }
+          }),
+          // Result Counts for Auctions
+          prisma.direct_sales.groupBy({
+            by: ['make'],
+            where: { verification_status: 'approved', auction_mode: true },
+            _count: { id: true }
+          }),
+          prisma.direct_sales.groupBy({
+            by: ['model'],
+            where: { verification_status: 'approved', auction_mode: true },
+            _count: { id: true }
           })
         ]),
-        15000 // 15s timeout
+        5000
       );
 
       // Merge fuel types
@@ -563,24 +567,32 @@ export const getFilterOptions = unstable_cache(
       const dbConds = (condData as any[]).map(r => mapDbToLabel(r.vehicle_condition)).filter(Boolean);
       const conditionOptions = Array.from(new Set([...standardConditions, ...dbConds])).map(v => ({ value: v.toLowerCase(), label: v }));
 
+      const makes = (makesData as any[]).map(r => r.make).filter(Boolean);
+      const models = (modelsData as any[]).map(r => r.model).filter(Boolean);
+      const years = (yearsData as any[]).map(r => String(r.year)).filter(Boolean);
+
+      const makeCounts: Record<string, number> = {};
+      (makeCountsData as any[]).forEach(r => { if (r.make) makeCounts[r.make] = r._count.id; });
+
+      const modelCounts: Record<string, number> = {};
+      (modelCountsData as any[]).forEach(r => { if (r.model) modelCounts[r.model] = r._count.id; });
+
       const modelsByMake: Record<string, string[]> = {};
-      if (Array.isArray(makeModelData)) {
-        for (const row of makeModelData) {
-          const mk = String(row.make ?? "").trim();
-          const md = String(row.model ?? "").trim();
-          if (!mk || !md) continue;
-          if (!modelsByMake[mk]) modelsByMake[mk] = [];
-          if (!modelsByMake[mk].includes(md)) modelsByMake[mk].push(md);
-        }
-        for (const k of Object.keys(modelsByMake)) modelsByMake[k].sort();
-      }
+      (makeModelData as any[]).forEach(r => {
+        if (!r.make || !r.model) return;
+        if (!modelsByMake[r.make]) modelsByMake[r.make] = [];
+        if (!modelsByMake[r.make].includes(r.model)) modelsByMake[r.make].push(r.model);
+      });
+      for (const k of Object.keys(modelsByMake)) modelsByMake[k].sort();
 
       const result = {
         options: {
-          makes: makesData.map((r) => r.make),
-          models: modelsData.map((r) => r.model),
+          makes,
+          models,
           modelsByMake,
-          years: yearsData.map((r) => String(r.year)),
+          makeCounts,
+          modelCounts,
+          years,
           locations: locationOptions,
           fuelTypes: fuelOptions,
           transmissions: transmissionOptions,
@@ -638,7 +650,9 @@ export const getDirectSalesFilterOptions = unstable_cache(
         fuelData,
         transData,
         conditionsData,
-        priceAgg
+        priceAgg,
+        makeCountsData,
+        modelCountsData
       ] = await dbQueryWithTimeout(
         Promise.all([
           prisma.direct_sales.findMany({
@@ -675,7 +689,7 @@ export const getDirectSalesFilterOptions = unstable_cache(
             SELECT DISTINCT TRIM(SUBSTRING_INDEX(location, ',', 1)) AS location 
             FROM direct_sales 
             WHERE verification_status = 'approved'
-            ORDER BY location
+            ORDER BY location ASC
           `,
           prisma.direct_sales.findMany({
             where: { verification_status: 'approved' },
@@ -699,6 +713,17 @@ export const getDirectSalesFilterOptions = unstable_cache(
             where: baseWhere,
             _min: { price: true },
             _max: { price: true }
+          }),
+          // Result Counts for Direct Sales
+          prisma.direct_sales.groupBy({
+            by: ['make'],
+            where: baseWhere,
+            _count: { id: true }
+          }),
+          prisma.direct_sales.groupBy({
+            by: ['model'],
+            where: baseWhere,
+            _count: { id: true }
           })
         ]),
         10000 // 10s timeout
@@ -767,37 +792,40 @@ export const getDirectSalesFilterOptions = unstable_cache(
 
       const yearsByMake: Record<string, string[]> = {};
       if (Array.isArray(makeYearData)) {
-        for (const row of makeYearData) {
-          const mk = String(row.make ?? "").trim();
-          const yr = String(row.year ?? "").trim();
-          if (!mk || !yr) continue;
-          if (!yearsByMake[mk]) yearsByMake[mk] = [];
-          if (!yearsByMake[mk].includes(yr)) yearsByMake[mk].push(yr)
-        }
         for (const k of Object.keys(yearsByMake)) yearsByMake[k].sort((a, b) => Number(b) - Number(a));
       }
 
-      const result = {
+      const makeCounts: Record<string, number> = {};
+      (makeCountsData as any[]).forEach(r => { if (r.make) makeCounts[r.make] = r._count.id; });
+
+      const modelCounts: Record<string, number> = {};
+      (modelCountsData as any[]).forEach(r => { if (r.model) modelCounts[r.model] = r._count.id; });
+
+      const result: FilterOptionsResult = {
+        success: true,
+        source: 'db',
         options: {
-          makes: makesData.map((r) => r.make),
-          models: modelsData.map((r) => r.model),
+          makes: (makesData as any[]).map(r => r.make).filter(Boolean),
+          models: (modelsData as any[]).map(r => r.model).filter(Boolean),
           modelsByMake,
           yearsByMake,
-          years: yearsData.map((r) => String(r.year)),
+          makeCounts,
+          modelCounts,
+          years: (yearsData as any[]).map(r => String(r.year)).filter(Boolean),
           locations: locationsList,
           fuelTypes: fuelOptions,
           transmissions: transmissionOptions,
           conditions: conditionOptions,
           minPrice: Number(priceAgg._min.price) || 0,
-          maxPrice: Number(priceAgg._max.price) || 0,
-        },
+          maxPrice: Number(priceAgg._max.price) || 5000000
+        }
       };
 
       // Persistent file cache as backup
       try { await writeCacheFile(DIRECT_SALES_FILTER_CACHE_FILE, result); } catch { }
 
       metrics.end("getDirectSalesFilterOptions-db");
-      return { success: true, ...result, source: "db" };
+      return result;
     } catch (err) {
       logError("[app/actions] Error in getDirectSalesFilterOptions:", err);
       return { success: false, options: { makes: [], models: [], years: [], locations: [], fuelTypes: [], transmissions: [], conditions: [], minPrice: 0, maxPrice: 0 } } as any;
@@ -1063,12 +1091,6 @@ export async function searchDirectSales(filters?: {
       if (maxE !== null) (where.engine_size as any).lte = String(maxE);
     }
 
-    console.log("[DEBUG][searchDirectSales] where.engine_size:", JSON.stringify(where.engine_size));
-    console.log("[DEBUG][searchDirectSales] where types:", {
-      gte: typeof (where.engine_size as any)?.gte,
-      lte: typeof (where.engine_size as any)?.lte
-    });
-
     if (safeFilters.originalPaint === 'yes') where.is_original_paint = true;
     else if (safeFilters.originalPaint === 'no') where.is_original_paint = false;
 
@@ -1173,7 +1195,7 @@ export const getApprovedKarkeyCars = unstable_cache(
       }))
       return { success: true, cars: JSON.parse(JSON.stringify(formattedCars)), server_time: new Date().toISOString() };
     } catch (err) {
-      console.error("Error fetching approved Karkey cars:", err);
+      logError("Error fetching approved Karkey cars:", err);
       return { success: false, cars: [], error: "Failed to fetch cars" };
     }
   },
@@ -1223,7 +1245,7 @@ export const getHomeCitiesData = unstable_cache(
       const cityData = await Promise.all(cityPromises);
       return { success: true, cities: JSON.parse(JSON.stringify(cityData)) };
     } catch (err) {
-      console.error("Error fetching home cities data:", err);
+      logError("Error fetching home cities data:", err);
       return { success: false, cities: [] };
     }
   },
@@ -1346,7 +1368,7 @@ export const getRecentAuctions = unstable_cache(
 
       return { success: true, auctions };
     } catch (err) {
-      console.error("getRecentAuctions error", err);
+      logError("getRecentAuctions error", err);
       return { success: false, auctions: [] };
     }
   },

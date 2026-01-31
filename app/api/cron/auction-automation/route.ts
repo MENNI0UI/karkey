@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import logger from "@/lib/logger";
 import {
     prepareAuctionsForWeekend,
     activateAllAuctions,
@@ -22,11 +23,11 @@ import {
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
-    
+
     // Return status by default
     if (!action || action === "status") {
         const systemStatus = await getSystemStatus();
-        
+
         return NextResponse.json({
             success: true,
             message: "🆕 MySQL Events يتولى الأتمتة - هذا API للتشغيل اليدوي فقط",
@@ -39,25 +40,25 @@ export async function GET(request: Request) {
             systemStatus,
         });
     }
-    
+
     // Force run if action=run and secret is valid
     if (action === "run") {
         const secret = searchParams.get("secret");
-        
+
         // In production, validate against environment variable
         if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
-            console.log("[Cron] ⚠️ Unauthorized attempt to run auction automation");
+            logger.warn("[Cron/AuctionAutomation] Unauthorized attempt to run auction automation");
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        console.log("[Cron] 🚗 Manual auction automation triggered");
-        
+        logger.info("[Cron/AuctionAutomation] Manual auction automation triggered");
+
         const [prepareResult, activateResult, endResult] = await Promise.all([
             prepareAuctionsForWeekend(),
             activateAllAuctions(),
             endAllAuctions()
         ]);
-        
+
         return NextResponse.json({
             success: true,
             message: "Auction automation completed successfully",
@@ -85,24 +86,24 @@ export async function GET(request: Request) {
         const result = await endAllAuctions();
         return NextResponse.json({ success: true, action: "end", result });
     }
-    
+
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 }
 
 // Also support POST for manual triggers from admin panel
 export async function POST(request: Request) {
     const startTime = Date.now();
-    
+
     // Check authorization header or body
     let authorized = false;
-    
+
     try {
         const body = await request.json().catch(() => ({}));
         const authHeader = request.headers.get("authorization");
-        
+
         // Check if authorized via header or body
         if (process.env.CRON_SECRET) {
-            authorized = 
+            authorized =
                 authHeader === `Bearer ${process.env.CRON_SECRET}` ||
                 body.secret === process.env.CRON_SECRET;
         } else {
@@ -112,22 +113,22 @@ export async function POST(request: Request) {
     } catch {
         authorized = process.env.NODE_ENV !== "production";
     }
-    
+
     if (!authorized) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("[Cron] 🚗 Auction automation triggered via POST");
-    
+    logger.info("[Cron/AuctionAutomation] Auction automation triggered via POST");
+
     try {
         const [prepareResult, activateResult, endResult] = await Promise.all([
             prepareAuctionsForWeekend(),
             activateAllAuctions(),
             endAllAuctions()
         ]);
-        
+
         const duration = Date.now() - startTime;
-        
+
         return NextResponse.json({
             success: true,
             message: "🆕 Auction automation completed successfully",
@@ -143,10 +144,10 @@ export async function POST(request: Request) {
             },
             timestamp: new Date().toISOString(),
         });
-        
+
     } catch (error) {
-        console.error("[Cron] ❌ Auction automation failed:", error);
-        
+        logger.error("[Cron/AuctionAutomation] Error:", error);
+
         return NextResponse.json(
             {
                 success: false,

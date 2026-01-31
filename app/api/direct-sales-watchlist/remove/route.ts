@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
+import logger from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, removed: true }, { status: 200 });
   } catch (error: unknown) {
-    console.error("[api/direct-sales-watchlist/remove] error:", error);
+    logger.error("[api/direct-sales-watchlist/remove] error:", error);
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : "Server error" }, { status: 500 });
   }
 }

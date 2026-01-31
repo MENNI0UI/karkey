@@ -85,8 +85,7 @@ export async function prepareAuctionsForWeekend() {
 
   const { startDate, endDate } = getNextWeekendDates();
 
-  console.log('[SimpleAuction] 📦 Preparing auctions for weekend...');
-  console.log(`[SimpleAuction] Weekend: ${startDate.toISOString()} → ${endDate.toISOString()}`);
+  // Preparing auctions for weekend
 
   try {
     // تحديث جماعي - سريع جداً!
@@ -112,7 +111,7 @@ export async function prepareAuctionsForWeekend() {
       },
     });
 
-    console.log(`[SimpleAuction] ✅ Prepared ${result.count} listings for auction`);
+    // Prepared listings for auction
 
     // إرسال إشعارات للمستخدمين المتأثرين
     if (result.count > 0) {
@@ -142,7 +141,7 @@ export async function prepareAuctionsForWeekend() {
 export async function activateAllAuctions() {
   const now = new Date();
 
-  console.log('[SimpleAuction] 🚀 Activating ALL auctions...');
+  // Activating ALL auctions
 
   try {
     const result = await prisma.direct_sales.updateMany({
@@ -157,7 +156,7 @@ export async function activateAllAuctions() {
       },
     });
 
-    console.log(`[SimpleAuction] ✅ Activated ${result.count} auctions simultaneously!`);
+    // Activated auctions simultaneously
 
     return { success: true, count: result.count };
 
@@ -193,8 +192,8 @@ export async function activateAllAuctions() {
 export async function endAllAuctions() {
   const now = new Date();
 
-  console.log('[SimpleAuction] 🔄 Ending ALL auctions...');
-  console.log('[SimpleAuction] Rule: Winner only if current_bid >= reserve_price');
+  // Ending ALL auctions
+  // Rule: Winner only if current_bid >= reserve_price
 
   try {
     // 1. ✅ المزادات الناجحة: لها مزايدات وأعلى مزايدة >= reserve_price
@@ -251,9 +250,9 @@ export async function endAllAuctions() {
         AND (auction_bid_count = 0 OR auction_bid_count IS NULL)
     `;
 
-    console.log(`[SimpleAuction] ✅ Completed (winner): ${completedResult} auctions`);
-    console.log(`[SimpleAuction] ⚠️ Reserve not met: ${reserveNotMetResult} auctions (returned to direct sale)`);
-    console.log(`[SimpleAuction] ❌ No bids: ${noBidsResult} auctions (returned to direct sale)`);
+    // Completed (winner): ${completedResult} auctions
+    // Reserve not met: ${reserveNotMetResult} auctions (returned to direct sale)
+    // No bids: ${noBidsResult} auctions (returned to direct sale)
 
     // إشعارات
     const totalEnded = Number(completedResult) + Number(reserveNotMetResult) + Number(noBidsResult);
@@ -417,7 +416,7 @@ async function notifyAuctionEndings() {
 
     if (allNotifications.length > 0) {
       await prisma.notifications.createMany({ data: allNotifications });
-      console.log(`[SimpleAuction] 📬 Sent ${allNotifications.length} notifications`);
+      // Sent ${allNotifications.length} notifications
     }
   } catch (error) {
     console.error('[SimpleAuction] Error sending ending notifications:', error);
@@ -520,7 +519,7 @@ export async function placeBid(listingId: number, userId: number, amount: number
     // تسجيل العرض في جدول bids (للتاريخ)
     // ملاحظة: قد تحتاج لإنشاء جدول direct_sales_bids
 
-    console.log(`[SimpleAuction] 💰 New bid: ${amount} DH on listing #${listingId} by user #${userId}`);
+    // New bid placed
 
     return updated;
   });
@@ -605,12 +604,12 @@ export async function autoCheckExpiredAuctions(): Promise<{ checked: boolean; en
       return { checked: true, ended: 0 };
     }
 
-    console.log(`[AutoCheck] 🔄 Found ${expiredCount} expired auctions - ending them...`);
+    // Found expired auctions - ending them
 
     // إنهاء المزادات المنتهية
     const result = await endAllAuctions();
 
-    console.log(`[AutoCheck] ✅ Ended ${result.totalEnded} auctions automatically`);
+    // Ended auctions automatically
 
     return { checked: true, ended: result.totalEnded };
 
