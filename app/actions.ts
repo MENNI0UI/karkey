@@ -5,13 +5,56 @@ import { verifyToken } from "@/lib/mysql-auth";
 import prisma from "@/lib/prisma";
 import path from "path";
 import { info, warn, error as logError } from "@/lib/logger";
-import { getSearchTermVariants, parseSmartQuery, normalizeSearchFilter, getEnumMatches } from "@/lib/search-utils";
+import { getSearchTermVariants, parseSmartQuery, normalizeSearchFilter, getEnumMatches, formatFTSQuery } from "@/lib/search-utils";
 import { createMetricsContext } from "@/lib/metrics";
 import { SearchFiltersSchema, PaginationSchema, safeParse } from "@/lib/schemas";
 import { errorResponse, normalizeError, ErrorCode } from "@/lib/errors";
 import type { SearchResult, FilterOptionsResult } from "../lib/types/filters";
 import type { Vehicle } from "../lib/types/vehicle";
-// MySQL Event يتولى إنهاء المزادات تلقائياً كل دقيقة - لا حاجة للفحص في الكود
+
+/**
+ * Shared vehicle mapper to ensure consistency across all actions
+ */
+function mapVehicle(item: any): any {
+  const photos = Array.isArray(item.direct_sale_photos)
+    ? item.direct_sale_photos.map((p: any) => normalizePhotoUrl(p.photo_url)).filter(Boolean) as string[]
+    : [];
+
+  const seller = item.users_direct_sales_user_idTousers ? {
+    id: item.users_direct_sales_user_idTousers.id,
+    name: item.users_direct_sales_user_idTousers.username ?? item.users_direct_sales_user_idTousers.first_name ?? null,
+    avatar: item.users_direct_sales_user_idTousers.profile_picture ?? null,
+    email: item.users_direct_sales_user_idTousers.email ?? null,
+  } : null;
+
+  return {
+    id: item.id,
+    auction_id: item.id, // compatibility
+    make: item.make,
+    model: item.model,
+    year: item.year,
+    mileage: item.mileage,
+    transmission: item.transmission,
+    fuel_type: item.fuel_type,
+    vehicle_condition: item.vehicle_condition,
+    location: item.location,
+    price: item.price ? Number(item.price) : null,
+    current_bid: item.auction_current_bid ? Number(item.auction_current_bid) : null,
+    starting_price: item.auction_starting_price ? Number(item.auction_starting_price) : null,
+    startingPrice: item.auction_starting_price ? Number(item.auction_starting_price) : null,
+    auction_start_date: item.auction_start_date ? new Date(item.auction_start_date).toISOString() : null,
+    auction_end_date: item.auction_end_date ? new Date(item.auction_end_date).toISOString() : null,
+    photos,
+    image: photos[0] || null,
+    type: item.auction_mode ? "auction" : "direct_sale",
+    user_id: item.user_id,
+    seller,
+    engine_size: item.engine_size ?? null,
+    doors: item.doors ?? null,
+    created_at: item.created_at,
+    description: item.description,
+  };
+}
 
 // Shared utilities from modularized action helpers
 import {
@@ -35,100 +78,104 @@ const DIRECT_SALES_FILTER_CACHE_FILE = CACHE_FILES.directSalesFilterOptions;
 // Alias for existing usage pattern
 const writeCacheFile = writeCache;
 
-// 🆕 النظام الجديد: يستخدم direct_sales للبحث في كل السيارات (مزاد أو بيع مباشر)
+/* ---------------- unifiedSearch ---------------- */
 export async function unifiedSearch(filters?: {
   q?: string;
   limit?: number;
   type?: "auction" | "direct_sale" | string;
 }): Promise<SearchResult<Vehicle>> {
-  const metrics = createMetricsContext();
-  metrics.start("unifiedSearch-total");
-  try {
-    const q = (filters?.q || "").trim().toLowerCase();
-    const limit = filters?.limit || 5;
-    const type = filters?.type;
-    const qAsNum = Number.parseInt(q, 10);
+  const filterKey = JSON.stringify(filters || {});
 
-    // Prisma doesn't support 'contains' on Enum fields. 
-    // We'll pre-filter valid enum values including aliases (smart mapping).
-    const fuelMatches = getEnumMatches(q, "fuel");
-    const transMatches = getEnumMatches(q, "transmission");
-    const condMatches = getEnumMatches(q, "condition");
+  return await unstable_cache(
+    async () => {
+      const metrics = createMetricsContext();
+      metrics.start("unifiedSearch-total");
+      try {
+        const q = (filters?.q || "").trim().toLowerCase();
+        const limit = filters?.limit || 5;
+        const type = filters?.type;
+        const qAsNum = Number.parseInt(q, 10);
 
-    // Expansion for free-form fields (Make, Model, Location)
-    const queryVariants = getSearchTermVariants(q);
+        const fuelMatches = getEnumMatches(q, "fuel");
+        const transMatches = getEnumMatches(q, "transmission");
+        const condMatches = getEnumMatches(q, "condition");
 
-    const orClauses: any[] = [];
+        const queryVariants = getSearchTermVariants(q);
+        const orClauses: any[] = [];
 
-    // 1. Generic Fields (Contains with variants)
-    queryVariants.forEach(v => {
-      const lowerV = v.toLowerCase();
-      orClauses.push({ make: { contains: lowerV } });
-      orClauses.push({ model: { contains: lowerV } });
-      orClauses.push({ location: { contains: lowerV } });
-    });
+        // FTS: Format query for boolean mode (suffix *)
+        const ftsQuery = formatFTSQuery(q);
 
-    // 2. Strict Enum Fields (Exact 'in' match)
-    if (fuelMatches.length > 0) orClauses.push({ fuel_type: { in: fuelMatches } });
-    if (transMatches.length > 0) orClauses.push({ transmission: { in: transMatches } });
-    if (condMatches.length > 0) orClauses.push({ vehicle_condition: { in: condMatches } });
-
-    // Add year search if query is a valid number
-    if (!Number.isNaN(qAsNum) && qAsNum > 1900 && qAsNum < 2100) {
-      orClauses.push({ year: qAsNum });
-    }
-
-    const where: any = {
-      verification_status: 'approved',
-      OR: orClauses
-    };
-
-    // --- Mandatory Mode Filter ---
-    if (type === 'auction') {
-      where.auction_mode = true;
-    } else if (type === 'direct_sale') {
-      where.AND = [
-        ...(where.AND || []),
-        { OR: [{ auction_mode: false }, { auction_mode: null }] }
-      ];
-    }
-
-    const items = await prisma.direct_sales.findMany({
-      where,
-      include: {
-        direct_sale_photos: {
-          select: { photo_url: true },
-          orderBy: { position_order: 'asc' },
-          take: 1
+        // Prioritize exact/FTS matches
+        if (ftsQuery.length > 0) {
+          orClauses.push({ make: { search: ftsQuery } });
+          orClauses.push({ model: { search: ftsQuery } });
+          orClauses.push({ location: { search: ftsQuery } });
+          orClauses.push({ description: { search: ftsQuery } }); // Added description
         }
-      },
-      orderBy: { created_at: 'desc' },
-      take: limit
-    });
 
-    const vehicles = items.map((item) => {
-      const photos = item.direct_sale_photos.map(p => normalizePhotoUrl(p.photo_url)).filter(Boolean) as string[];
+        // Keep simple contains as fallback for very short terms or strict matches if needed,
+        // but FTS covers most. merging variants:
+        queryVariants.forEach(v => {
+          const lowerV = v.toLowerCase();
+          // Keep contains for short strings where FTS might ignore?
+          // Actually FTS "search" with * is powerful.
+          // Let's stick to FTS for main fields to solve the performance issue.
+        });
 
-      return {
-        id: item.id,
-        make: item.make,
-        model: item.model,
-        year: item.year,
-        price: item.price ? Number(item.price) : null,
-        current_bid: item.auction_current_bid ? Number(item.auction_current_bid) : null,
-        starting_price: item.auction_starting_price ? Number(item.auction_starting_price) : null,
-        image: photos[0] || null,
-        type: item.auction_mode ? "auction" : "direct_sale",
-        location: item.location
-      } as any;
-    });
+        if (fuelMatches.length > 0) orClauses.push({ fuel_type: { in: fuelMatches } });
+        if (transMatches.length > 0) orClauses.push({ transmission: { in: transMatches } });
+        if (condMatches.length > 0) orClauses.push({ vehicle_condition: { in: condMatches } });
 
-    metrics.end("unifiedSearch-total");
-    return { success: true, vehicles };
-  } catch (err) {
-    logError("unifiedSearch error", err);
-    return { success: false, vehicles: [] };
-  }
+        if (!Number.isNaN(qAsNum) && qAsNum > 1900 && qAsNum < 2100) {
+          orClauses.push({ year: qAsNum });
+        }
+
+        const where: any = {
+          verification_status: 'approved',
+          OR: orClauses
+        };
+
+        if (type === 'auction') {
+          where.auction_mode = true;
+        } else if (type === 'direct_sale') {
+          where.AND = [
+            ...(where.AND || []),
+            { OR: [{ auction_mode: false }, { auction_mode: null }] }
+          ];
+        }
+
+        const items = await dbQueryWithTimeout(
+          prisma.direct_sales.findMany({
+            where,
+            include: {
+              users_direct_sales_user_idTousers: {
+                select: { id: true, username: true, first_name: true, profile_picture: true }
+              },
+              direct_sale_photos: {
+                select: { photo_url: true },
+                orderBy: { position_order: 'asc' },
+                take: 5
+              }
+            },
+            orderBy: { created_at: 'desc' },
+            take: limit
+          }),
+          5000
+        );
+
+        const vehicles = items.map(mapVehicle);
+
+        metrics.end("unifiedSearch-total");
+        return { success: true, vehicles: JSON.parse(JSON.stringify(vehicles)) };
+      } catch (err) {
+        logError("unifiedSearch error", err);
+        return { success: false, vehicles: [] };
+      }
+    },
+    [`unified-search-v3-${Buffer.from(filterKey).toString('base64').substring(0, 16)}`],
+    { revalidate: 60, tags: ["vehicles", "search"] }
+  )();
 }
 
 export async function searchVehicles(filters?: {
@@ -166,229 +213,171 @@ export async function searchVehicles(filters?: {
 }
 
 /* ---------------- searchAuctions (new system) ---------------- */
-// Search active auctions using direct_sales with auction_mode = true
-async function searchAuctions(filters?: {
-  make?: string | string[];
-  model?: string | string[];
-  year?: string | string[];
-  minPrice?: string;
-  maxPrice?: string;
-  fuelType?: string | string[];
-  fuel?: string | string[];
-  transmission?: string | string[];
-  location?: string | string[];
-  q?: string;
-  minMileage?: string;
-  maxMileage?: string;
-  minEngine?: string;
-  maxEngine?: string;
-  doors?: string;
-  condition?: string | string[];
-  exteriorColor?: string | string[];
-  interiorColor?: string | string[];
-  originalPaint?: string;
-}, page = 1, limit = 50): Promise<SearchResult<Vehicle>> {
-  const metrics = createMetricsContext();
-  metrics.start("searchAuctions-total");
-  try {
-    // MySQL Event يتولى إنهاء المزادات تلقائياً كل دقيقة
-    const safeFilters = filters || {};
-    const offset = Math.max(0, (Number(page) - 1) * Number(limit));
+async function searchAuctions(filters?: any, page = 1, limit = 50): Promise<SearchResult<Vehicle>> {
+  const filterKey = JSON.stringify({ ...filters, page, limit });
 
-    const where: any = {
-      verification_status: 'approved',
-      auction_mode: true,
-      auction_status: 'active',
-      auction_end_date: { gt: new Date() }
-    };
+  return await unstable_cache(
+    async () => {
+      const metrics = createMetricsContext();
+      metrics.start("searchAuctions-total");
+      try {
+        const safeFilters = filters || {};
+        const offset = Math.max(0, (Number(page) - 1) * Number(limit));
 
-    const isAll = (v?: string | string[]) => {
-      if (!v) return true;
-      if (Array.isArray(v)) return v.length === 0 || (v.length === 1 && String(v[0]).toLowerCase() === "all");
-      return String(v).trim() === "" || String(v).toLowerCase() === "all";
-    };
+        const where: any = {
+          verification_status: 'approved'
+        };
 
-    const addInFilter = (field: string, val: string | string[] | undefined, mapFn?: (v: string) => any) => {
-      if (isAll(val)) return;
-      const arr = Array.isArray(val) ? val : [String(val)];
-      const filtered = arr.filter(x => x && String(x).toLowerCase() !== "all");
-      if (filtered.length > 0) {
-        where[field] = { in: mapFn ? filtered.map(mapFn) : filtered };
-      }
-    };
+        // Partitioning: auction_mode depends on 'type' filter
+        if (safeFilters.type === 'auction') {
+          where.auction_mode = true;
+          where.auction_status = 'active';
+          where.auction_end_date = { gt: new Date() };
+        } else if (safeFilters.type === 'direct_sale') {
+          where.auction_mode = false;
+        }
 
-    addInFilter('make', normalizeSearchFilter(safeFilters.make));
-    addInFilter('model', normalizeSearchFilter(safeFilters.model));
-    addInFilter('location', normalizeSearchFilter(safeFilters.location));
-    // Fuel handling with Multilingual Normalization
-    const fuelVal = (safeFilters as any).fuel ?? (safeFilters as any).fuelType;
-    if (!isAll(fuelVal)) {
-      const normalized = normalizeSearchFilter(fuelVal);
-      const arr = Array.isArray(normalized) ? normalized : [String(normalized)];
-      const expanded = new Set<string>();
-      arr.forEach(f => {
-        const lower = f.toLowerCase();
-        expanded.add(lower);
-        if (lower === "gasoline") expanded.add("petrol");
-        if (lower === "petrol") expanded.add("gasoline");
-      });
-      where.fuel_type = { in: Array.from(expanded) };
-    }
-    addInFilter('transmission', normalizeSearchFilter(safeFilters.transmission));
-    addInFilter('doors', (safeFilters as any).doors);
-    addInFilter('year', safeFilters.year, Number);
-    addInFilter('vehicle_condition', normalizeSearchFilter((safeFilters as any).condition), (v) => v.toLowerCase());
-    addInFilter('exterior_color', (safeFilters as any).exteriorColor, (v) => v.toLowerCase());
-    addInFilter('interior_color', (safeFilters as any).interiorColor, (v) => v.toLowerCase());
+        const isAll = (v?: string | string[]) => {
+          if (!v) return true;
+          if (Array.isArray(v)) return v.length === 0 || (v.length === 1 && String(v[0]).toLowerCase() === "all");
+          return String(v).trim() === "" || String(v).toLowerCase() === "all";
+        };
 
-    const parseNum = (v?: string) => {
-      if (!v) return null;
-      const n = Number(String(v).replace(/[^\d.-]/g, ""));
-      return isNaN(n) ? null : n;
-    };
-
-    // Price filter uses auction_starting_price
-    const minP = parseNum(safeFilters.minPrice);
-    const maxP = parseNum(safeFilters.maxPrice);
-    if (minP !== null || maxP !== null) {
-      where.auction_starting_price = {};
-      if (minP !== null) where.auction_starting_price.gte = minP;
-      if (maxP !== null) where.auction_starting_price.lte = maxP;
-    }
-
-    const minM = parseNum((safeFilters as any).minMileage);
-    const maxM = parseNum((safeFilters as any).maxMileage);
-    if (minM !== null || maxM !== null) {
-      where.mileage = {};
-      if (minM !== null) where.mileage.gte = minM;
-      if (maxM !== null) where.mileage.lte = maxM;
-    }
-
-    const minE = parseNum((safeFilters as any).minEngine);
-    const maxE = parseNum((safeFilters as any).maxEngine);
-    if (minE !== null || maxE !== null) {
-      where.engine_size = {};
-      if (minE !== null) (where.engine_size as any).gte = String(minE);
-      if (maxE !== null) (where.engine_size as any).lte = String(maxE);
-    }
-
-    if ((safeFilters as any).originalPaint === 'yes') where.is_original_paint = true;
-    else if ((safeFilters as any).originalPaint === 'no') where.is_original_paint = false;
-
-    // Free-text search (q) Support
-    if (safeFilters.q && String(safeFilters.q).trim() !== "") {
-      const q = String(safeFilters.q).trim().toLowerCase();
-      const qAsNum = Number.parseInt(q, 10);
-
-      const fuelMatches = getEnumMatches(q, "fuel");
-      const transMatches = getEnumMatches(q, "transmission");
-      const condMatches = getEnumMatches(q, "condition");
-
-      // Expansion for free-form fields
-      const queryVariants = getSearchTermVariants(q);
-
-      const qOR: any[] = [];
-
-      // 1. Strings (Contains with expansion)
-      queryVariants.forEach(v => {
-        const lowerV = v.toLowerCase();
-        qOR.push({ make: { contains: lowerV } });
-        qOR.push({ model: { contains: lowerV } });
-        qOR.push({ location: { contains: lowerV } });
-      });
-
-      // 2. Enums (Strict)
-      if (fuelMatches.length > 0) qOR.push({ fuel_type: { in: fuelMatches } });
-      if (transMatches.length > 0) qOR.push({ transmission: { in: transMatches } });
-      if (condMatches.length > 0) qOR.push({ vehicle_condition: { in: condMatches } });
-      if (!Number.isNaN(qAsNum) && qAsNum > 1900 && qAsNum < 2100) qOR.push({ year: qAsNum });
-
-      // Merge with existing where. If where.OR exists, we need to be careful.
-      if (where.OR) {
-        const existingOR = where.OR;
-        delete where.OR;
-        where.AND = [
-          { OR: existingOR },
-          { OR: qOR }
-        ];
-      } else {
-        where.OR = qOR;
-      }
-    }
-
-    const take = Math.min(200, Math.max(1, Number(limit)));
-
-    const [totalCount, items] = await Promise.all([
-      prisma.direct_sales.count({ where }),
-      prisma.direct_sales.findMany({
-        where,
-        include: {
-          users_direct_sales_user_idTousers: {
-            select: { id: true, username: true, email: true }
-          },
-          direct_sale_photos: {
-            select: { photo_url: true },
-            orderBy: { position_order: 'asc' }
+        const addInFilter = (field: string, val: string | string[] | undefined, mapFn?: (v: string) => any) => {
+          if (isAll(val)) return;
+          const arr = Array.isArray(val) ? val : [String(val)];
+          const filtered = arr.filter(x => x && String(x).toLowerCase() !== "all");
+          if (filtered.length > 0) {
+            where[field] = { in: mapFn ? filtered.map(mapFn) : filtered };
           }
-        },
-        orderBy: { created_at: 'desc' },
-        take: take + 1,
-        skip: offset
-      })
-    ]);
+        };
 
-    const hasMore = items.length > take;
-    const effectiveItems = items.slice(0, take);
+        addInFilter('make', normalizeSearchFilter(safeFilters.make));
+        addInFilter('model', normalizeSearchFilter(safeFilters.model));
+        addInFilter('location', normalizeSearchFilter(safeFilters.location));
 
-    const vehicles = effectiveItems.map((item) => {
-      const photos = item.direct_sale_photos.map(p => normalizePhotoUrl(p.photo_url)).filter(Boolean) as string[];
+        const fuelVal = (safeFilters as any).fuel ?? (safeFilters as any).fuelType;
+        if (!isAll(fuelVal)) {
+          const normalized = normalizeSearchFilter(fuelVal);
+          const arr = Array.isArray(normalized) ? normalized : [String(normalized)];
+          const expanded = new Set<string>();
+          arr.forEach(f => {
+            const lower = f.toLowerCase();
+            expanded.add(lower);
+            if (lower === "gasoline") expanded.add("petrol");
+            if (lower === "petrol") expanded.add("gasoline");
+          });
+          where.fuel_type = { in: Array.from(expanded) };
+        }
+        addInFilter('transmission', normalizeSearchFilter(safeFilters.transmission));
+        addInFilter('doors', (safeFilters as any).doors);
+        addInFilter('year', safeFilters.year, Number);
+        addInFilter('vehicle_condition', normalizeSearchFilter((safeFilters as any).condition), (v) => v.toLowerCase());
+        addInFilter('exterior_color', (safeFilters as any).exteriorColor, (v) => v.toLowerCase());
+        addInFilter('interior_color', (safeFilters as any).interiorColor, (v) => v.toLowerCase());
 
-      return {
-        id: item.id,
-        auction_id: item.id, // In new system, auction_id = direct_sale id
-        make: item.make,
-        model: item.model,
-        year: item.year,
-        mileage: item.mileage,
-        transmission: item.transmission,
-        fuel_type: item.fuel_type,
-        vehicle_condition: item.vehicle_condition,
-        location: item.location,
-        description: item.description,
-        starting_price: item.auction_starting_price ? Number(item.auction_starting_price) : null,
-        startingPrice: item.auction_starting_price ? Number(item.auction_starting_price) : null,
-        current_bid: item.auction_current_bid ? Number(item.auction_current_bid) : null,
-        auction_start_date: item.auction_start_date ? new Date(item.auction_start_date).toISOString() : null,
-        auction_end_date: item.auction_end_date ? new Date(item.auction_end_date).toISOString() : null,
-        photos,
-        image: photos[0] || null,
-        seller: item.users_direct_sales_user_idTousers ? {
-          id: item.users_direct_sales_user_idTousers.id,
-          username: item.users_direct_sales_user_idTousers.username,
-          email: item.users_direct_sales_user_idTousers.email,
-        } : null,
-        engine_size: item.engine_size ? Number(item.engine_size) : null,
-        doors: item.doors ? Number(item.doors) : null,
-        created_at: item.created_at,
-        is_watched: false, // TODO: Add watchlist support for new system
-      };
-    });
+        const parseNum = (v?: string) => {
+          if (!v) return null;
+          const n = Number(String(v).replace(/[^\d.-]/g, ""));
+          return isNaN(n) ? null : n;
+        };
 
-    metrics.end("searchAuctions-total", { count: vehicles.length });
-    return {
-      success: true,
-      vehicles,
-      server_time: new Date().toISOString(),
-      hasMore,
-      total: totalCount,
-      page: Number(page),
-      limit: Number(limit)
-    };
-  } catch (err) {
-    metrics.info("searchAuctions-error", String(err));
-    logError("[app/actions] Error in searchAuctions:", err);
-    return { success: false, error: String(err), vehicles: [] };
-  }
+        const minP = parseNum(safeFilters.minPrice);
+        const maxP = parseNum(safeFilters.maxPrice);
+        if (minP !== null || maxP !== null) {
+          where.auction_starting_price = {};
+          if (minP !== null) where.auction_starting_price.gte = minP;
+          if (maxP !== null) where.auction_starting_price.lte = maxP;
+        }
+
+        const minM = parseNum((safeFilters as any).minMileage);
+        const maxM = parseNum((safeFilters as any).maxMileage);
+        if (minM !== null || maxM !== null) {
+          where.mileage = {};
+          if (minM !== null) where.mileage.gte = minM;
+          if (maxM !== null) where.mileage.lte = maxM;
+        }
+
+        if (safeFilters.q && String(safeFilters.q).trim() !== "") {
+          const q = String(safeFilters.q).trim().toLowerCase();
+          const qAsNum = Number.parseInt(q, 10);
+          const fuelMatches = getEnumMatches(q, "fuel");
+          const transMatches = getEnumMatches(q, "transmission");
+          const condMatches = getEnumMatches(q, "condition");
+          const queryVariants = getSearchTermVariants(q);
+          const qOR: any[] = [];
+
+          // FTS Logic for Auctions
+          const ftsQuery = formatFTSQuery(q);
+
+          if (ftsQuery.length > 0) {
+            qOR.push({ make: { search: ftsQuery } });
+            qOR.push({ model: { search: ftsQuery } });
+            qOR.push({ location: { search: ftsQuery } });
+            qOR.push({ description: { search: ftsQuery } });
+          }
+
+          if (fuelMatches.length > 0) qOR.push({ fuel_type: { in: fuelMatches } });
+          if (transMatches.length > 0) qOR.push({ transmission: { in: transMatches } });
+          if (condMatches.length > 0) qOR.push({ vehicle_condition: { in: condMatches } });
+          if (!Number.isNaN(qAsNum) && qAsNum > 1900 && qAsNum < 2100) qOR.push({ year: qAsNum });
+
+          if (where.OR) {
+            const existingOR = where.OR;
+            delete where.OR;
+            where.AND = [{ OR: existingOR }, { OR: qOR }];
+          } else {
+            where.OR = qOR;
+          }
+        }
+
+        const take = Math.min(200, Math.max(1, Number(limit)));
+
+        const [totalCount, items] = await dbQueryWithTimeout(
+          Promise.all([
+            prisma.direct_sales.count({ where }),
+            prisma.direct_sales.findMany({
+              where,
+              include: {
+                users_direct_sales_user_idTousers: {
+                  select: { id: true, username: true, email: true }
+                },
+                direct_sale_photos: {
+                  select: { photo_url: true },
+                  orderBy: { position_order: 'asc' }
+                }
+              },
+              orderBy: { created_at: 'desc' },
+              take: take + 1,
+              skip: offset
+            })
+          ]),
+          10000
+        );
+
+        const hasMore = items.length > take;
+        const effectiveItems = items.slice(0, take);
+
+        const vehicles = effectiveItems.map(mapVehicle);
+
+        metrics.end("searchAuctions-total", { count: vehicles.length });
+        return {
+          success: true,
+          vehicles: JSON.parse(JSON.stringify(vehicles)),
+          server_time: new Date().toISOString(),
+          hasMore,
+          total: totalCount,
+          page: Number(page),
+          limit: Number(limit)
+        };
+      } catch (err) {
+        logError("[app/actions] Error in searchAuctions:", err);
+        return { success: false, error: String(err), vehicles: [] };
+      }
+    },
+    [`search-auctions-${Buffer.from(filterKey).toString('base64').substring(0, 16)}`],
+    { revalidate: 60, tags: ["auctions", "vehicles"] }
+  )();
 }
 
 /* ---------------- getApprovedVehicles ---------------- */
@@ -417,46 +406,14 @@ export const getApprovedVehicles = unstable_cache(
         take: limitVal
       });
 
-      const enriched = items.map((item) => {
-        const photos = item.direct_sale_photos.map(p => normalizePhotoUrl(p.photo_url)).filter(Boolean) as string[];
-        const starting_price_num = item.auction_starting_price ? Number(item.auction_starting_price) : null;
-        return {
-          id: item.id,
-          auction_id: item.id,
-          make: item.make,
-          model: item.model,
-          year: item.year,
-          mileage: item.mileage,
-          transmission: item.transmission,
-          fuel_type: item.fuel_type,
-          vehicle_condition: item.vehicle_condition,
-          location: item.location,
-          description: item.description,
-          price: item.price ? Number(item.price) : null,
-          starting_price: starting_price_num,
-          startingPrice: starting_price_num,
-          current_bid: item.auction_current_bid ? Number(item.auction_current_bid) : null,
-          auction_start_date: item.auction_start_date ? new Date(item.auction_start_date).toISOString() : null,
-          auction_end_date: item.auction_end_date ? new Date(item.auction_end_date).toISOString() : null,
-          photos,
-          image: photos.length > 0 ? photos[0] : null,
-          seller: item.users_direct_sales_user_idTousers ? {
-            id: item.users_direct_sales_user_idTousers.id,
-            name: item.users_direct_sales_user_idTousers.username ?? item.users_direct_sales_user_idTousers.first_name ?? null,
-            avatar: item.users_direct_sales_user_idTousers.profile_picture ?? null,
-          } : null,
-          engine_size: item.engine_size ? Number(item.engine_size) : null,
-          doors: item.doors ? Number(item.doors) : null,
-          created_at: item.created_at,
-        };
-      });
+      const enriched = items.map(mapVehicle);
       return { success: true, vehicles: JSON.parse(JSON.stringify(enriched)), server_time: new Date().toISOString() };
     } catch (err) {
       logError("[app/actions] Error in getApprovedVehicles:", err);
       return { success: false, vehicles: [] };
     }
   },
-  ["approved-vehicles"],
+  ["approved-vehicles-v3"],
   { revalidate: 60, tags: ["vehicles", "auctions"] }
 );
 
@@ -490,20 +447,10 @@ export const getFilterOptions = unstable_cache(
       };
 
       // Use Promise.all for parallel fetching
-      const [makesData, modelsData, makeModelData, yearsData, locationsRows, fuelData, transData, condData, makeCountsData, modelCountsData] = await dbQueryWithTimeout(
+      // Use Promise.all for parallel fetching
+      // Removing redundant separate queries for makes/models
+      const [makeModelData, yearsData, locationsRows, fuelData, transData, condData, makeCountsData, modelCountsData] = await dbQueryWithTimeout(
         Promise.all([
-          prisma.direct_sales.findMany({
-            where: { verification_status: 'approved', auction_mode: true },
-            distinct: ['make'],
-            select: { make: true },
-            orderBy: { make: 'asc' }
-          }),
-          prisma.direct_sales.findMany({
-            where: { verification_status: 'approved', auction_mode: true },
-            distinct: ['model'],
-            select: { model: true },
-            orderBy: { model: 'asc' }
-          }),
           prisma.direct_sales.findMany({
             where: { verification_status: 'approved', auction_mode: true },
             distinct: ['make', 'model'],
@@ -567,8 +514,9 @@ export const getFilterOptions = unstable_cache(
       const dbConds = (condData as any[]).map(r => mapDbToLabel(r.vehicle_condition)).filter(Boolean);
       const conditionOptions = Array.from(new Set([...standardConditions, ...dbConds])).map(v => ({ value: v.toLowerCase(), label: v }));
 
-      const makes = (makesData as any[]).map(r => r.make).filter(Boolean);
-      const models = (modelsData as any[]).map(r => r.model).filter(Boolean);
+      // Derive makes and models from makeModelData to avoid redundant queries
+      const makes = Array.from(new Set((makeModelData as any[]).map(r => r.make).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+      const models = Array.from(new Set((makeModelData as any[]).map(r => r.model).filter(Boolean))).sort((a, b) => a.localeCompare(b));
       const years = (yearsData as any[]).map(r => String(r.year)).filter(Boolean);
 
       const makeCounts: Record<string, number> = {};
@@ -641,8 +589,6 @@ export const getDirectSalesFilterOptions = unstable_cache(
 
       // Use Promise.all to fetch all filter data in parallel for significantly better performance with timeout
       const [
-        makesData,
-        modelsData,
         makeModelData,
         makeYearData, // NEW: combinations for years dependency
         yearsData,
@@ -655,18 +601,6 @@ export const getDirectSalesFilterOptions = unstable_cache(
         modelCountsData
       ] = await dbQueryWithTimeout(
         Promise.all([
-          prisma.direct_sales.findMany({
-            where: baseWhere,
-            distinct: ['make'],
-            select: { make: true },
-            orderBy: { make: 'asc' }
-          }),
-          prisma.direct_sales.findMany({
-            where: baseWhere,
-            distinct: ['model'],
-            select: { model: true },
-            orderBy: { model: 'asc' }
-          }),
           prisma.direct_sales.findMany({
             where: baseWhere,
             distinct: ['make', 'model'],
@@ -685,10 +619,13 @@ export const getDirectSalesFilterOptions = unstable_cache(
             select: { year: true },
             orderBy: { year: 'desc' }
           }),
+          // OPTIMIZED LOCATION QUERY: Filtering out sold/auctioned cars
           prisma.$queryRaw<Array<{ location: string }>>`
             SELECT DISTINCT TRIM(SUBSTRING_INDEX(location, ',', 1)) AS location 
             FROM direct_sales 
-            WHERE verification_status = 'approved'
+            WHERE verification_status = 'approved' 
+              AND sale_status = 'available'
+              AND (auction_mode = 0 OR auction_mode IS NULL)
             ORDER BY location ASC
           `,
           prisma.direct_sales.findMany({
@@ -792,7 +729,16 @@ export const getDirectSalesFilterOptions = unstable_cache(
 
       const yearsByMake: Record<string, string[]> = {};
       if (Array.isArray(makeYearData)) {
-        for (const k of Object.keys(yearsByMake)) yearsByMake[k].sort((a, b) => Number(b) - Number(a));
+        for (const row of makeYearData) {
+          const mk = String(row.make ?? "").trim();
+          const yr = String(row.year ?? "").trim();
+          if (!mk || !yr) continue;
+          if (!yearsByMake[mk]) yearsByMake[mk] = [];
+          if (!yearsByMake[mk].includes(yr)) yearsByMake[mk].push(yr);
+        }
+        for (const k of Object.keys(yearsByMake)) {
+          yearsByMake[k].sort((a, b) => Number(b) - Number(a));
+        }
       }
 
       const makeCounts: Record<string, number> = {};
@@ -805,8 +751,8 @@ export const getDirectSalesFilterOptions = unstable_cache(
         success: true,
         source: 'db',
         options: {
-          makes: (makesData as any[]).map(r => r.make).filter(Boolean),
-          models: (modelsData as any[]).map(r => r.model).filter(Boolean),
+          makes: Array.from(new Set((makeModelData as any[]).map(r => r.make).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+          models: Array.from(new Set((makeModelData as any[]).map(r => r.model).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
           modelsByMake,
           yearsByMake,
           makeCounts,
@@ -836,281 +782,26 @@ export const getDirectSalesFilterOptions = unstable_cache(
 );
 
 /* ---------------- getApprovedDirectSales ---------------- */
-export async function getApprovedDirectSales(limit = 8) {
-  try {
-    const take = typeof limit === 'number' && limit > 0 ? limit : 8;
+export const getApprovedDirectSales = unstable_cache(
+  async (limit = 8) => {
+    try {
+      const take = typeof limit === 'number' && limit > 0 ? limit : 8;
 
-    // Fetch direct sales with seller info and photos
-    const items = await prisma.direct_sales.findMany({
-      where: {
-        verification_status: 'approved',
-        sale_status: 'available'
-      },
-      include: {
-        users_direct_sales_user_idTousers: {
-          select: {
-            id: true,
-            username: true,
-            phone_number: true,
-            first_name: true,
-            last_name: true,
-            profile_picture: true,
-          }
+      // Fetch direct sales with seller info and photos
+      const items = await prisma.direct_sales.findMany({
+        where: {
+          verification_status: 'approved',
+          sale_status: 'available'
         },
-        direct_sale_photos: {
-          select: { photo_url: true },
-          orderBy: { position_order: 'asc' }
-        }
-      },
-      orderBy: { created_at: 'desc' },
-      take
-    })
-
-    const vehicles = items.map((item) => {
-      const photos = item.direct_sale_photos.map(p => {
-        const url = p.photo_url;
-        if (!url) return null;
-        if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/")) return url;
-        return `/uploads/vehicles/${path.basename(url)}`;
-      }).filter(Boolean) as string[];
-
-      // Add service_history_url to photos if not already present
-      if (item.service_history_url) {
-        let historyUrl = item.service_history_url;
-        if (!(historyUrl.startsWith("http") || historyUrl.startsWith("/"))) {
-          historyUrl = `/uploads/vehicles/${path.basename(historyUrl)}`;
-        }
-        if (!photos.includes(historyUrl)) {
-          photos.push(historyUrl);
-        }
-      }
-
-      return {
-        id: item.id,
-        user_id: item.user_id,
-        make: item.make,
-        model: item.model,
-        year: item.year,
-        mileage: item.mileage,
-        vehicle_condition: item.vehicle_condition,
-        fuel_type: item.fuel_type,
-        engine_size: item.engine_size ? Number(item.engine_size) : null,
-        doors: item.doors,
-        transmission: item.transmission,
-        location: item.location,
-        description: item.description,
-        price: item.price ? Number(item.price) : null,
-        startingPrice: item.price ? Number(item.price) : null, // unified key
-        verification_status: item.verification_status,
-        sale_status: item.sale_status,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        photos,
-        image: photos.length > 0 ? photos[0] : null,
-        seller: item.users_direct_sales_user_idTousers ? {
-          id: item.users_direct_sales_user_idTousers.id,
-          username: item.users_direct_sales_user_idTousers.username,
-          name: item.users_direct_sales_user_idTousers.first_name || item.users_direct_sales_user_idTousers.username,
-          avatar: item.users_direct_sales_user_idTousers.profile_picture,
-          phone_number: item.users_direct_sales_user_idTousers.phone_number,
-        } : null,
-      };
-    })
-
-    return { success: true, vehicles, server_time: new Date().toISOString() };
-  } catch (err) {
-    logError("[app/actions] Error in getApprovedDirectSales:", err);
-    return { success: false, vehicles: [] };
-  }
-
-}
-
-
-/* ---------------- searchDirectSales ---------------- */
-export async function searchDirectSales(filters?: {
-  make?: string | string[];
-  model?: string | string[];
-  year?: string | string[];
-  minPrice?: string;
-  maxPrice?: string;
-  minMileage?: string;
-  maxMileage?: string;
-  doors?: string | string[];
-  vehicle_condition?: string | string[];
-  condition?: string | string[]; // alias
-  fuel_type?: string | string[];
-  fuel?: string | string[]; // alias
-  transmission?: string | string[];
-  location?: string | string[];
-  exteriorColor?: string | string[];
-  interiorColor?: string | string[];
-  originalPaint?: string;
-  limit?: string | number;
-  offset?: string | number;
-  q?: string;
-}) {
-  const metrics = createMetricsContext();
-  metrics.start("searchDirectSales-db");
-  try {
-    // MySQL Event يتولى إنهاء المزادات تلقائياً كل دقيقة
-    const safeFilters = filters || {};
-    const where: any = {
-      verification_status: 'approved',
-      sale_status: 'available',
-      // 🆕 استثناء السيارات التي تحولت للمزاد
-      OR: [
-        { auction_mode: false },
-        { auction_mode: null }
-      ]
-    }
-
-    const isAll = (v?: string | string[]) => {
-      if (!v) return true;
-      if (Array.isArray(v)) return v.length === 0 || (v.length === 1 && String(v[0]).toLowerCase() === "all");
-      return String(v).trim() === "" || String(v).toLowerCase() === "all";
-    };
-
-    const addInFilter = (field: string, val: string | string[] | undefined, mapFn?: (v: string) => any) => {
-      if (isAll(val)) return;
-      const arr = Array.isArray(val) ? val : [String(val)];
-      const filtered = arr.filter(x => x && String(x).toLowerCase() !== "all");
-      if (filtered.length > 0) {
-        where[field] = { in: mapFn ? filtered.map(mapFn) : filtered };
-      }
-    };
-
-    addInFilter('make', safeFilters.make);
-    addInFilter('model', safeFilters.model);
-    addInFilter('location', safeFilters.location);
-    // Fuel handling with Petrol/Gasoline aliasing
-    const fuelVal = safeFilters.fuel_type ?? safeFilters.fuel;
-    if (!isAll(fuelVal)) {
-      const arr = Array.isArray(fuelVal) ? fuelVal : [String(fuelVal)];
-      const expanded = new Set<string>();
-
-      arr.forEach(f => {
-        const lower = f.toLowerCase();
-        if (lower === "petrol" || lower === "gasoline") {
-          expanded.add("gasoline");
-        } else {
-          expanded.add(lower);
-        }
-      });
-      where.fuel_type = { in: Array.from(expanded) };
-    }
-    // Prisma enum is lowercase: manual, automatic
-    addInFilter('transmission', safeFilters.transmission, (v) => v.toLowerCase());
-    addInFilter('doors', safeFilters.doors);
-    addInFilter('year', safeFilters.year, Number);
-
-    // Text Search (q) Support
-    if (safeFilters.q && String(safeFilters.q).trim() !== "") {
-      const q = String(safeFilters.q).trim().toLowerCase();
-      const qAsNum = parseInt(q, 10);
-
-      const fuelMatches = Object.entries({
-        gasoline: ['gasoline', 'essence', 'petrol', 'بنزين', 'ايصانص', 'gasolina'],
-        diesel: ['diesel', 'gazole', 'مازوت', 'ديزل', 'كازوال', 'diésel', 'gasóleo'],
-        electric: ['electric', 'electrique', 'كهربائية', 'كهرباء', 'eléctrico'],
-        hybrid: ['hybrid', 'hybride', 'هجينة', 'híbrido']
-      }).filter(([_, terms]) => terms.some(t => t.includes(q))).map(([k]) => k);
-
-      const transMatches = Object.entries({
-        automatic: ['automatic', 'automatique', 'auto', 'أوتوماتيك', 'اوتوماتيك', 'automático'],
-        manual: ['manual', 'manuelle', 'boite', 'manuel', 'يدوي', 'مانويل', 'manual']
-      }).filter(([_, terms]) => terms.some(t => t.includes(q))).map(([k]) => k);
-
-      const condMatches = Object.entries({
-        excellent: ['excellent', 'parfaite', 'neuve', 'ممتازة', 'نظيفة', 'excelente', 'perfecto'],
-        good: ['good', 'bonne', 'جيدة', 'bueno'],
-        fair: ['fair', 'moyenne', 'متوسطة', 'medio'],
-        poor: ['poor', 'mauvaise', 'سيئة', 'malo']
-      }).filter(([_, terms]) => terms.some(t => t.includes(q))).map(([k]) => k);
-
-      const qOR: any[] = [
-        { make: { contains: q } },
-        { model: { contains: q } },
-        { location: { contains: q } },
-      ];
-
-      if (fuelMatches.length > 0) qOR.push({ fuel_type: { in: fuelMatches } });
-      if (transMatches.length > 0) qOR.push({ transmission: { in: transMatches } });
-      if (condMatches.length > 0) qOR.push({ vehicle_condition: { in: condMatches } });
-      if (!Number.isNaN(qAsNum) && qAsNum > 1900 && qAsNum < 2100) qOR.push({ year: qAsNum });
-
-      // Merge with existing where. If where.AND exists, add to it. Otherwise create it.
-      if (where.OR) {
-        // If there's already an OR (like for auction_mode), we need to wrap in AND
-        const existingOR = where.OR;
-        delete where.OR;
-        where.AND = [
-          { OR: existingOR },
-          { OR: qOR }
-        ];
-      } else {
-        where.OR = qOR;
-      }
-    }
-
-    const cond = safeFilters.vehicle_condition ?? safeFilters.condition;
-    if (cond) addInFilter('vehicle_condition', cond, (v) => v.toLowerCase());
-
-    const extColor = safeFilters.exteriorColor;
-    if (extColor) addInFilter('exterior_color', extColor, (v) => v.toLowerCase());
-
-    const intColor = safeFilters.interiorColor;
-    if (intColor) addInFilter('interior_color', intColor, (v) => v.toLowerCase());
-
-    const parseNum = (v?: string) => {
-      if (!v) return null;
-      const n = Number(v);
-      return isNaN(n) ? null : n;
-    }
-
-    const minP = parseNum(safeFilters.minPrice);
-    const maxP = parseNum(safeFilters.maxPrice);
-    if (minP !== null || maxP !== null) {
-      where.price = {};
-      if (minP !== null) where.price.gte = minP;
-      if (maxP !== null) where.price.lte = maxP;
-    }
-
-    const minM = parseNum(safeFilters.minMileage);
-    const maxM = parseNum(safeFilters.maxMileage);
-    if (minM !== null || maxM !== null) {
-      where.mileage = {};
-      if (minM !== null) where.mileage.gte = minM;
-      if (maxM !== null) where.mileage.lte = maxM;
-    }
-
-    const minE = parseNum((safeFilters as any).minEngine);
-    const maxE = parseNum((safeFilters as any).maxEngine);
-    if (minE !== null || maxE !== null) {
-      where.engine_size = {};
-      if (minE !== null) (where.engine_size as any).gte = String(minE);
-      if (maxE !== null) (where.engine_size as any).lte = String(maxE);
-    }
-
-    if (safeFilters.originalPaint === 'yes') where.is_original_paint = true;
-    else if (safeFilters.originalPaint === 'no') where.is_original_paint = false;
-
-    const limitVal = typeof safeFilters.limit === 'number' ? safeFilters.limit : Number(safeFilters.limit) || 20;
-    const offsetVal = typeof safeFilters.offset === 'number' ? safeFilters.offset : Number(safeFilters.offset) || 0;
-    const take = Math.max(1, Math.min(200, limitVal));
-    const skip = Math.max(0, offsetVal);
-
-    // parallel count + query
-    const [totalCount, items] = await Promise.all([
-      // count might be slow if large db, but reasonable for now
-      prisma.direct_sales.count({ where }),
-      prisma.direct_sales.findMany({
-        where,
         include: {
           users_direct_sales_user_idTousers: {
             select: {
               id: true,
               username: true,
-              phone_number: true
+              phone_number: true,
+              first_name: true,
+              last_name: true,
+              profile_picture: true,
             }
           },
           direct_sale_photos: {
@@ -1119,63 +810,213 @@ export async function searchDirectSales(filters?: {
           }
         },
         orderBy: { created_at: 'desc' },
-        take: take + 1, // ask for one more to check hasMore
-        skip
+        take
       })
-    ]);
 
-    const hasMore = items.length > take;
-    const effectiveItems = items.slice(0, take);
+      const vehicles = items.map(mapVehicle);
 
-    const vehicles = effectiveItems.map((item) => {
-      const photos = item.direct_sale_photos.map(p => normalizePhotoUrl(p.photo_url)).filter(Boolean) as string[];
-      if (item.service_history_url) {
-        const hUrl = normalizePhotoUrl(item.service_history_url);
-        if (hUrl && !photos.includes(hUrl)) photos.push(hUrl);
+      return { success: true, vehicles: JSON.parse(JSON.stringify(vehicles)), server_time: new Date().toISOString() };
+    } catch (err) {
+      logError("[app/actions] Error in getApprovedDirectSales:", err);
+      return { success: false, vehicles: [] };
+    }
+  },
+  ["approved-direct-sales-v3"],
+  { revalidate: 300, tags: ["direct-sales", "vehicles"] }
+);
+
+
+/* ---------------- searchDirectSales ---------------- */
+export async function searchDirectSales(filters?: any) {
+  // Generate a stable cache key based on JSON stringified filters
+  const filterKey = JSON.stringify(filters || {});
+
+  return await unstable_cache(
+    async () => {
+      const metrics = createMetricsContext();
+      metrics.start("searchDirectSales-db");
+      try {
+        const safeFilters = filters || {};
+        const where: any = {
+          verification_status: 'approved',
+          sale_status: 'available',
+          OR: [
+            { auction_mode: false },
+            { auction_mode: null }
+          ]
+        }
+
+        const isAll = (v?: string | string[]) => {
+          if (!v) return true;
+          if (Array.isArray(v)) return v.length === 0 || (v.length === 1 && String(v[0]).toLowerCase() === "all");
+          return String(v).trim() === "" || String(v).toLowerCase() === "all";
+        };
+
+        const addInFilter = (field: string, val: string | string[] | undefined, mapFn?: (v: string) => any) => {
+          if (isAll(val)) return;
+          const arr = Array.isArray(val) ? val : [String(val)];
+          const filtered = arr.filter(x => x && String(x).toLowerCase() !== "all");
+          if (filtered.length > 0) {
+            where[field] = { in: mapFn ? filtered.map(mapFn) : filtered };
+          }
+        };
+
+        addInFilter('make', safeFilters.make);
+        addInFilter('model', safeFilters.model);
+        addInFilter('location', safeFilters.location);
+
+        const fuelVal = safeFilters.fuel_type ?? safeFilters.fuel;
+        if (!isAll(fuelVal)) {
+          const arr = Array.isArray(fuelVal) ? fuelVal : [String(fuelVal)];
+          const expanded = new Set<string>();
+
+          arr.forEach(f => {
+            const lower = f.toLowerCase();
+            if (lower === "petrol" || lower === "gasoline") {
+              expanded.add("gasoline");
+            } else {
+              expanded.add(lower);
+            }
+          });
+          where.fuel_type = { in: Array.from(expanded) };
+        }
+        addInFilter('transmission', safeFilters.transmission, (v) => v.toLowerCase());
+        addInFilter('doors', safeFilters.doors);
+        addInFilter('year', safeFilters.year, Number);
+
+        if (safeFilters.q && String(safeFilters.q).trim() !== "") {
+          const q = String(safeFilters.q).trim().toLowerCase();
+          const qAsNum = parseInt(q, 10);
+
+          const fuelMatches = Object.entries({
+            gasoline: ['gasoline', 'essence', 'petrol', 'بنزين', 'ايصانص', 'gasolina'],
+            diesel: ['diesel', 'gazole', 'مازوت', 'ديزل', 'كازوال', 'diésel', 'gasóleo'],
+            electric: ['electric', 'electrique', 'كهربائية', 'كهرباء', 'eléctrico'],
+            hybrid: ['hybrid', 'hybride', 'هجينة', 'híbrido']
+          }).filter(([_, terms]) => terms.some(t => t.includes(q))).map(([k]) => k);
+
+          const transMatches = Object.entries({
+            automatic: ['automatic', 'automatique', 'auto', 'أوتوماتيك', 'اوتوماتيك', 'automático'],
+            manual: ['manual', 'manuelle', 'boite', 'manuel', 'يدوي', 'مانويل', 'manual']
+          }).filter(([_, terms]) => terms.some(t => t.includes(q))).map(([k]) => k);
+
+          const condMatches = Object.entries({
+            excellent: ['excellent', 'parfaite', 'neuve', 'ممتازة', 'نظيفة', 'excelente', 'perfecto'],
+            good: ['good', 'bonne', 'جيدة', 'bueno'],
+            fair: ['fair', 'moyenne', 'متوسطة', 'medio'],
+            poor: ['poor', 'mauvaise', 'سيئة', 'malo']
+          }).filter(([_, terms]) => terms.some(t => t.includes(q))).map(([k]) => k);
+
+          const qOR: any[] = [
+            { make: { contains: q } },
+            { model: { contains: q } },
+            { location: { contains: q } },
+          ];
+
+          if (fuelMatches.length > 0) qOR.push({ fuel_type: { in: fuelMatches } });
+          if (transMatches.length > 0) qOR.push({ transmission: { in: transMatches } });
+          if (condMatches.length > 0) qOR.push({ vehicle_condition: { in: condMatches } });
+          if (!Number.isNaN(qAsNum) && qAsNum > 1900 && qAsNum < 2100) qOR.push({ year: qAsNum });
+
+          if (where.OR) {
+            const existingOR = where.OR;
+            delete where.OR;
+            where.AND = [
+              { OR: existingOR },
+              { OR: qOR }
+            ];
+          } else {
+            where.OR = qOR;
+          }
+        }
+
+        const cond = safeFilters.vehicle_condition ?? safeFilters.condition;
+        if (cond) addInFilter('vehicle_condition', cond, (v) => v.toLowerCase());
+
+        const extColor = safeFilters.exteriorColor;
+        if (extColor) addInFilter('exterior_color', extColor, (v) => v.toLowerCase());
+
+        const intColor = safeFilters.interiorColor;
+        if (intColor) addInFilter('interior_color', intColor, (v) => v.toLowerCase());
+
+        const parseNum = (v?: string) => {
+          if (!v) return null;
+          const n = Number(v);
+          return isNaN(n) ? null : n;
+        }
+
+        const minP = parseNum(safeFilters.minPrice);
+        const maxP = parseNum(safeFilters.maxPrice);
+        if (minP !== null || maxP !== null) {
+          where.price = {};
+          if (minP !== null) where.price.gte = minP;
+          if (maxP !== null) where.price.lte = maxP;
+        }
+
+        const minM = parseNum(safeFilters.minMileage);
+        const maxM = parseNum(safeFilters.maxMileage);
+        if (minM !== null || maxM !== null) {
+          where.mileage = {};
+          if (minM !== null) where.mileage.gte = minM;
+          if (maxM !== null) where.mileage.lte = maxM;
+        }
+
+        const limitVal = typeof safeFilters.limit === 'number' ? safeFilters.limit : Number(safeFilters.limit) || 20;
+        const offsetVal = typeof safeFilters.offset === 'number' ? safeFilters.offset : Number(safeFilters.offset) || 0;
+        const take = Math.max(1, Math.min(200, limitVal));
+        const skip = Math.max(0, offsetVal);
+
+        const [totalCount, items] = await dbQueryWithTimeout(
+          Promise.all([
+            prisma.direct_sales.count({ where }),
+            prisma.direct_sales.findMany({
+              where,
+              include: {
+                users_direct_sales_user_idTousers: {
+                  select: {
+                    id: true,
+                    username: true,
+                    phone_number: true
+                  }
+                },
+                direct_sale_photos: {
+                  select: { photo_url: true },
+                  orderBy: { position_order: 'asc' }
+                }
+              },
+              orderBy: { created_at: 'desc' },
+              take: take + 1,
+              skip
+            })
+          ]),
+          10000
+        );
+
+        const hasMore = items.length > take;
+        const effectiveItems = items.slice(0, take);
+
+        const vehicles = effectiveItems.map(mapVehicle);
+
+        const page = Math.floor(offsetVal / limitVal) + 1;
+
+        metrics.end("searchDirectSales-db");
+        return {
+          success: true,
+          vehicles: JSON.parse(JSON.stringify(vehicles)),
+          hasMore,
+          total: totalCount,
+          page: Number(page),
+          limit: Number(limitVal),
+          server_time: new Date().toISOString()
+        };
+      } catch (err) {
+        logError("[app/actions] Error in searchDirectSales:", err);
+        return { success: false, vehicles: [], error: String(err) };
       }
-
-      return {
-        id: item.id,
-        user_id: item.user_id,
-        make: item.make,
-        model: item.model,
-        year: item.year,
-        mileage: item.mileage,
-        vehicle_condition: item.vehicle_condition,
-        fuel_type: item.fuel_type,
-        engine_size: item.engine_size ? Number(item.engine_size) : null,
-        doors: item.doors,
-        transmission: item.transmission,
-        location: item.location,
-        description: item.description,
-        price: item.price ? Number(item.price) : null,
-        startingPrice: item.price ? Number(item.price) : null,
-        verification_status: item.verification_status,
-        sale_status: item.sale_status,
-        created_at: item.created_at,
-        photos,
-        image: photos[0] || null,
-        seller: item.users_direct_sales_user_idTousers ? {
-          id: item.users_direct_sales_user_idTousers.id,
-          username: item.users_direct_sales_user_idTousers.username,
-          phone_number: item.users_direct_sales_user_idTousers.phone_number
-        } : null
-      };
-    });
-
-    metrics.end("searchDirectSales-db");
-    return {
-      success: true,
-      vehicles,
-      hasMore,
-      total: totalCount,
-      server_time: new Date().toISOString()
-    };
-  } catch (err) {
-    logError("[app/actions] Error in searchDirectSales:", err);
-    // fallback to empty
-    return { success: false, vehicles: [], error: String(err) };
-  }
+    },
+    [`search-direct-sales-v3-${Buffer.from(filterKey).toString('base64').substring(0, 16)}`],
+    { revalidate: 300, tags: ["direct-sales", "vehicles"] }
+  )();
 }
 
 export const getApprovedKarkeyCars = unstable_cache(
@@ -1193,7 +1034,7 @@ export const getApprovedKarkeyCars = unstable_cache(
         price: car.price ? Number(car.price) : null,
         tax_cost: (car as any).tax_cost ? Number((car as any).tax_cost) : 0,
       }))
-      return { success: true, cars: JSON.parse(JSON.stringify(formattedCars)), server_time: new Date().toISOString() };
+      return { success: true, cars: JSON.parse(JSON.stringify(formattedCars)) };
     } catch (err) {
       logError("Error fetching approved Karkey cars:", err);
       return { success: false, cars: [], error: "Failed to fetch cars" };
@@ -1207,25 +1048,43 @@ export const getHomeCitiesData = unstable_cache(
   async () => {
     const cities = ["Casablanca", "Rabat", "Marrakech", "Tangier", "Agadir", "Fes", "Meknes", "Oujda"];
     try {
-      const cityPromises = cities.map(async (city) => {
-        const [latestDirectSale, latestKarkey] = await Promise.all([
-          prisma.direct_sales.findFirst({
-            where: {
-              location: { contains: city },
-              verification_status: "approved" as const,
-            },
-            orderBy: { created_at: "desc" },
-            include: { direct_sale_photos: { orderBy: { position_order: "asc" }, take: 1 } }
-          }),
-          prisma.karkey_cars.findFirst({
-            where: {
-              location: { contains: city },
-              is_active: true
-            },
-            orderBy: { created_at: "desc" },
-            include: { photos: { orderBy: { position_order: "asc" }, take: 1 } }
-          })
-        ]);
+      // OPTIMIZED: Batch fetch all data in just 2 queries instead of 16 (N+1 fix)
+      const [directSalesData, karkeyCarsData] = await Promise.all([
+        // Get latest direct sale per city in one query
+        prisma.direct_sales.findMany({
+          where: {
+            verification_status: "approved" as const,
+            location: { in: cities.map(c => c) },
+          },
+          orderBy: { created_at: "desc" },
+          include: { direct_sale_photos: { orderBy: { position_order: "asc" }, take: 1 } },
+          distinct: ['location'],
+        }),
+        // Get latest karkey car per city in one query
+        prisma.karkey_cars.findMany({
+          where: {
+            is_active: true,
+            location: { in: cities.map(c => c) },
+          },
+          orderBy: { created_at: "desc" },
+          include: { photos: { orderBy: { position_order: "asc" }, take: 1 } },
+          distinct: ['location'],
+        })
+      ]);
+
+      // Create lookup maps for O(1) access
+      const directSaleByCity = new Map(
+        directSalesData.map(ds => [ds.location?.toLowerCase(), ds])
+      );
+      const karkeyByCity = new Map(
+        karkeyCarsData.map(kc => [kc.location?.toLowerCase(), kc])
+      );
+
+      // Build city data using the pre-fetched lookup maps
+      const cityData = cities.map(city => {
+        const cityLower = city.toLowerCase();
+        const latestKarkey = karkeyByCity.get(cityLower);
+        const latestDirectSale = directSaleByCity.get(cityLower);
 
         let cityImage = null;
         if (latestKarkey?.photos?.[0]?.photo_url) {
@@ -1242,7 +1101,6 @@ export const getHomeCitiesData = unstable_cache(
         };
       });
 
-      const cityData = await Promise.all(cityPromises);
       return { success: true, cities: JSON.parse(JSON.stringify(cityData)) };
     } catch (err) {
       logError("Error fetching home cities data:", err);

@@ -3,7 +3,7 @@
 import React, { useState } from "react"
 import Link from "next/link"
 import { useTranslation } from "@/lib/i18n-context"
-import { MapPin, MessageCircle, Zap, Fuel } from "lucide-react"
+import { MapPin, MessageCircle } from "lucide-react"
 import { CarCardImageSlider } from "@/components/ui/car-card/card-image-slider"
 import { CarSpecsGrid } from "@/components/ui/car-card/card-specs"
 import { ScaleButton } from "@/components/ui/motion-wrappers"
@@ -15,6 +15,7 @@ interface KarkeyCarPhoto {
     id: number
     photo_url: string
     position_order: number
+    blurhash?: string | null
 }
 
 interface KarkeyCar {
@@ -70,10 +71,16 @@ export default function KarkeyCarCard({ car, onContact, priority = false }: Kark
                 <CarCardImageSlider
                     photos={(car.photos || []).map(p => {
                         const s = String(p.photo_url || "").trim()
+                        // If it's a data URI or external URL without blurhash support, return string
                         if (s.startsWith("data:") || s.startsWith("http://") || s.startsWith("https://")) return s
+
                         let filename = s
                         if (s.includes("/")) filename = s.split("/").pop() || s
-                        return `/api/uploads/karkey-cars/${filename}`
+
+                        return {
+                            url: `https://img.karkey.space/vehicles/${filename}`,
+                            blurhash: p.blurhash || null // Use the blurhash from the car object if available
+                        }
                     })}
                     alt={`${car.make} ${car.model}`}
                     href={`/${language}/karkey-cars/${car.id}`}
@@ -107,7 +114,7 @@ export default function KarkeyCarCard({ car, onContact, priority = false }: Kark
                         <div className="mb-3">
                             <span className="text-sm font-medium font-serif text-gray-500 flex items-center gap-2">
                                 <MapPin className="w-5 h-5 text-[#B8071C]" />
-                                {t(`location.city.${car.location.toLowerCase().replace(/\s+/g, '')}` as any) || car.location}
+                                {t(`location.city.${car.location.toLowerCase().replaceAll(/\s+/g, '')}` as any) || car.location}
                             </span>
                         </div>
 
@@ -116,7 +123,7 @@ export default function KarkeyCarCard({ car, onContact, priority = false }: Kark
                             {new Intl.NumberFormat(language === "ar" ? "ar-MA" : "fr-MA", {
                                 style: "decimal",
                                 maximumFractionDigits: 0,
-                            }).format(typeof car.price === "string" ? parseFloat(car.price) : car.price) + " " + t('common.mad')}
+                            }).format(typeof car.price === "string" ? Number.parseFloat(car.price) : car.price) + " " + t('common.mad')}
                         </div>
 
                         {/* Divider */}

@@ -99,9 +99,16 @@ export function StepReview({ data, t }: StepReviewProps) {
     const normalizePhotoUrl = (p: string | null | undefined) => {
         if (!p) return "/placeholder-car.jpg"
         const s = String(p).trim()
-        if (s.startsWith("/") || s.startsWith("data:") || s.startsWith("http://") || s.startsWith("https://")) return s
-        // Helper for blob urls if needed, but usually strictly handled
-        return s
+        if (s.startsWith("data:image/")) return s
+        if (s.startsWith("blob:")) return s
+        if (s.startsWith("http://") || s.startsWith("https://")) {
+            try {
+                const url = new URL(s)
+                if (url.protocol === 'http:' || url.protocol === 'https:') return s
+            } catch { return "/placeholder-car.jpg" }
+        }
+        const filename = s.includes("/") ? (s.split("/").pop() || s) : s
+        return `https://img.karkey.space/vehicles/${filename}`
     }
 
     const formatPrice = (price: string | number | undefined) => {
@@ -147,6 +154,7 @@ export function StepReview({ data, t }: StepReviewProps) {
                                             fill
                                             className="object-contain object-center bg-gray-100"
                                             sizes="(max-width: 768px) 100vw, 800px"
+                                            unoptimized={true}
                                         />
                                     </div>
                                     {photos.length > 1 && (
@@ -196,6 +204,7 @@ export function StepReview({ data, t }: StepReviewProps) {
                                             fill
                                             className="object-cover"
                                             sizes="80px"
+                                            unoptimized={true}
                                         />
                                     </button>
                                 ))}

@@ -8,10 +8,7 @@ const ParticlesBackgroundComponent = dynamic(
     { ssr: false, loading: () => <div className="absolute inset-0 bg-white" /> }
 )
 
-const HeroHeadlineComponent = dynamic(
-    () => import("@/components/hero-headline").then(mod => mod.HeroHeadline),
-    { ssr: false, loading: () => <div className="h-32" /> }
-)
+import { HeroHeadline } from "@/components/hero-headline"
 
 interface Props {
     titleStart: string
@@ -23,9 +20,22 @@ interface Props {
 export default function HeroSection({ titleStart, titleEnd, subtitle, children }: Props) {
     return (
         <>
-            {/* Dynamic Particles Background */}
-            <div className="absolute inset-0 z-0 h-[600px] pointer-events-none overflow-hidden">
-                <ParticlesBackgroundComponent />
+            {/* Instant CSS-only Background (Zero-JS) */}
+            <div className="absolute inset-0 z-0 h-[600px] pointer-events-none overflow-hidden bg-white">
+                {/* Subtle Gradient Fallback - Blue Flare Only */}
+                <div
+                    className="absolute inset-0 opacity-10 pointer-events-none"
+                    style={{
+                        background: 'radial-gradient(circle at 80% 70%, #103090 0%, transparent 40%)',
+                        filter: 'blur(100px)'
+                    }}
+                />
+
+                {/* Particles container with smooth secondary appearance */}
+                <div className="absolute inset-0 z-0">
+                    <ParticlesBackgroundComponent />
+                </div>
+
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/80 to-white z-10" />
             </div>
 
@@ -41,7 +51,7 @@ export default function HeroSection({ titleStart, titleEnd, subtitle, children }
                     {children}
 
                     {/* Editorial Headline */}
-                    <HeroHeadlineComponent
+                    <HeroHeadline
                         titleStart={titleStart}
                         titleEnd={titleEnd}
                         subtitle={subtitle}

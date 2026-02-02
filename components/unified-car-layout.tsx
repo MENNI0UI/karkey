@@ -110,8 +110,16 @@ export default function UnifiedCarLayout({
     const normalizePhotoUrl = (p: string | null | undefined) => {
         if (!p) return "/placeholder-car.jpg"
         const s = String(p).trim()
-        if (s.startsWith("/") || s.startsWith("data:") || s.startsWith("http://") || s.startsWith("https://")) return s
-        return `/api/uploads/${s}`
+        if (s.startsWith("data:image/")) return s
+        if (s.startsWith("blob:")) return s
+        if (s.startsWith("http://") || s.startsWith("https://")) {
+            try {
+                const url = new URL(s)
+                if (url.protocol === 'http:' || url.protocol === 'https:') return s
+            } catch { return "/placeholder-car.jpg" }
+        }
+        const filename = s.includes("/") ? (s.split("/").pop() || s) : s
+        return `https://img.karkey.space/vehicles/${filename}`
     }
 
     const formatPrice = (price: string | number | undefined) => {
@@ -212,6 +220,7 @@ export default function UnifiedCarLayout({
                                             fill
                                             className="object-contain object-center bg-gray-100"
                                             priority
+                                            unoptimized={true}
                                             sizes="(max-width: 768px) 100vw, 800px"
                                         />
                                     </div>
@@ -267,6 +276,7 @@ export default function UnifiedCarLayout({
                                             fill
                                             className="object-cover"
                                             sizes="80px"
+                                            unoptimized={true}
                                         />
                                     </button>
                                 ))}

@@ -1,4 +1,5 @@
-import fs from "fs"
+import fs from "fs/promises"
+import { constants } from "fs"
 import path from "path"
 
 export type AssetResolution =
@@ -16,6 +17,8 @@ export class AssetService {
         ".webp": "image/webp",
         ".svg": "image/svg+xml",
         ".avif": "image/avif",
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
     };
 
     /**
@@ -33,8 +36,8 @@ export class AssetService {
             }
             // Reject empty segments
             if (segment.trim() === '') continue;
-            // Only allow safe characters: alphanumeric, dash, underscore, dot
-            if (!/^[\w\-. ]+$/i.test(segment)) {
+            // Only allow safe characters: alphanumeric, dash, underscore, dot, parenthesis
+            if (!/^[\w\-. ()]+$/i.test(segment)) {
                 return null;
             }
             sanitized.push(segment);
@@ -43,10 +46,22 @@ export class AssetService {
     }
 
     /**
+     * Async check if file exists
+     */
+    private static async fileExists(filePath: string): Promise<boolean> {
+        try {
+            await fs.access(filePath, constants.F_OK);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
      * Resolves a requested asset path to a physical file, a redirect, or an error state.
      * Handles security checks, cloud fallbacks, and format optimization (AVIF/WebP).
      */
-    static resolve(pathSegments: string[], acceptHeader: string = ""): AssetResolution {
+    static async resolve(pathSegments: string[], acceptHeader: string = ""): Promise<AssetResolution> {
         // 0. Sanitize input path segments BEFORE any path operations
         const sanitizedSegments = this.sanitizePathSegments(pathSegments);
         if (!sanitizedSegments) {
@@ -59,13 +74,16 @@ export class AssetService {
         const resolvedPath = path.resolve(filePath)
 
         // Security: ensure the path doesn't escape the uploads directory (defense in depth)
+        // Note: resolvedPath checks done synchronously as they are string ops usually, but safe enough here
         if (!resolvedPath.startsWith(uploadsDir + path.sep) && resolvedPath !== uploadsDir) {
             return { type: 'FORBIDDEN' };
         }
 
         // 2. Check Local Existence & Cloud Fallback
         let targetPath = resolvedPath;
-        if (!fs.existsSync(targetPath)) {
+        const exists = await this.fileExists(targetPath);
+
+        if (!exists) {
             const storageBaseUrl = process.env.STORAGE_BASE_URL;
             if (storageBaseUrl) {
                 // Use sanitized segments for cloud URL
@@ -78,11 +96,11 @@ export class AssetService {
         // 3. Format-Aware Optimization (Sub-Phase 4.2 logic)
         // Sanitize acceptHeader to only allow expected MIME types
         const safeAcceptHeader = this.sanitizeAcceptHeader(acceptHeader);
-        targetPath = this.optimizeFormat(targetPath, safeAcceptHeader);
+        targetPath = await this.optimizeFormat(targetPath, safeAcceptHeader);
 
         // 4. Prepare File Details
         try {
-            const stats = fs.statSync(targetPath)
+            const stats = await fs.stat(targetPath)
             const ext = path.extname(targetPath).toLowerCase()
             const contentType = this.CONTENT_TYPE_MAP[ext] || "application/octet-stream"
 
@@ -117,7 +135,7 @@ export class AssetService {
     /**
      * Attempts to find a better format (AVIF/WebP) for the requested file
      */
-    private static optimizeFormat(originalPath: string, acceptHeader: string): string {
+    private static async optimizeFormat(originalPath: string, acceptHeader: string): Promise<string> {
         const originalExt = path.extname(originalPath).toLowerCase();
         // Only optimize classic image formats
         if (![".jpg", ".jpeg", ".png"].includes(originalExt)) {
@@ -130,15 +148,16 @@ export class AssetService {
         // 1. Try AVIF
         if (acceptHeader.includes("image/avif")) {
             const avifPath = path.join(dir, `${base}.avif`);
-            if (fs.existsSync(avifPath)) return avifPath;
+            if (await this.fileExists(avifPath)) return avifPath;
         }
 
         // 2. Try WebP
         if (acceptHeader.includes("image/webp")) {
             const webpPath = path.join(dir, `${base}.webp`);
-            if (fs.existsSync(webpPath)) return webpPath;
+            if (await this.fileExists(webpPath)) return webpPath;
         }
 
         return originalPath;
     }
 }
+

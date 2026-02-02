@@ -14,6 +14,7 @@ import { CarCardSkeleton, CarGridSkeleton } from "@/components/ui/car-card-skele
 import { LuxuryLoader } from "@/components/ui/luxury-loader"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { motion, AnimatePresence } from "framer-motion"
+import { EmptyListingState, LoadMoreButton } from "@/components/listing-components"
 
 const PAGE_SIZE = 20
 
@@ -444,7 +445,7 @@ export default function DirectSalesPageClient({
               <CarGridSkeleton count={12} viewMode={viewMode} />
             </div>
           ) : items.length === 0 ? (
-            <div className="text-center py-20 text-[#103090] font-serif font-bold text-lg">{t("direct_sales.no_listings")}</div>
+            <EmptyListingState titleKey="direct_sales.no_listings" />
           ) : (
             <div className="w-full">
               {/* Single Toggle View Switcher - Hidden on Mobile */}
@@ -510,7 +511,7 @@ export default function DirectSalesPageClient({
                         <DirectSaleCard
                           item={it}
                           linkPrefix="/direct-sales"
-                          priority={false}
+                          priority={items.indexOf(it) < 4}
                           viewMode={viewMode}
                         />
                       </motion.div>
@@ -519,46 +520,32 @@ export default function DirectSalesPageClient({
                 </AnimatePresence>
               </div>
               {/* Load more / end marker */}
-              {items.length > 0 ? (
-                <div className="flex justify-center mt-6">
-                  {hasMore ? (
-                    <button
-                      className="inline-flex items-center justify-center bg-white border border-gray-200 text-[#103090] hover:bg-gray-50 rounded-md px-4 py-2 shadow-sm text-sm font-semibold"
-                      onClick={async () => {
-                        try {
-                          if (loadingMore) return
-                          setLoadingMore(true)
-                          const paramString = searchParams?.toString() ?? ""
-                          const base = paramString ? `/api/direct-sales/approved?${paramString}` : `/api/direct-sales/approved`
-                          const url = `${base}${paramString ? `&` : `?`}limit=${PAGE_SIZE}&offset=${offset}`
-                          const res = await fetch(url, { cache: "no-store" })
-                          if (!res.ok) throw new Error("load more failed")
-                          const data = await res.json().catch(() => null)
-                          const more = Array.isArray(data?.vehicles) ? data.vehicles : []
-                          setItems((prev) => (Array.isArray(prev) ? prev.concat(more) : more))
-                          setOffset((prev) => prev + (Array.isArray(more) ? more.length : 0))
-                          setHasMore(Boolean(data?.hasMore))
-                        } catch (err) {
-                          // ignore
-                        } finally {
-                          setLoadingMore(false)
-                        }
-                      }}
-                    >
-                      {loadingMore ? (
-                        <>
-                          <LuxuryLoader size="sm" className="mr-2" />
-                          {t("common.loading")}
-                        </>
-                      ) : (
-                        t("direct_sales.load_more")
-                      )}
-                    </button>
-                  ) : (
-                    <div className="text-sm text-[#717171]">{t("common.end_of_results")}</div>
-                  )}
-                </div>
-              ) : null}
+              <LoadMoreButton
+                onLoadMore={async () => {
+                  try {
+                    if (loadingMore) return
+                    setLoadingMore(true)
+                    const paramString = searchParams?.toString() ?? ""
+                    const base = paramString ? `/api/direct-sales/approved?${paramString}` : `/api/direct-sales/approved`
+                    const url = `${base}${paramString ? `&` : `?`}limit=${PAGE_SIZE}&offset=${offset}`
+                    const res = await fetch(url, { cache: "no-store" })
+                    if (!res.ok) throw new Error("load more failed")
+                    const data = await res.json().catch(() => null)
+                    const more = Array.isArray(data?.vehicles) ? data.vehicles : []
+                    setItems((prev) => (Array.isArray(prev) ? prev.concat(more) : more))
+                    setOffset((prev) => prev + (Array.isArray(more) ? more.length : 0))
+                    setHasMore(Boolean(data?.hasMore))
+                  } catch (err) {
+                    // ignore
+                  } finally {
+                    setLoadingMore(false)
+                  }
+                }}
+                loading={loadingMore}
+                hasMore={hasMore}
+                loadMoreKey="direct_sales.load_more"
+                endKey="common.end_of_results"
+              />
             </div>
           )}
           <div id="filters-footer-sentinel" className="w-full h-px" aria-hidden="true" />

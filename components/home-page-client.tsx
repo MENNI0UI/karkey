@@ -8,11 +8,16 @@ import { useParams } from "next/navigation"
 import { StaggerContainer, StaggerItem, FadeIn } from "@/components/ui/motion-wrappers"
 import { CarGridSkeleton } from "@/components/ui/car-card-skeleton"
 import { LuxuryLoader } from "@/components/ui/luxury-loader"
+
 import logger from "@/lib/logger"
 import dynamic from "next/dynamic"
 
 const ParticlesCursor = dynamic(() => import("@/components/ui/particles-cursor"), {
 	ssr: false,
+})
+// Dynamic import for CircularGalleryHtml
+const CircularGalleryHtml = dynamic(() => import("@/components/ui/circular-gallery/CircularGalleryHtml"), {
+	loading: () => <div className="h-[600px] flex items-center justify-center"><LuxuryLoader size="lg" /></div>
 })
 
 type Props = {
@@ -166,29 +171,37 @@ export default function HomePageClient({
 			    And Karkey Cars Section 2 (Last).
 			*/}
 
-			{/* Section 1: Karkey Cars (First as requested) */}
+			{/* Section 1: Karkey Cars (Circular Gallery) */}
 			{karkeyItems.length > 0 && (
-				<section className="max-w-[3000px] mx-auto px-1 sm:px-2 lg:px-2 xl:px-20 2xl:px-32 py-8 mt-4">
-					<div className="flex items-center justify-between mb-8">
-						<h2 className="text-3xl md:text-4xl font-serif font-bold text-[#103090] tracking-tight">
-							<span className="bg-gradient-to-br from-[#00A651] to-[#004D25] bg-clip-text text-transparent">
-								{t("karkey_cars.title") || "Karkey Cars"}
-							</span>
-						</h2>
-						<Link href={`/${language}/karkey-cars`} className="group flex items-center gap-1 text-sm font-semibold text-[#B8071C] hover:text-[#D32F2F] transition-colors">
-							{t("common.see_all") || "See all"}
-							<span className="block transition-transform group-hover:translate-x-1">→</span>
-						</Link>
+				<section className="w-full py-8 mt-4">
+					<div className="max-w-[3000px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-20 2xl:px-32">
+						<div className="flex items-center justify-between mb-4">
+							<h2 className="text-3xl md:text-4xl font-serif font-bold text-[#103090] tracking-tight">
+								<span className="bg-gradient-to-br from-[#00A651] to-[#004D25] bg-clip-text text-transparent">
+									{t("karkey_cars.title") || "Karkey Cars"}
+								</span>
+							</h2>
+							<Link href={`/${language}/karkey-cars`} className="group flex items-center gap-1 text-sm font-semibold text-[#B8071C] hover:text-[#D32F2F] transition-colors">
+								{t("common.see_all") || "See all"}
+								<span className="block transition-transform group-hover:translate-x-1">→</span>
+							</Link>
+						</div>
 					</div>
 
-					{/* 4 to 5 Cards per row */}
-					<StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">
-						{karkeyItems.map((car: any, idx: number) => (
-							<StaggerItem key={car.id} skipAnimation={idx < 4}>
-								<KarkeyCarCard car={car} priority={idx < 4} />
-							</StaggerItem>
-						))}
-					</StaggerContainer>
+					<div style={{ height: '750px', position: 'relative' }}>
+						<CircularGalleryHtml
+							items={karkeyItems.map((car: any, index: number) => {
+								// Center cards (middle ±1) get priority loading
+								const middleIndex = Math.floor(karkeyItems.length / 2);
+								const isPriority = Math.abs(index - middleIndex) <= 2;
+								return (
+									<div key={car.id} className="w-[320px]" style={{ transform: 'scale(1)' }}>
+										<KarkeyCarCard car={car} priority={isPriority} />
+									</div>
+								);
+							})}
+						/>
+					</div>
 				</section>
 			)}
 

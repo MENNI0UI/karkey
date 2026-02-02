@@ -43,9 +43,7 @@ export async function maybeApplyWatermark(
         const sharp = mod.default ?? mod;
 
         const MAX_DIMENSION = 1600; // Faster resizing
-        const JPEG_QUALITY = 75;
         const WEBP_QUALITY = 75;
-        const PNG_QUALITY = 70;
 
         let img = sharp(body);
         const meta = await img.metadata();
@@ -56,11 +54,31 @@ export async function maybeApplyWatermark(
             throw new Error("Invalid image file");
         }
 
+        // High performance check: Avoid processing tiny images or already optimized webp
+        const isSmall = body.length < 150 * 1024; // < 150KB
+        const isWebP = contentType === "image/webp";
+        const watermarkDisabled = (process.env.WATERMARK_ENABLED || "").toLowerCase() !== "1";
+
+        if (isWebP && isSmall && watermarkDisabled) {
+            // Fast path: return original
+            return { data: body, contentType };
+        }
+
         // Validate format is actually an image
         const validFormats = ['jpeg', 'jpg', 'png', 'webp', 'gif', 'avif', 'heif', 'heic'];
         if (!meta.format || !validFormats.includes(meta.format.toLowerCase())) {
             console.error(`[image-processing] Invalid image format: ${meta.format}`);
             throw new Error("Invalid image format");
+        }
+
+        // Additional Fast Path based on dimensions if no watermark needed
+        if (
+            watermarkDisabled &&
+            meta.format === 'webp' &&
+            (meta.width || 0) <= 1200 &&
+            (meta.height || 0) <= 1200
+        ) {
+            return { data: body, contentType: "image/webp" };
         }
 
         let w = meta.width;
@@ -84,95 +102,24 @@ export async function maybeApplyWatermark(
         // Watermark (only if enabled)
         const watermarkEnabled = (process.env.WATERMARK_ENABLED || "").toLowerCase();
         if (watermarkEnabled === "1" || watermarkEnabled === "true") {
-            try {
-                // Try to load logo for a professional look
-                const logoBase64 = await getCachedLogo();
-                const logoMime = "image/png";
-
-                // Implementation matching the client-side style:
-                // Tiled 10% background, 30% center brand
-                const tileW = Math.round(w * 0.4);
-                const tileH = tileW; // Square-ish tiles for the pattern
-                const centerW = Math.round(w * 0.5);
-                const centerH = centerW;
-
-                const svg = `
-                <svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <pattern id="logoTile" x="0" y="0" width="${tileW * 1.5}" height="${tileW * 1.5}" patternUnits="userSpaceOnUse" patternTransform="rotate(-20)">
-                            <image href="data:${logoMime};base64,${logoBase64}" width="${tileW}" height="${tileH}" opacity="0.1" preserveAspectRatio="xMidYMid meet" />
-                        </pattern>
-                    </defs>
-                    
-                    <!-- 1. Tiled Background (10% opacity) -->
-                    <rect width="100%" height="100%" fill="url(#logoTile)" />
-                    
-                    <!-- 2. Strong Central Brand (30% opacity) -->
-                    <image 
-                        href="data:${logoMime};base64,${logoBase64}" 
-                        x="${(w - centerW) / 2}" 
-                        y="${(h - centerH) / 2}" 
-                        width="${centerW}" 
-                        height="${centerH}" 
-                        opacity="0.3" 
-                        preserveAspectRatio="xMidYMid meet"
-                    />
-                </svg>`;
-
-                img = img.composite([{
-                    input: Buffer.from(svg),
-                    gravity: 'center'
-                }]);
-                // Applied unified logo-based watermark
-            } catch (logoError) {
-                console.warn("[image-processing] Logo watermark failed, falling back to basic text:", logoError);
-                // Basic Text Fallback (Old logic)
-                const text = process.env.WATERMARK_TEXT ?? "karkey";
-                const fontSize = Math.max(18, Math.round(Math.min(w, h) / 10));
-                const svg = `
-                    <svg width="${w}" height="${h}">
-                        <style>
-                            .t { fill: rgba(255,255,255,0.2); font-family: sans-serif; font-size: ${fontSize}px; font-weight: bold; }
-                        </style>
-                        <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" class="t" transform="rotate(-30 ${w / 2} ${h / 2})">
-                            ${text}
-                        </text>
-                    </svg>`;
-
-                img = img.composite([{
-                    input: Buffer.from(svg),
-                    gravity: 'center'
-                }]);
-            }
+            img = await applyWatermarkInternal(img, w, h);
         }
 
         // ENCODE & FORMAT FALLBACK
-        const ext = filename ? path.extname(filename).toLowerCase().replace('.', '') : '';
-        const isActuallyPNG = ext === 'png';
-        const isActuallyJPEG = ext === 'jpg' || ext === 'jpeg';
+        // FORCE WEBP CONVERSION (Global Standard Optimization)
+        // Convert all static images to WebP for maximum compression and performance
+        // SVGs and GIFs are preserved to avoid breaking animations or vectors
+        if (contentType === "image/gif" || contentType === "image/svg+xml") {
+            return { data: body, contentType };
+        }
 
         try {
-            if (isActuallyPNG) {
-                const out = await img.png({ quality: PNG_QUALITY, compressionLevel: 6 }).toBuffer();
-                // Processed PNG
-                return { data: out, contentType: "image/png" };
-            } else if (isActuallyJPEG) {
-                const out = await img.jpeg({ quality: JPEG_QUALITY, mozjpeg: false }).toBuffer();
-                // Processed JPEG
-                return { data: out, contentType: "image/jpeg" };
-            } else {
-                try {
-                    const out = await img.webp({ quality: WEBP_QUALITY }).toBuffer();
-                    // Processed WebP
-                    return { data: out, contentType: "image/webp" };
-                } catch (webpError) {
-                    console.warn("[image-processing] WebP encoding failed, falling back to JPEG:", webpError);
-                    const out = await img.jpeg({ quality: JPEG_QUALITY }).toBuffer();
-                    return { data: out, contentType: "image/jpeg" };
-                }
-            }
+            // High quality WebP is indistinguishable from JPEG but 40% smaller
+            const out = await img.webp({ quality: WEBP_QUALITY, smartSubsample: true }).toBuffer();
+            return { data: out, contentType: "image/webp" };
         } catch (encodeError) {
-            console.warn("[image-processing] Encoding failed, returning original buffer:", encodeError);
+            // Fallback to original if WebP fails for some reason
+            console.warn("[image-processing] WebP forced encoding failed, returning original:", encodeError);
             return { data: body, contentType };
         }
 
@@ -226,5 +173,58 @@ export async function generateTinyPlaceholder(
     } catch (err) {
         console.warn("[image-processing] Placeholder generation failed:", err);
         return null;
+    }
+}
+
+/**
+ * Internal helper to apply watermark (logo or text)
+ */
+async function applyWatermarkInternal(img: any, w: number, h: number): Promise<any> {
+    try {
+        // Try to load logo for a professional look
+        const logoBase64 = await getCachedLogo();
+        const logoMime = "image/png";
+
+        // Implementation matching the client-side style:
+        const tileW = Math.round(w * 0.4);
+        const tileH = tileW;
+        const centerW = Math.round(w * 0.5);
+        const centerH = centerW;
+
+        const svg = `
+        <svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="logoTile" x="0" y="0" width="${tileW * 1.5}" height="${tileW * 1.5}" patternUnits="userSpaceOnUse" patternTransform="rotate(-20)">
+                    <image href="data:${logoMime};base64,${logoBase64}" width="${tileW}" height="${tileH}" opacity="0.1" preserveAspectRatio="xMidYMid meet" />
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#logoTile)" />
+            <image 
+                href="data:${logoMime};base64,${logoBase64}" 
+                x="${(w - centerW) / 2}" 
+                y="${(h - centerH) / 2}" 
+                width="${centerW}" 
+                height="${centerH}" 
+                opacity="0.3" 
+                preserveAspectRatio="xMidYMid meet"
+            />
+        </svg>`;
+
+        return img.composite([{ input: Buffer.from(svg), gravity: 'center' }]);
+    } catch (logoError) {
+        console.warn("[image-processing] Logo watermark failed, falling back to basic text:", logoError);
+        const text = process.env.WATERMARK_TEXT ?? "karkey";
+        const fontSize = Math.max(18, Math.round(Math.min(w, h) / 10));
+        const svg = `
+            <svg width="${w}" height="${h}">
+                <style>
+                    .t { fill: rgba(255,255,255,0.2); font-family: sans-serif; font-size: ${fontSize}px; font-weight: bold; }
+                </style>
+                <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" class="t" transform="rotate(-30 ${w / 2} ${h / 2})">
+                    ${text}
+                </text>
+            </svg>`;
+
+        return img.composite([{ input: Buffer.from(svg), gravity: 'center' }]);
     }
 }

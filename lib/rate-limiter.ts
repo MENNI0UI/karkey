@@ -17,25 +17,48 @@ interface RateLimitInfo {
     resetTime: number;
 }
 
-import Redis from "ioredis";
-
 // In-memory cache with automatic cleanup
 const cache = new Map<string, RateLimitInfo>();
 let lastCleanup = Date.now();
 const CLEANUP_INTERVAL_MS = 60000; // Clean up every minute
 const MAX_CACHE_SIZE = 10000; // Maximum entries to prevent memory issues
 
-// Redis instance (singleton)
-let redis: Redis | null = null;
-if (process.env.REDIS_URL) {
-    // Using Redis storage for rate limiting
-    redis = new Redis(process.env.REDIS_URL);
+// Redis instance (singleton) - dynamically imported when REDIS_URL is set
+let redis: any = null;
+let redisInitialized = false;
+
+async function getRedis() {
+    if (redisInitialized) return redis;
+    redisInitialized = true;
+
+    if (process.env.REDIS_URL) {
+        try {
+            const Redis = (await import('ioredis')).default;
+            redis = new Redis(process.env.REDIS_URL);
+        } catch {
+            console.warn('[rate-limiter] ioredis not installed, using in-memory storage');
+        }
+    }
+    return redis;
+}
+
+// Start periodic cleanup (runs even during low traffic)
+if (typeof setInterval !== 'undefined') {
+    setInterval(() => {
+        const now = Date.now();
+        for (const [key, info] of cache.entries()) {
+            if (now > info.resetTime) {
+                cache.delete(key);
+            }
+        }
+    }, CLEANUP_INTERVAL_MS);
 }
 
 /**
  * Clean up expired entries to prevent memory leaks (Memory only)
  */
 function cleanupExpiredEntries(): void {
+    // Only cleanup when using in-memory storage
     if (redis) return; // Redis handles expiry automatically
 
     const now = Date.now();
@@ -87,15 +110,16 @@ export async function isRateLimited(key: string, options: RateLimitOptions): Pro
  */
 export async function checkRateLimit(key: string, options: RateLimitOptions): Promise<RateLimitResult> {
     const now = Date.now();
+    const redisClient = await getRedis();
 
     // 1. Redis Strategy
-    if (redis) {
+    if (redisClient) {
         try {
             const redisKey = `ratelimit:${key}`;
             const windowSeconds = Math.ceil(options.windowMs / 1000);
 
             // Increment and set expiry if new
-            const [count] = await redis
+            const [count] = await redisClient
                 .multi()
                 .incr(redisKey)
                 .expire(redisKey, windowSeconds)

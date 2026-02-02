@@ -1,14 +1,8 @@
-import nextDynamic from "next/dynamic"
+import HomePageClient from "@/components/home-page-client"
 import SearchBar from "@/components/searchbar"
 import { getApprovedVehicles, getApprovedKarkeyCars, getDirectSalesFilterOptions, getHomeCitiesData } from "@/app/actions"
 import { loadTranslations } from "@/lib/translations"
 import HeroSection from "@/components/hero-section"
-
-// dynamic import to avoid "Unsupported Server Component type: undefined" when the client component
-// isn't available to the server renderer (or its default export is missing).
-const HomePageClient = nextDynamic(() => import("@/components/home-page-client"), {
-    loading: () => <div />, // minimal placeholder during client load
-})
 
 export const revalidate = 60
 
@@ -17,16 +11,16 @@ export default async function HomePage(props: { params: Promise<{ lang: "en" | "
     // Safe language fallback
     const lang = params?.lang || "en"
     // Parallel rendering: fetch everything simultaneously
-    const [t, resultKC, resultCities, opt] = await Promise.all([
+    // Parallel rendering: fetch essential data simultaneously
+    const [t, resultKC, resultCities] = await Promise.all([
         loadTranslations(lang),
         getApprovedKarkeyCars(8),
         getHomeCitiesData(),
-        getDirectSalesFilterOptions()
     ]);
 
     const initialKarkeyCars = resultKC?.success && Array.isArray(resultKC.cars) ? resultKC.cars : [];
     const initialCities = resultCities?.success && Array.isArray(resultCities.cities) ? resultCities.cities : [];
-    const initialOptions = opt?.success && opt.options ? opt.options : {};
+    const initialOptions = {};
 
     return (
         // unified page background

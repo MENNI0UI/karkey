@@ -51,9 +51,9 @@ const nextConfig = {
     remotePatterns,
     // Enable modern image formats
     formats: ['image/avif', 'image/webp'],
-    // Reduce device sizes for faster loading
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256],
+    // Fine-tuned device sizes for better edge caching and performance
+    deviceSizes: [320, 420, 640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   // Compiler optimizations
   compiler: {
@@ -126,9 +126,26 @@ const nextConfig = {
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'X-Permitted-Cross-Domain-Policies', value: 'none' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()' },
-          { key: 'Link', value: '<https://accounts.google.com>; rel=preconnect, <https://img.karkey.space>; rel=preconnect' }
+          { key: 'Link', value: '<https://accounts.google.com>; rel=preconnect, <https://img.karkey.space>; rel=preconnect' },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://*.google.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "img-src 'self' data: blob: https://*.karkey.space https://*.googleusercontent.com https://*.gstatic.com https://*.google.com",
+              "font-src 'self' data: https://fonts.gstatic.com",
+              "connect-src 'self' https://*.karkey.space https://*.google.com https://*.googleapis.com",
+              "frame-src 'self' https://*.google.com",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "upgrade-insecure-requests"
+            ].join('; ')
+          }
         ],
       },
       {
@@ -161,6 +178,43 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   disable: process.env.NODE_ENV === "development",
   register: true,
   skipWaiting: true,
+  workboxOptions: {
+    runtimeCaching: [
+      {
+        urlPattern: /\/api\/uploads\/karkey-cars\/.*/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'karkey-car-images',
+          expiration: {
+            maxEntries: 200,
+            maxAgeSeconds: 60 * 60 * 24 * 30, // 30 Days
+          },
+        },
+      },
+      {
+        urlPattern: /^https:\/\/img\.karkey\.space\/.*/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'karkey-cdn-images',
+          expiration: {
+            maxEntries: 200,
+            maxAgeSeconds: 60 * 60 * 24 * 30, // 30 Days
+          },
+        },
+      },
+      {
+        urlPattern: /\.(?:png|jpg|jpeg|svg|webp|avif)$/i,
+        handler: 'StaleWhileRevalidate',
+        options: {
+          cacheName: 'static-image-assets',
+          expiration: {
+            maxEntries: 100,
+            maxAgeSeconds: 60 * 60 * 24 * 7, // 7 Days
+          },
+        },
+      },
+    ],
+  },
 });
 
 const withBundleAnalyzer = require('@next/bundle-analyzer')({

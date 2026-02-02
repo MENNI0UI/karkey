@@ -52,7 +52,7 @@ export default function KarkeyCarDetailClient({ car }: KarkeyCarDetailClientProp
             filename = s.split("/").pop() || s
         }
 
-        return `/api/uploads/karkey-cars/${filename}`
+        return `https://img.karkey.space/vehicles/${filename}`
     }
 
     const carData: CarData = {

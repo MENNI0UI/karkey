@@ -294,3 +294,18 @@ export function parseSmartQuery(query: string) {
     return { refinedQuery: refined, extractedFilters: extracted };
 }
 
+
+/**
+ * Formats a raw query string into a MySQL Boolean Mode compatible FTS query.
+ * e.g. "Toyota Corolla" -> "+Toyota* +Corolla*"
+ */
+export function formatFTSQuery(query: string): string {
+    const q = query.trim().replace(/[+\-><()~*"]/g, " ").trim();
+    if (!q) return "";
+
+    return q
+        .split(/\s+/)
+        .filter(word => word.length >= 2) // Ignore 1-char tokens
+        .map(word => `+${word}*`) // Require each word prefix
+        .join(" ");
+}

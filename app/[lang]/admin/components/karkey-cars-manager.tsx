@@ -81,18 +81,8 @@ const normalizePhotoUrl = (p: string | null | undefined): string => {
         }
     }
 
-    // For relative paths, sanitize the filename
-    let filename = s
-    if (s.includes("/")) {
-        filename = s.split("/").pop() || s
-    }
-
-    // Ensure filename doesn't contain path traversal
-    if (filename.includes("..") || filename.includes("\\")) {
-        return "/placeholder-car.jpg"
-    }
-
-    return `/api/uploads/karkey-cars/${encodeURIComponent(filename)}`
+    const filename = s.includes("/") ? (s.split("/").pop() || s) : s;
+    return `https://img.karkey.space/vehicles/${filename}`
 }
 
 export function KarkeyCarsManager() {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
-import type { Container, Engine, ISourceOptions } from "@tsparticles/engine";
+import type { Engine, ISourceOptions } from "@tsparticles/engine";
 
 export const ParticlesBackground = () => {
     const [init, setInit] = useState(false);
@@ -67,9 +67,9 @@ export const ParticlesBackground = () => {
                     width: 1920,
                     height: 1080,
                 },
-                value: 115,
+                value: 60,
                 limit: {
-                    value: 200,
+                    value: 100,
                 },
             },
             opacity: {

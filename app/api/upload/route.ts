@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer()
     const originalName = (file as { name?: string }).name || `upload-${Date.now()}`
     const safeName = originalName.replaceAll(/[^a-zA-Z0-9.\-_]/g, "_")
-    const uniqueName = `${Date.now()}-${safeName}`
+    let uniqueName = `${Date.now()}-${safeName}`
     const ext = path.extname(safeName)
 
     // Apply watermark to images
@@ -80,14 +80,28 @@ export async function POST(request: Request) {
     const isClientOptimized = request.headers.get("x-optimized") === "1"
 
     // Processing file
+    let finalContentType = file.type || contentTypeFromExt || 'application/octet-stream';
 
     // Only apply server-side watermark if client didn't already do it
     if (!isClientOptimized) {
       try {
-        // Applying server-side watermark
-        const { data } = await maybeApplyWatermark(buffer, contentTypeFromExt, uniqueName)
+        // Applying server-side watermark & Force WebP conversion
+        const { data, contentType: newContentType } = await maybeApplyWatermark(buffer, contentTypeFromExt, uniqueName)
         buffer = data as Uint8Array
-        // Server-side watermark applied
+
+        if (newContentType) {
+          finalContentType = newContentType;
+          // If converted to WebP, update extension in uniqueName
+          if (newContentType === 'image/webp' && !uniqueName.endsWith('.webp')) {
+            // Replace extension with .webp
+            const lastDotIdx = uniqueName.lastIndexOf('.');
+            if (lastDotIdx !== -1) {
+              uniqueName = uniqueName.substring(0, lastDotIdx) + '.webp';
+            } else {
+              uniqueName = uniqueName + '.webp';
+            }
+          }
+        }
       } catch (e) {
         console.error("Watermark/Processing failed", e)
       }
@@ -99,7 +113,7 @@ export async function POST(request: Request) {
     // Generate Placeholder (BlurHash equivalent)
     let blurhash: string | null = null;
     try {
-      if (file.type.startsWith("image/")) {
+      if (finalContentType.startsWith("image/")) {
         const { generateTinyPlaceholder } = await import("@/lib/image-processing");
         blurhash = await generateTinyPlaceholder(buffer);
       }
@@ -108,6 +122,7 @@ export async function POST(request: Request) {
     }
 
     // Upload to Cloudflare R2
+    // Key uses the potentially updated uniqueName (with .webp extension)
     const key = `vehicles/${uniqueName}`
 
     // Sending to R2
@@ -116,7 +131,7 @@ export async function POST(request: Request) {
       Bucket: process.env.R2_BUCKET_NAME,
       Key: key,
       Body: buffer,
-      ContentType: file.type || contentTypeFromExt || 'application/octet-stream',
+      ContentType: finalContentType,
     }))
 
     // Upload success

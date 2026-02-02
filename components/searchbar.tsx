@@ -10,11 +10,31 @@ import { FilterOptions } from "@/components/search/types"
 
 type Props = { className?: string; options?: FilterOptions }
 
-export default function SearchBar({ className = "", options }: Props) {
+export default function SearchBar({ className = "", options: initialOptionsProp }: Props) {
     const { t } = useTranslation()
     const router = useRouter()
     const pathname = usePathname() || ""
     const currentLang = pathname.split('/')[1] || 'en'
+
+    // background loading for filter options
+    const [dynamicOptions, setDynamicOptions] = useState<FilterOptions | undefined>(initialOptionsProp)
+
+    useEffect(() => {
+        // If we didn't get options from props (homepage), fetch them in BG from API
+        if (!dynamicOptions || Object.keys(dynamicOptions).length === 0) {
+            fetch(`/api/direct-sales/filters`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.options) {
+                        setDynamicOptions(data.options)
+                    }
+                })
+                .catch(() => { /* ignore silent failure */ })
+        }
+    }, [])
+
+    const options = dynamicOptions
+
     // refs + state
     const wrapperRef = useRef<HTMLDivElement | null>(null)
     const filterBtnRef = useRef<HTMLButtonElement | null>(null) // main search filter button

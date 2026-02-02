@@ -209,37 +209,45 @@ export function ScaleButton({ children, className, whileHover, whileTap, ...prop
 }
 
 /**
- * Splits text into characters (or words for Arabic) and animates them with a stagger effect.
+ * Splits text into words and animates them with a stagger effect.
+ * Optimized for performance: uses words instead of characters to reduce DOM nodes.
  */
 export function SplittingText({
     text,
     className,
     delay = 0,
-    stagger = 0.03,
+    stagger = 0.08,
     once = true,
+    trigger = "animate",
+    forceWords = true
 }: {
     text: string;
     className?: string;
     delay?: number;
     stagger?: number;
     once?: boolean;
+    trigger?: "animate" | "whileInView";
+    forceWords?: boolean;
 }) {
     // Helper to detect Arabic text
     const isArabic = /[\u0600-\u06FF]/.test(text);
 
-    // For Arabic, we MUST split by words because splitting by characters breaks the cursive connection.
-    // For non-Arabic, we split by characters for the premium staggered effect.
-    const items = isArabic ? text.split(/(\s+)/) : text.split("");
+    // Split by words + whitespace-preserving groups for better performance and DOM efficiency
+    // We split by whitespace but keep the whitespace as separate items to preserve formatting
+    const items = (isArabic || forceWords) ? text.split(/(\s+)/) : text.split("");
+
+    const wrapperProps = trigger === "whileInView"
+        ? { whileInView: "visible", viewport: { once } }
+        : { animate: "visible" };
 
     return (
         <m.span
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once }}
+            {...wrapperProps}
             variants={{
                 visible: {
                     transition: {
-                        staggerChildren: isArabic ? stagger * 3 : stagger, // Slower stagger for words
+                        staggerChildren: stagger,
                         delayChildren: delay,
                     },
                 },
@@ -250,7 +258,7 @@ export function SplittingText({
                 <m.span
                     key={i}
                     variants={textRevealVariants}
-                    className="inline-block py-3"
+                    className="inline-block"
                     style={{ whiteSpace: "pre" }}
                 >
                     {item}

@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
 }
 
 datasource db {
@@ -149,6 +150,9 @@ model direct_sales {
   // Composite Indexes for main listings
   @@index([verification_status, sale_status, created_at], map: "idx_ds_status_composite")
   @@index([auction_mode, auction_status, verification_status, auction_end_date], map: "idx_ds_auction_composite")
+  
+  // Full Text Search Index
+  @@fulltext([make, model, location, description])
 }
 
 model direct_sales_contacts {
@@ -438,6 +442,9 @@ model karkey_cars {
 
   // Composite Index for main listing
   @@index([is_active, created_at], map: "idx_karkey_cars_active_composite")
+
+  // Full Text Search Index
+  @@fulltext([make, model, location, description])
 }
 
 model karkey_car_photos {

@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useRouter as useNextRouter, useSearchParams } from "next/navigation"
 import { useTranslation } from "@/lib/i18n-context"
 import { useToast } from "@/hooks/use-toast"
+import { EmptyListingState, LoadMoreButton } from "@/components/listing-components"
 import { AuctionFiltersSidebar, AuctionFiltersSidebarRef, FilterOptions } from "@/components/auction-filters-sidebar"
 
 // Removed dynamic import for Sidebar to ensure ref works reliably
@@ -848,13 +849,10 @@ export function AuctionsGridClient({
     // If we have filters active, show standard no results
     if (hasActiveFilters(params)) {
       return (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <span className="text-2xl">🔍</span>
-          </div>
-          <h3 className="text-lg font-bold text-[#103090] font-serif mb-2">{t("auctions.no_results")}</h3>
-          <p className="text-gray-500 max-w-sm">{t("auctions.no_results_desc") || "Try adjusting your filters or search criteria."}</p>
-        </div>
+        <EmptyListingState
+          titleKey="auctions.no_results"
+          descKey="auctions.no_results_desc"
+        />
       )
     }
 
@@ -946,7 +944,7 @@ export function AuctionsGridClient({
                 >
                   <AuctionCard
                     data={it}
-                    priority={false}
+                    priority={vehicles!.indexOf(it) < 4}
                     initialIsWatched={it.is_watched}
                     viewMode={viewMode}
                   />
@@ -957,75 +955,54 @@ export function AuctionsGridClient({
         </AnimatePresence>
       </div>
       {/* Load more button / end marker */}
-      <div className="flex justify-center mt-6">
-        {hasMore ? (
-          <button
-            className="inline-flex items-center justify-center bg-white border border-gray-200 text-[#103090] hover:bg-gray-50 rounded-md px-4 py-2 shadow-sm text-sm font-semibold"
-            onClick={async () => {
-              try {
-                if (loadingMore) return
-                setLoadingMore(true)
-                if (hasActiveFilters(params)) {
-                  const search = new URLSearchParams()
-                  for (const key of [
-                    "make",
-                    "model",
-                    "year",
-                    "fuel",
-                    "fuelType",
-                    "transmission",
-                    "location",
-                    "minPrice",
-                    "maxPrice",
-                    "minMileage",
-                    "maxMileage",
-                    "minEngine",
-                    "maxEngine",
-                    "condition",
-                    "doors",
-                    "exteriorColor",
-                    "interiorColor",
-                    "originalPaint",
-                    "q",
-                  ]) {
-                    const vals = params.getAll(key)
-                    if (vals.length > 0) {
-                      vals.forEach(v => {
-                        if (v && v !== "All") search.append(key, v)
-                      })
-                    }
-                  }
-                  const nextPage = page + 1
-                  const moreRes = await fetch(search.toString() ? `/api/search?${search.toString()}&page=${nextPage}&limit=${PAGE_SIZE}` : `/api/search?page=${nextPage}&limit=${PAGE_SIZE}`, { cache: "no-store" })
-                  if (!moreRes.ok) throw new Error("load more failed")
-                  const moreData = await moreRes.json().catch(() => ({}))
-                  const moreList = Array.isArray(moreData?.results) ? moreData.results : (Array.isArray(moreData?.vehicles) ? moreData.vehicles : (Array.isArray(moreData?.auctions) ? moreData.auctions : []))
-                  setVehicles((prev) => (Array.isArray(prev) ? prev.concat(moreList) : moreList))
-                  setPage(nextPage)
-                  setHasMore(Boolean(moreData?.hasMore))
-                } else {
-                  const nextOffset = offset
-                  const moreRes = await fetch(`/api/auctions/approved?limit=${PAGE_SIZE}&offset=${nextOffset}`, { cache: "no-store" })
-                  if (!moreRes.ok) throw new Error("load more failed")
-                  const moreData = await moreRes.json().catch(() => ({}))
-                  const moreList = Array.isArray(moreData?.results) ? moreData.results : (Array.isArray(moreData?.vehicles) ? moreData.vehicles : (Array.isArray(moreData?.auctions) ? moreData.auctions : (Array.isArray(moreData?.auctions) ? moreData.auctions : moreData.auctions || [])))
-                  setVehicles((prev) => (Array.isArray(prev) ? prev.concat(moreList) : moreList))
-                  setOffset((prev) => prev + (Array.isArray(moreList) ? moreList.length : 0))
-                  setHasMore(Array.isArray(moreList) ? moreList.length >= PAGE_SIZE : false)
+      <LoadMoreButton
+        onLoadMore={async () => {
+          try {
+            if (loadingMore) return
+            setLoadingMore(true)
+            if (hasActiveFilters(params)) {
+              const search = new URLSearchParams()
+              for (const key of [
+                "make", "model", "year", "fuel", "fuelType", "transmission", "location",
+                "minPrice", "maxPrice", "minMileage", "maxMileage", "minEngine", "maxEngine",
+                "condition", "doors", "exteriorColor", "interiorColor", "originalPaint", "q",
+              ]) {
+                const vals = params.getAll(key)
+                if (vals.length > 0) {
+                  vals.forEach(v => {
+                    if (v && v !== "All") search.append(key, v)
+                  })
                 }
-              } catch (err) {
-                // ignore
-              } finally {
-                setLoadingMore(false)
               }
-            }}
-          >
-            {loadingMore ? t("common.loading") : t("auctions.load_more")}
-          </button>
-        ) : (
-          <div className="text-sm text-[#717171]">{t("common.end_of_results")}</div>
-        )}
-      </div>
+              const nextPage = page + 1
+              const moreRes = await fetch(search.toString() ? `/api/search?${search.toString()}&page=${nextPage}&limit=${PAGE_SIZE}` : `/api/search?page=${nextPage}&limit=${PAGE_SIZE}`, { cache: "no-store" })
+              if (!moreRes.ok) throw new Error("load more failed")
+              const moreData = await moreRes.json().catch(() => ({}))
+              const moreList = Array.isArray(moreData?.results) ? moreData.results : (Array.isArray(moreData?.vehicles) ? moreData.vehicles : (Array.isArray(moreData?.auctions) ? moreData.auctions : []))
+              setVehicles((prev) => (Array.isArray(prev) ? prev.concat(moreList) : moreList))
+              setPage(nextPage)
+              setHasMore(Boolean(moreData?.hasMore))
+            } else {
+              const nextOffset = offset
+              const moreRes = await fetch(`/api/auctions/approved?limit=${PAGE_SIZE}&offset=${nextOffset}`, { cache: "no-store" })
+              if (!moreRes.ok) throw new Error("load more failed")
+              const moreData = await moreRes.json().catch(() => ({}))
+              const moreList = Array.isArray(moreData?.results) ? moreData.results : (Array.isArray(moreData?.vehicles) ? moreData.vehicles : (Array.isArray(moreData?.auctions) ? moreData.auctions : (Array.isArray(moreData?.auctions) ? moreData.auctions : moreData.auctions || [])))
+              setVehicles((prev) => (Array.isArray(prev) ? prev.concat(moreList) : moreList))
+              setOffset((prev) => prev + (Array.isArray(moreList) ? moreList.length : 0))
+              setHasMore(Array.isArray(moreList) ? moreList.length >= PAGE_SIZE : false)
+            }
+          } catch (err) {
+            // ignore
+          } finally {
+            setLoadingMore(false)
+          }
+        }}
+        loading={loadingMore}
+        hasMore={hasMore}
+        loadMoreKey="auctions.load_more"
+        endKey="common.end_of_results"
+      />
     </div>
   )
 }

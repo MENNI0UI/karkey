@@ -42,6 +42,61 @@ export function CarCardImageSlider({
     // Normalize array if empty
     const displayPhotos = photos && photos.length > 0 ? photos : ["/placeholder.svg"]
 
+    // Sequential Preloading: Load all images when CARD is in viewport
+    React.useEffect(() => {
+        if (displayPhotos.length <= 1 || typeof window === 'undefined') return
+
+        let isMounted = true;
+        let observer: IntersectionObserver | null = null;
+
+        const preloadImage = (src: string) => {
+            return new Promise((resolve) => {
+                const img = new window.Image();
+                img.src = src;
+                img.onload = resolve;
+                img.onerror = resolve;
+            });
+        };
+
+        const loadAllImages = async () => {
+            const otherIndices = [];
+            for (let i = 0; i < displayPhotos.length; i++) {
+                if (i !== photoIndex) {
+                    otherIndices.push(i);
+                }
+            }
+
+            for (const index of otherIndices) {
+                if (!isMounted) return;
+                const photo = displayPhotos[index];
+                const src = typeof photo === "string" ? photo : photo.url;
+                if (src && !src.startsWith("data:")) {
+                    await preloadImage(src);
+                }
+            }
+        };
+
+        // Only start preloading when the card enters the viewport (or is close to it)
+        if (containerRef.current) {
+            observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) {
+                    loadAllImages();
+                    // Once preloading starts, we can stop observing this card
+                    if (observer && containerRef.current) observer.unobserve(containerRef.current);
+                }
+            }, {
+                rootMargin: '200px', // Start preloading 200px before it enters viewport
+                threshold: 0.01
+            });
+            observer.observe(containerRef.current);
+        }
+
+        return () => {
+            isMounted = false;
+            if (observer) observer.disconnect();
+        };
+    }, [displayPhotos, photoIndex])
+
     const handleNav = useCallback((dir: "prev" | "next", e?: React.MouseEvent | React.TouchEvent) => {
         if (e) {
             e.preventDefault()
@@ -156,6 +211,15 @@ export function CarCardImageSlider({
                 <>
                     <button
                         onClick={(e) => handleNav("prev", e)}
+                        onMouseEnter={() => {
+                            const prevIndex = (photoIndex - 1 + displayPhotos.length) % displayPhotos.length;
+                            const photo = displayPhotos[prevIndex];
+                            const src = typeof photo === "string" ? photo : photo.url;
+                            if (src && !src.startsWith("data:")) {
+                                const img = new window.Image();
+                                img.src = src;
+                            }
+                        }}
                         className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 shadow-sm hover:bg-white hidden md:flex cursor-pointer hover:scale-110 active:scale-95 duration-200"
                         aria-label="Previous photo"
                     >
@@ -163,6 +227,15 @@ export function CarCardImageSlider({
                     </button>
                     <button
                         onClick={(e) => handleNav("next", e)}
+                        onMouseEnter={() => {
+                            const nextIndex = (photoIndex + 1) % displayPhotos.length;
+                            const photo = displayPhotos[nextIndex];
+                            const src = typeof photo === "string" ? photo : photo.url;
+                            if (src && !src.startsWith("data:")) {
+                                const img = new window.Image();
+                                img.src = src;
+                            }
+                        }}
                         className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 shadow-sm hover:bg-white hidden md:flex cursor-pointer hover:scale-110 active:scale-95 duration-200"
                         aria-label="Next photo"
                     >
@@ -194,6 +267,7 @@ export function CarCardImageSlider({
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, (max-width: 1536px) 25vw, 20vw"
                     priority={priority && photoIndex === 0}
                     loading={priority ? "eager" : "lazy"}
+                    unoptimized={true}
                     placeholder={currentBlur ? "blur" : "empty"}
                     blurDataURL={currentBlur ?? undefined}
                 />

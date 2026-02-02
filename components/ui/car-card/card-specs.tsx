@@ -25,7 +25,7 @@ export function CarSpecsGrid({
     gridCols
 }: Readonly<CarSpecsGridProps>) {
     const { language } = useTranslation()
-    const validSpecs = specs.filter((s: SpecItem) => s.value && s.value !== "—" && s.value !== "")
+    const validSpecs = specs.filter((s: SpecItem) => (s.value !== undefined && s.value !== null && s.value !== "—" && s.value !== ""))
 
     if (validSpecs.length === 0) return null
 

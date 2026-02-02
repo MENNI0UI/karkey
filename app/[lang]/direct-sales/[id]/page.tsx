@@ -38,29 +38,9 @@ function formatImageSrc(base64String: string | null | undefined): string {
     return cleanedString
   }
 
-  // Convert /uploads/ paths to /api/uploads/ for production serving
-  // Next.js doesn't serve files added to public/ after build in production
-  if (cleanedString.startsWith("/uploads/")) {
-    return `/api${cleanedString}`
-  }
-
-  // Check for common image paths that might be missing a leading slash
-  if (cleanedString.startsWith("uploads/")) {
-    return `/api/${cleanedString}`
-  }
-
-  // If starts with /, return as is (other static files)
-  if (cleanedString.startsWith("/")) {
-    return cleanedString
-  }
-
-  // Check for common image extensions if it doesn't look like base64
-  if (/\.(jpg|jpeg|png|webp|gif|svg)$/i.test(cleanedString)) {
-    return cleanedString.startsWith("/") ? cleanedString : `/${cleanedString}`
-  }
-
-  // Otherwise, assume it's a base64 string and add the data URL prefix
-  return `${dataUrlPrefix}${cleanedString}`
+  // For all other cases, if it doesn't look like base64 or external URL, it's a filename
+  const filename = cleanedString.includes("/") ? cleanedString.split("/").pop() : cleanedString
+  return `https://img.karkey.space/vehicles/${filename}`
 }
 
 export default function DirectSalePage() {

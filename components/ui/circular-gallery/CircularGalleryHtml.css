@@ -1,0 +1,187 @@
+.circular-gallery-container {
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+    perspective: 1200px;
+    perspective-origin: 50% 50%;
+}
+
+.gallery-track {
+    transform-style: preserve-3d;
+}
+
+.gallery-card {
+    will-change: transform, opacity;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+}
+
+/* Luxurious Navigation Arrows */
+.gallery-nav-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 200;
+
+    /* Glass morphism effect */
+    background: linear-gradient(135deg,
+            rgba(255, 255, 255, 0.25) 0%,
+            rgba(255, 255, 255, 0.1) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    /* Border with subtle gradient */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+
+    /* Size */
+    width: 52px;
+    height: 52px;
+
+    /* Centering icon */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Colors */
+    color: #103090;
+
+    /* Shadow for depth */
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.12),
+        0 4px 16px rgba(16, 48, 144, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+
+    /* Cursor */
+    cursor: pointer;
+
+    /* Transition for smooth animations */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gallery-nav-arrow:hover:not(:disabled) {
+    /* Enhanced glass effect on hover */
+    background: linear-gradient(135deg,
+            rgba(255, 255, 255, 0.4) 0%,
+            rgba(255, 255, 255, 0.2) 100%);
+
+    /* Lift effect */
+    transform: translateY(-50%) scale(1.1);
+
+    /* Enhanced shadow */
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.15),
+        0 6px 20px rgba(16, 48, 144, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+    /* Brand color accent */
+    color: #B8071C;
+    border-color: rgba(184, 7, 28, 0.3);
+}
+
+.gallery-nav-arrow:active:not(:disabled) {
+    transform: translateY(-50%) scale(0.95);
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.1),
+        0 2px 8px rgba(16, 48, 144, 0.1);
+}
+
+.gallery-nav-arrow:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    background: rgba(200, 200, 200, 0.2);
+    border-color: rgba(200, 200, 200, 0.2);
+    box-shadow: none;
+}
+
+.gallery-nav-arrow:focus-visible {
+    outline: 2px solid #B8071C;
+    outline-offset: 2px;
+}
+
+/* Left Arrow Position */
+.gallery-nav-arrow-left {
+    left: 8px;
+}
+
+/* Right Arrow Position */
+.gallery-nav-arrow-right {
+    right: 8px;
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+    .gallery-nav-arrow {
+        width: 60px;
+        height: 60px;
+    }
+
+    .gallery-nav-arrow-left {
+        left: 24px;
+    }
+
+    .gallery-nav-arrow-right {
+        right: 24px;
+    }
+}
+
+@media (min-width: 1280px) {
+    .gallery-nav-arrow {
+        width: 68px;
+        height: 68px;
+    }
+
+    .gallery-nav-arrow-left {
+        left: 48px;
+    }
+
+    .gallery-nav-arrow-right {
+        right: 48px;
+    }
+}
+
+/* Icon size adjustments */
+.gallery-nav-arrow svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 2.5;
+    transition: transform 0.2s ease;
+}
+
+@media (min-width: 768px) {
+    .gallery-nav-arrow svg {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+.gallery-nav-arrow:hover:not(:disabled) svg {
+    transform: scale(1.1);
+}
+
+/* Subtle pulse animation for arrows */
+@keyframes subtle-pulse {
+
+    0%,
+    100% {
+        box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.12),
+            0 4px 16px rgba(16, 48, 144, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+
+    50% {
+        box-shadow:
+            0 10px 36px rgba(0, 0, 0, 0.14),
+            0 5px 18px rgba(16, 48, 144, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+}
+
+.gallery-nav-arrow:not(:disabled) {
+    animation: subtle-pulse 3s ease-in-out infinite;
+}
+
+.gallery-nav-arrow:hover:not(:disabled) {
+    animation: none;
+}

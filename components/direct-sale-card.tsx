@@ -47,11 +47,18 @@ export function DirectSaleCard({
         if (!p) return { url: "/placeholder.svg" }
         const s = typeof p === "string" ? p.trim() : (p.photo_url || p.url || "/placeholder.svg")
         let finalUrl = s
-        // Normalize logic
-        if (!s.startsWith("data:") && !s.startsWith("http://") && !s.startsWith("https://")) {
-            if (s.startsWith("/api/uploads/")) finalUrl = s
-            else if (s.startsWith("/uploads/")) finalUrl = `/api${s}`
-            else finalUrl = `/api/uploads/vehicles/${s}`
+        // Normalize logic with safety checks
+        if (!s.startsWith("data:image/") && !s.startsWith("blob:")) {
+            if (s.startsWith("http://") || s.startsWith("https://")) {
+                try {
+                    const url = new URL(s)
+                    if (url.protocol !== 'http:' && url.protocol !== 'https:') finalUrl = "/placeholder.svg"
+                } catch { finalUrl = "/placeholder.svg" }
+            } else {
+                // Strip any path and force vehicles/ prefix for CDN
+                const filename = s.includes("/") ? (s.split("/").pop() || s) : s;
+                finalUrl = `https://img.karkey.space/vehicles/${filename}`
+            }
         }
 
         return {

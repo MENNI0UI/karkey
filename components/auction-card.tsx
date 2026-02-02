@@ -44,11 +44,16 @@ function AuctionCard({ data, priority = false, initialIsWatched, viewMode = 'gri
   const normalizePhotoUrl = (p: string | null | undefined) => {
     if (!p) return "/placeholder.svg";
     const s = String(p).trim();
-    if (s.startsWith("data:") || s.startsWith("http://") || s.startsWith("https://")) return s;
-    if (s.startsWith("/api/uploads/")) return s;
-    if (s.startsWith("/uploads/")) return `/api${s}`;
-    if (s.includes("uploads/vehicles")) return s.startsWith("/") ? `/api${s}` : `/api/${s}`;
-    return `/api/uploads/vehicles/${s}`;
+    if (s.startsWith("data:image/")) return s;
+    if (s.startsWith("blob:")) return s;
+    if (s.startsWith("http://") || s.startsWith("https://")) {
+      try {
+        const url = new URL(s);
+        if (url.protocol === 'http:' || url.protocol === 'https:') return s;
+      } catch { return "/placeholder.svg"; }
+    }
+    const filename = s.includes("/") ? (s.split("/").pop() || s) : s;
+    return `https://img.karkey.space/vehicles/${filename}`;
   };
 
   // Support multiple photo array formats
