@@ -300,7 +300,7 @@ async function notifyAuctionPreparation() {
       },
     });
 
-    const notifications = pendingAuctions.map(sale => ({
+    const notifications = pendingAuctions.map((sale: typeof pendingAuctions[number]) => ({
       user_id: sale.user_id,
       title: `سيارتك ${sale.make} ${sale.model} جاهزة للمزاد`,
       message: 'سيبدأ المزاد يوم السبت عند منتصف الليل.',
@@ -339,7 +339,7 @@ async function notifyAuctionEndings() {
       },
     });
 
-    const winnerNotifications = winners.flatMap(sale => [
+    const winnerNotifications = winners.flatMap((sale: typeof winners[number]) => [
       // إشعار للفائز
       {
         user_id: sale.auction_winner_id!,
@@ -376,7 +376,7 @@ async function notifyAuctionEndings() {
       },
     });
 
-    const reserveNotMetNotifications = reserveNotMet.map(sale => ({
+    const reserveNotMetNotifications = reserveNotMet.map((sale: typeof reserveNotMet[number]) => ({
       user_id: sale.user_id,
       title: `⚠️ سيارتك ${sale.make} ${sale.model} لم تصل للحد الأدنى`,
       message: `أعلى عرض: ${sale.auction_current_bid} درهم، الحد الأدنى: ${sale.auction_reserve_price} درهم. عادت للبيع المباشر.`,
@@ -399,7 +399,7 @@ async function notifyAuctionEndings() {
       },
     });
 
-    const noBidsNotifications = noBids.map(sale => ({
+    const noBidsNotifications = noBids.map((sale: typeof noBids[number]) => ({
       user_id: sale.user_id,
       title: `❌ سيارتك ${sale.make} ${sale.model} لم تتلق عروضاً`,
       message: 'انتهى المزاد بدون مزايدات. عادت للبيع المباشر.',
@@ -482,7 +482,7 @@ export async function placeBid(listingId: number, userId: number, amount: number
   const now = new Date();
 
   // استخدام transaction للتأكد من الذرية
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: any) => {
     // جلب السيارة مع قفل
     const listing = await tx.direct_sales.findUnique({
       where: { id: listingId },

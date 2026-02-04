@@ -69,7 +69,7 @@ export async function getUserAuctions(userId: number): Promise<{ success: boolea
 
     logger.debug(`[profile] getUserAuctions: fetched ${auctions.length} rows for userId=${userId}`)
 
-    const result = auctions.map((a) => {
+    const result = auctions.map((a: typeof auctions[number]) => {
       const title = [a.make, a.model].filter(Boolean).join(" ").trim()
       const imageUrl = a.direct_sale_photos?.[0]?.photo_url ?? null
 
@@ -203,7 +203,7 @@ export async function getWatchlistForUser(userId: number): Promise<AuctionItem[]
     if (watchlistItems.length === 0) return []
 
     // Get direct sales with auction_mode for these watchlist items
-    const directSaleIds = watchlistItems.map(w => w.direct_sale_id)
+    const directSaleIds = watchlistItems.map((w: typeof watchlistItems[number]) => w.direct_sale_id)
     const directSales = await prisma.direct_sales.findMany({
       where: {
         id: { in: directSaleIds },
@@ -217,12 +217,13 @@ export async function getWatchlistForUser(userId: number): Promise<AuctionItem[]
       }
     })
 
-    const dsMap = new Map(directSales.map(ds => [ds.id, ds]))
+    type DirectSaleRecord = typeof directSales[number]
+    const dsMap = new Map<number, DirectSaleRecord>(directSales.map((ds: DirectSaleRecord) => [ds.id, ds]))
 
     return watchlistItems
-      .filter(w => dsMap.has(w.direct_sale_id))
-      .map((w) => {
-        const ds = dsMap.get(w.direct_sale_id)!
+      .filter((w: typeof watchlistItems[number]) => dsMap.has(w.direct_sale_id))
+      .map((w: typeof watchlistItems[number]) => {
+        const ds = dsMap.get(w.direct_sale_id) as DirectSaleRecord
         const title = [ds.make, ds.model].filter(Boolean).join(" ").trim()
         const imageUrl = ds.direct_sale_photos?.[0]?.photo_url ?? null
         const sp = ds.auction_starting_price ? Number(ds.auction_starting_price) : null
@@ -264,7 +265,7 @@ export async function getDirectSalesWatchlistForUser(userId: number): Promise<Di
     if (watchlistItems.length === 0) return []
 
     // Get direct sales with photos for these watchlist items
-    const directSaleIds = watchlistItems.map(w => w.direct_sale_id)
+    const directSaleIds = watchlistItems.map((w: typeof watchlistItems[number]) => w.direct_sale_id)
     const directSales = await prisma.direct_sales.findMany({
       where: { id: { in: directSaleIds } },
       include: {
@@ -275,9 +276,10 @@ export async function getDirectSalesWatchlistForUser(userId: number): Promise<Di
     })
 
     // Create a map for quick lookup
-    const dsMap = new Map(directSales.map(ds => [ds.id, ds]))
+    type DsRecord = typeof directSales[number]
+    const dsMap = new Map<number, DsRecord>(directSales.map((ds: DsRecord) => [ds.id, ds]))
 
-    return watchlistItems.map((w) => {
+    return watchlistItems.map((w: typeof watchlistItems[number]) => {
       const ds = dsMap.get(w.direct_sale_id)
       const title = ds ? [ds.make, ds.model].filter(Boolean).join(" ").trim() : ""
       const imageUrl = ds?.direct_sale_photos?.[0]?.photo_url ?? null
@@ -324,7 +326,7 @@ export async function getUserDirectSales(userId: number): Promise<{ success: boo
       orderBy: { created_at: "desc" }
     })
 
-    const result = directSales.map((ds) => {
+    const result = directSales.map((ds: typeof directSales[number]) => {
       const title = [ds.make, ds.model].filter(Boolean).join(" ").trim()
       const imageUrl = ds.direct_sale_photos?.[0]?.photo_url ?? null
 
@@ -412,7 +414,7 @@ export async function getUserStatistics(userId: number): Promise<StatisticsRespo
         where: { direct_sale_id: { in: directSaleIds } },
         _count: { direct_sale_id: true },
       });
-      saves.forEach((s) => {
+      saves.forEach((s: typeof saves[number]) => {
         watchlistCounts[s.direct_sale_id] = s._count.direct_sale_id;
       });
     }
@@ -427,7 +429,7 @@ export async function getUserStatistics(userId: number): Promise<StatisticsRespo
         },
         _count: { direct_sale_id: true },
       });
-      contacts.forEach((c) => {
+      contacts.forEach((c: typeof contacts[number]) => {
         contactsCounts[Number(c.direct_sale_id)] = c._count.direct_sale_id;
       });
     }

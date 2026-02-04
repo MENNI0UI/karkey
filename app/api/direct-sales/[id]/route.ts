@@ -54,7 +54,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         }
 
         // normalize photos
-        let photos = item.direct_sale_photos.map((r) => normalizePhotoUrl(r.photo_url)).filter(Boolean) as string[];
+        let photos = item.direct_sale_photos.map((r: typeof item.direct_sale_photos[0]) => normalizePhotoUrl(r.photo_url)).filter(Boolean) as string[];
         // backward compatibility: carte_grise_url or service_history_url as photos? 
         // Usually these are docs, but if they are images user might expect them. 
         // Approved route adds service_history_url if not present. Let's consistency do that.

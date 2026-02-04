@@ -1,7 +1,8 @@
 import React from "react"
 export const dynamic = 'force-dynamic'
 import AuctionsPageClient from "@/components/auctions-page-client"
-import { getFilterOptions, searchVehicles, getRecentAuctions } from "@/app/actions"
+import { getFilterOptions } from "@/app/actions/filters"
+import { searchVehicles, getRecentAuctions } from "@/app/actions/vehicles"
 import { handleSavedSearchRedirect, getSavedSearchState } from "@/lib/server-saved-search"
 
 export default async function AuctionsPage({

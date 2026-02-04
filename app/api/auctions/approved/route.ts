@@ -3,7 +3,7 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import path from "path"
-import { Prisma } from "@prisma/client"
+// Removed: import { Prisma } from "@prisma/client"
 import logger from "@/lib/logger"
 
 /**
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
   try {
     // Build where clause for active auctions
-    const where: Prisma.direct_salesWhereInput = {
+    const where: any = {
       verification_status: 'approved',
       auction_mode: true,
       auction_status: 'active',
@@ -136,10 +136,10 @@ export async function GET(request: Request) {
     }
 
     // Normalize response
-    const auctions = effectiveRows.map((r) => {
+    const auctions = effectiveRows.map((r: typeof effectiveRows[number]) => {
       const photos = r.direct_sale_photos
-        .map(p => normalizePhotoUrl(p.photo_url))
-        .filter((url): url is string => url !== null)
+        .map((p: typeof r.direct_sale_photos[0]) => normalizePhotoUrl(p.photo_url))
+        .filter((url: string | null): url is string => url !== null)
 
       return {
         id: r.id,

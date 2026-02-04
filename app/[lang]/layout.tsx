@@ -1,6 +1,4 @@
 import "../globals.css";
-import "../styles/searchbar.css";
-import "../styles/cards.css";
 import "flag-icons/css/flag-icons.min.css";
 import React from "react";
 import ClientLayout from '@/components/layout/ClientLayout';

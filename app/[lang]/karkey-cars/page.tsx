@@ -1,7 +1,7 @@
 import React from "react"
 export const dynamic = "force-dynamic"
 import KarkeyCarsPageClient from "@/components/karkey-cars-page-client"
-import { getApprovedKarkeyCars } from "@/app/actions"
+import { getApprovedKarkeyCars } from "@/app/actions/vehicles"
 
 export default async function KarkeyCarsPage() {
     let initialCars: any[] = []

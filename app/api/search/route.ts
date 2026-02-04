@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { searchVehicles } from "@/app/actions";
+import { searchVehicles } from "@/app/actions/vehicles";
 import { createMetricsContext } from "@/lib/metrics";
 import logger from "@/lib/logger";
 

@@ -1,6 +1,6 @@
 import { Suspense } from "react"
 import HomePageClient from "@/components/home-page-client"
-import { getApprovedKarkeyCars, getHomeCitiesData } from "@/app/actions"
+import { getApprovedKarkeyCars, getHomeCitiesData } from "@/app/actions/vehicles"
 import { loadTranslations } from "@/lib/translations"
 
 // Internal component that suspends

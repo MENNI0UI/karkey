@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { searchDirectSales } from "@/app/actions";
+import { searchDirectSales } from "@/app/actions/vehicles";
 import { createMetricsContext } from "@/lib/metrics";
 
 export async function GET(request: Request) {

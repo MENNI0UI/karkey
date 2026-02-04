@@ -55,14 +55,14 @@ export async function GET(request: NextRequest) {
         where: { status: 'active' },
         include: { plans: true }
       })
-      const monthlyRevenue = activeWithPlan.reduce((sum, s) => sum + (s.plans?.price?.toNumber() || 0), 0)
+      const monthlyRevenue = activeWithPlan.reduce((sum: number, s: typeof activeWithPlan[number]) => sum + (s.plans?.price?.toNumber() || 0), 0)
 
       // Subscriptions by plan
       const activePlans = await prisma.plans.findMany({
         where: { status: 'active' },
         orderBy: { priority: 'desc' }
       })
-      const byPlan = await Promise.all(activePlans.map(async (p) => {
+      const byPlan = await Promise.all(activePlans.map(async (p: typeof activePlans[number]) => {
         const count = await prisma.subscriptions.count({
           where: { plan_id: p.id, status: 'active' }
         })
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
           users: { select: { username: true, email: true } }
         }
       })
-      const recentMapped = recent.map(s => ({
+      const recentMapped = recent.map((s: typeof recent[number]) => ({
         ...s,
         plan_name: s.plans?.name,
         plan_price: s.plans?.price,
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      const subscriptions = rows.map((row) => ({
+      const subscriptions = rows.map((row: typeof rows[number]) => ({
         ...row,
         plan_name: row.plans?.name,
         plan_price: row.plans?.price,
@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
       include: { plans: true }
     })
 
-    const subscriptions = rows.map((row) => ({
+    const subscriptions = rows.map((row: typeof rows[number]) => ({
       ...row,
       plan_name: row.plans?.name,
       plan_price: row.plans?.price,
@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
     }))
 
     // Return active subscription as primary, all as history
-    const activeSubscription = subscriptions.find((s) => s.status === 'active') || null
+    const activeSubscription = subscriptions.find((s: typeof subscriptions[number]) => s.status === 'active') || null
 
     return NextResponse.json({
       success: true,

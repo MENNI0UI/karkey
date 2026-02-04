@@ -9,12 +9,12 @@ import prisma from "./prisma"
 export { prisma }
 
 // Helper types from Prisma (🆕 vehicles/auctions/bids removed - using direct_sales)
-export type {
-  users as UserModel,
-  direct_sales as VehicleModel, // Alias for backward compatibility
-  direct_sales as AuctionModel, // Alias for backward compatibility  
-  notifications as NotificationModel,
-} from "@prisma/client"
+// export type {
+//   users as UserModel,
+//   direct_sales as VehicleModel, // Alias for backward compatibility
+//   direct_sales as AuctionModel, // Alias for backward compatibility  
+//   notifications as NotificationModel,
+// } from "@prisma/client"
 
 // Type definitions for database operations
 export type QueryParams = (string | number | boolean | null | undefined)[]

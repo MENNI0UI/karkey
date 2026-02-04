@@ -1,12 +1,8 @@
 "use server"
 
-import fs from "fs/promises"
-import path from "path"
-import prisma from "@/lib/prisma"
-import { verifyToken } from "@/lib/mysql-auth"
-import { maybeApplyWatermark, getContentTypeFromExt } from "@/lib/image-processing"
-import { Prisma } from "@prisma/client"
-import { cookies } from "next/headers"
+// Note: This module is mostly deprecated in favor of direct_sales with auction_consent
+// Imports kept minimal as createAuction just returns an error message
+
 import { revalidateTag } from "next/cache"
 
 function sanitizeFilename(name: string) {

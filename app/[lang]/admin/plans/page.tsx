@@ -52,7 +52,7 @@ export default async function AdminPlansPage() {
       orderBy: { priority: "desc" }
     })
 
-    const plans: Plan[] = planRows.map((row) => ({
+    const plans: Plan[] = planRows.map((row: typeof planRows[number]) => ({
       id: row.id,
       name: row.name,
       name_ar: row.name_ar,

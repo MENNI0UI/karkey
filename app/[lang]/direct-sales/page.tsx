@@ -1,7 +1,8 @@
 import React from "react"
 export const dynamic = 'force-dynamic'
 import DirectSalesPageClient from "@/components/direct-sales-page-client"
-import { getDirectSalesFilterOptions, searchDirectSales } from "@/app/actions"
+import { getDirectSalesFilterOptions } from "@/app/actions/filters"
+import { searchDirectSales } from "@/app/actions/vehicles"
 import { handleSavedSearchRedirect, getSavedSearchState } from "@/lib/server-saved-search"
 
 export default async function DirectSalesPage({

@@ -62,7 +62,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
 
     const photos = auction.direct_sale_photos
-      .map((r) => normalizePhotoUrl(r.photo_url))
+      .map((r: typeof auction.direct_sale_photos[0]) => normalizePhotoUrl(r.photo_url))
       .filter(Boolean) as string[];
 
     const seller = auction.users_direct_sales_user_idTousers;

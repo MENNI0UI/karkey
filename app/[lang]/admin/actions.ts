@@ -368,9 +368,14 @@ export async function getPendingDirectSales() {
     })
 
     // Transform to expected format
-    const directSalesWithPhotos = pendingDirectSales.map(ds => {
+    const directSalesWithPhotos = pendingDirectSales.map((ds: typeof pendingDirectSales[number]) => {
       // Combine vehicle photos with service_history_url (optional documents)
-      const photos = ds.direct_sale_photos?.map(p => p.photo_url).filter(Boolean) ?? [];
+      const photos: string[] = [];
+      if (ds.direct_sale_photos) {
+        for (const p of ds.direct_sale_photos) {
+          if (p.photo_url) photos.push(p.photo_url);
+        }
+      }
       // Only add service_history_url if it's not already in photos (backward compatibility for old listings)
       if (ds.service_history_url && !photos.includes(ds.service_history_url)) {
         photos.push(ds.service_history_url);
@@ -570,7 +575,7 @@ export async function checkPendingVehiclePhotos() {
       take: 20
     })
 
-    const results = pendingListings.map(v => ({
+    const results = pendingListings.map((v: typeof pendingListings[number]) => ({
       id: v.id,
       make: v.make,
       model: v.model,
@@ -579,11 +584,11 @@ export async function checkPendingVehiclePhotos() {
       photoCount: v.direct_sale_photos?.length || 0,
       carteGriseUrl: v.carte_grise_url,
       hasPhotos: (v.direct_sale_photos?.length || 0) > 0,
-      photos: v.direct_sale_photos?.slice(0, 3).map(p => p.photo_url) || [],
+      photos: v.direct_sale_photos?.slice(0, 3).map((p: typeof v.direct_sale_photos[0]) => p.photo_url) || [],
       owner: v.users_direct_sales_user_idTousers?.username || v.users_direct_sales_user_idTousers?.email || "Unknown"
     }))
 
-    const issueCount = results.filter(r => !r.hasPhotos).length
+    const issueCount = results.filter((r: typeof results[number]) => !r.hasPhotos).length
 
     return {
       success: true,

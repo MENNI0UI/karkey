@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       orderBy: { created_at: 'desc' }
     })
     // Serialize to ensure compatibility and set no-cache headers
-    const serializedRows = rows.map(row => ({
+    const serializedRows = rows.map((row: typeof rows[number]) => ({
       ...row,
       id: Number(row.id),
       user_id: Number(row.user_id),

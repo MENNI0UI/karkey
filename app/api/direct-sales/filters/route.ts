@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getDirectSalesFilterOptions } from "@/app/actions"
+import { getDirectSalesFilterOptions } from "@/app/actions/filters"
 import { errorResponse } from "@/lib/errors"
 
 export async function GET() {

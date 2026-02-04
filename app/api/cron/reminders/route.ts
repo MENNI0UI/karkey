@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
         const BATCH_SIZE = 50;
         for (let i = 0; i < subscribers.length; i += BATCH_SIZE) {
             const batch = subscribers.slice(i, i + BATCH_SIZE);
-            const promises = batch.map(async (sub) => {
+            const promises = batch.map(async (sub: typeof subscribers[number]) => {
                 // Use the subscriber's preferred language, default to 'en'
                 const lang = sub.language || 'en';
                 const res = await sendAuctionReminderEmail(sub.email, lang);

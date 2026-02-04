@@ -89,12 +89,9 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '20mb',
     },
-    useCache: true, // 🆕 Enable Next.js 16 "use cache" directive support (replaces dynamicIO)
-    // ppr: "incremental", // ⚠ Error: merged into cacheComponents
-    // reactCompiler: true, // ⚠ Error: Unrecognized key
-    // middlewareClientMaxBodySize: '20mb', // Deprecated in Next 16
-    // instrumentationHook is enabled by default in Next.js 15+
+    useCache: true, // 🆕 Enable Next.js 16 "use cache" directive support
   },
+
   webpack: (config, { dev }) => {
     // Ensure webpack understands the '@' path alias (maps to project root)
     try {

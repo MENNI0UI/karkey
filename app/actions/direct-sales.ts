@@ -5,7 +5,6 @@ import prisma from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/mysql-auth"
 import { maybeApplyWatermark, getContentTypeFromExt, generateTinyPlaceholder } from "@/lib/image-processing"
 import { parseOrThrow, CreateDirectSaleSchema } from "@/lib/schemas"
-import { Prisma } from "@prisma/client"
 import { revalidateTag } from "next/cache"
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
 
@@ -206,15 +205,15 @@ export async function createDirectSale(prevState: any, formData: FormData) {
                 location,
                 description: description || "",
                 special_features: special_features || null,
-                price: new Prisma.Decimal(price),
+                price: price,
                 carte_grise_url,
                 service_history_url,
                 verification_status: "pending",
                 sale_status: "available",
                 // Auction consent fields
                 auction_consent: hasAuctionConsent,
-                auction_starting_price: auction_starting_price ? new Prisma.Decimal(auction_starting_price) : null,
-                auction_reserve_price: auction_reserve_price ? new Prisma.Decimal(auction_reserve_price) : null,
+                auction_starting_price: auction_starting_price ? Number(auction_starting_price) : null,
+                auction_reserve_price: auction_reserve_price ? Number(auction_reserve_price) : null,
             }
         })
 

@@ -47,7 +47,7 @@ export async function GET(request: Request) {
       where: { user_id: userId },
       orderBy: { created_at: 'desc' }
     })
-    const notifications = raw.map((n) => normalizeNotification(n))
+    const notifications = raw.map((n: typeof raw[number]) => normalizeNotification(n))
     return NextResponse.json({ notifications })
   } catch (error) {
     logError("[NOTIFICATIONS API][GET] Error:", error)
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
       where: { user_id: userId },
       orderBy: { created_at: 'desc' }
     })
-    const notifications = raw.map((n) => normalizeNotification(n))
+    const notifications = raw.map((n: typeof raw[number]) => normalizeNotification(n))
     const unreadCount = notifications.filter((n: any) => !n.is_read).length
 
     return NextResponse.json({ success: true, notifications, unreadCount })

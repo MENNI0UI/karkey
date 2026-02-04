@@ -9,7 +9,7 @@ import { validateEmail, validateUsername, validatePassword } from "@/lib/validat
 import { validateAndNormalizePhone } from "@/lib/phone-utils"
 import { debug, info, warn, error as logError } from "@/lib/logger"
 import bcrypt from "bcryptjs"
-import { users_user_type } from "@prisma/client"
+// Prisma types are resolved automatically from the prisma client
 
 // --- ADDED: runtime sanity check for DB env (masked, non-sensitive) ---
 const _mask = (v?: string) => {
@@ -122,7 +122,7 @@ export async function registerUser(formData: {
         first_name: formData.prenom,
         last_name: formData.nom,
         phone_number: normalizedPhone, // E.164 format: +2126XXXXXXXX
-        user_type: formData.user_type as users_user_type,
+        user_type: formData.user_type as "individual" | "dealer",
 
       }
     })

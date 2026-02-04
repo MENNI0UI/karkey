@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { Prisma } from "@prisma/client"
+// Removed: import { Prisma } from "@prisma/client"
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const q = url.searchParams
 
     // Build Prisma where clauses
-    const where: Prisma.direct_salesWhereInput = {
+    const where: any = {
       verification_status: 'approved',
       sale_status: 'available'
     }
@@ -127,8 +127,8 @@ export async function GET(req: NextRequest) {
     const effectiveItems = items.slice(0, take)
 
     // Map to response format
-    const vehicles = effectiveItems.map((item) => {
-      const photos = item.direct_sale_photos.map(p => p.photo_url).filter(Boolean) as string[];
+    const vehicles = effectiveItems.map((item: typeof effectiveItems[number]) => {
+      const photos = item.direct_sale_photos.map((p: typeof item.direct_sale_photos[0]) => p.photo_url).filter(Boolean) as string[];
       // Add service_history_url to photos if not already present (backward compatibility)
       if (item.service_history_url && !photos.includes(item.service_history_url)) {
         photos.push(item.service_history_url);

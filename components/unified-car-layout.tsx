@@ -202,7 +202,7 @@ export default function UnifiedCarLayout({
                     <span className="font-medium">{t("common.back")}</span>
                 </button>
 
-                <div className="grid grid-cols-1 gap-12 lg:two-col-55-45">
+                <div className="grid grid-cols-1 gap-12 lg:grid-cols-[55%_45%]">
                     {/* Left: Photos Area */}
                     <div className="space-y-4">
                         <div

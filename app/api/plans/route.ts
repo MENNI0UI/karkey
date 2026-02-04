@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     // Check if requesting all plans (including inactive) - for admin
     const { searchParams } = new URL(request.url)
     const includeAll = searchParams.get('all') === 'true'
-    
+
     // Fetch plans using Prisma
     const rows = await prisma.plans.findMany({
       where: includeAll ? {} : { status: 'active' },
@@ -23,27 +23,27 @@ export async function GET(request: NextRequest) {
         { price: 'asc' }
       ]
     })
-    
+
     // Parse features JSON for each plan and include translations
-    const plans = (rows || []).map((row) => ({
+    const plans = (rows || []).map((row: typeof rows[number]) => ({
       ...row,
       price: row.price?.toNumber() || 0,
       popular: !!row.popular,
-      features: typeof row.features === 'string' 
-        ? JSON.parse(row.features) 
+      features: typeof row.features === 'string'
+        ? JSON.parse(row.features)
         : (row.features || []),
       // Parse translated features
-      features_ar: typeof row.features_ar === 'string' 
-        ? JSON.parse(row.features_ar) 
+      features_ar: typeof row.features_ar === 'string'
+        ? JSON.parse(row.features_ar)
         : (row.features_ar || null),
-      features_fr: typeof row.features_fr === 'string' 
-        ? JSON.parse(row.features_fr) 
+      features_fr: typeof row.features_fr === 'string'
+        ? JSON.parse(row.features_fr)
         : (row.features_fr || null),
-      features_es: typeof row.features_es === 'string' 
-        ? JSON.parse(row.features_es) 
+      features_es: typeof row.features_es === 'string'
+        ? JSON.parse(row.features_es)
         : (row.features_es || null),
     }))
-    
+
     // If no plans in DB, return fallback
     if (plans.length === 0) {
       return NextResponse.json({
@@ -52,16 +52,16 @@ export async function GET(request: NextRequest) {
         source: 'fallback'
       })
     }
-    
+
     return NextResponse.json({
       success: true,
       plans,
       source: 'database'
     })
-    
+
   } catch (err: any) {
     console.error("/api/plans GET error:", err)
-    
+
     // Return fallback plans on error so page still works
     return NextResponse.json({
       success: true,
@@ -84,8 +84,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { 
-      name, price, currency = 'DH', duration_days, bid_limit = null, 
+    const {
+      name, price, currency = 'DH', duration_days, bid_limit = null,
       description = null, features = null, popular = false, priority = 0, status = 'active',
       // Translation fields
       name_ar = null, name_fr = null, name_es = null,
@@ -143,7 +143,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json()
-    const { 
+    const {
       id, name, price, currency, duration_days, bid_limit, description, features, popular, priority, status,
       // Translation fields
       name_ar, name_fr, name_es,
@@ -157,7 +157,7 @@ export async function PUT(request: Request) {
 
     // Build dynamic update data for Prisma
     const updateData: Record<string, any> = { updated_at: new Date() }
-    
+
     if (name !== undefined) updateData.name = name
     if (name_ar !== undefined) updateData.name_ar = name_ar
     if (name_fr !== undefined) updateData.name_fr = name_fr
@@ -177,17 +177,17 @@ export async function PUT(request: Request) {
     if (popular !== undefined) updateData.popular = popular ? true : false
     if (priority !== undefined) updateData.priority = priority
     if (status !== undefined) updateData.status = status
-    
+
     if (Object.keys(updateData).length === 1) { // Only updated_at
       return NextResponse.json({ success: false, error: 'No fields to update' }, { status: 400 })
     }
-    
+
     // Update using Prisma
     const result = await prisma.plans.updateMany({
       where: { id: Number(id) },
       data: updateData
     })
-    
+
     if (result.count === 0) {
       return NextResponse.json({ success: false, error: 'Plan not found' }, { status: 404 })
     }
@@ -222,7 +222,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     let result: { count: number }
-    
+
     if (permanent) {
       // Hard delete - permanently remove from database using Prisma
       result = await prisma.plans.deleteMany({
@@ -235,14 +235,14 @@ export async function DELETE(request: NextRequest) {
         data: { status: 'inactive', updated_at: new Date() }
       })
     }
-    
+
     if (result.count === 0) {
       return NextResponse.json({ success: false, error: 'Plan not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: permanent ? 'Plan permanently deleted' : 'Plan deactivated successfully' 
+    return NextResponse.json({
+      success: true,
+      message: permanent ? 'Plan permanently deleted' : 'Plan deactivated successfully'
     })
   } catch (err: any) {
     console.error("/api/plans DELETE error:", err)
