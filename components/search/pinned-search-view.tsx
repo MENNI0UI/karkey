@@ -60,7 +60,7 @@ export function PinnedSearchView({
                     type="button"
                     onClick={() => openFilters(true)}
                     title="Filters"
-                    className="w-8 h-8 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center transition-all hover:border-primary"
+                    className="w-8 h-8 shrink-0 aspect-square !rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center transition-all hover:border-primary relative z-20"
                     aria-label="Open pinned filters"
                 >
                     <img src="/icons/filtre.png" alt="Filters" className="w-4 h-4" />

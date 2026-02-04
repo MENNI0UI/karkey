@@ -91,7 +91,7 @@ export default function PhotoViewer({ photos, index, isOpen, onClose, onChangeIn
     // Render directly into document.body to avoid stacking context issues
     return createPortal(
         <div
-            className="fixed inset-0 z-[99999] bg-black/95 flex items-center justify-center touch-none animate-in fade-in duration-200"
+            className="fixed inset-0 z-[200000] bg-black/95 flex items-center justify-center touch-none animate-in fade-in duration-200"
             onClick={handleBackdropClick}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}

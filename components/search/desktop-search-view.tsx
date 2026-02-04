@@ -105,7 +105,7 @@ export function DesktopSearchView({
                     type="button"
                     onClick={() => openFilters(false)}
                     title="Filters"
-                    className="w-8 h-8 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center transition-all hover:border-primary hover:shadow-md hover:-translate-y-0.5"
+                    className="w-8 h-8 shrink-0 aspect-square !rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center transition-all hover:border-primary hover:shadow-md hover:-translate-y-0.5 relative z-20"
                     aria-label="Open filters"
                 >
                     <img src="/icons/filtre.png" alt="Filters" className="w-4 h-4 opacity-70 group-hover:opacity-100" />
