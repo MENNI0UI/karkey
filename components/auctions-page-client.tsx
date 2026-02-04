@@ -756,8 +756,9 @@ export function AuctionsGridClient({
             }
           }
           const qs = search.toString()
-          // fetch first page when filters are present
-          res = await fetch(qs ? `/api/search?${qs}&page=1&limit=${PAGE_SIZE}` : `/api/search?page=1&limit=${PAGE_SIZE}`, { cache: "no-store" })
+          // fetch first page when filters are present - ALWAYS include type=auction
+          search.append('type', 'auction')
+          res = await fetch(`/api/search?${search.toString()}&page=1&limit=${PAGE_SIZE}`, { cache: "no-store" })
         } else {
           // No URL filters: fall back to listing approved auctions
           res = await fetch(`/api/auctions/approved?limit=${PAGE_SIZE}&offset=0`, { cache: "no-store" })
@@ -975,7 +976,9 @@ export function AuctionsGridClient({
                 }
               }
               const nextPage = page + 1
-              const moreRes = await fetch(search.toString() ? `/api/search?${search.toString()}&page=${nextPage}&limit=${PAGE_SIZE}` : `/api/search?page=${nextPage}&limit=${PAGE_SIZE}`, { cache: "no-store" })
+              // ALWAYS include type=auction for auctions page
+              search.append('type', 'auction')
+              const moreRes = await fetch(`/api/search?${search.toString()}&page=${nextPage}&limit=${PAGE_SIZE}`, { cache: "no-store" })
               if (!moreRes.ok) throw new Error("load more failed")
               const moreData = await moreRes.json().catch(() => ({}))
               const moreList = Array.isArray(moreData?.results) ? moreData.results : (Array.isArray(moreData?.vehicles) ? moreData.vehicles : (Array.isArray(moreData?.auctions) ? moreData.auctions : []))

@@ -1,12 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
-  content: [
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
   theme: {
     extend: {
       colors: {
@@ -61,26 +55,8 @@ module.exports = {
         body: ["var(--font-dm-sans)", "var(--font-noto-sans-arabic)", "sans-serif"],
         poster: ["var(--font-dm-serif)", "var(--font-amiri)", "serif"],
       },
-      keyframes: {
-        "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
-        },
-        "bounce-slow": {
-          "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-8px)" },
-        },
-      },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-        "bounce-slow": "bounce-slow 3s ease-in-out infinite",
-      },
     }
   },
-  plugins: [require("tailwindcss-animate")],
+  // Tailwind v4: plugins array no longer needed, animations defined in @theme
 };
+

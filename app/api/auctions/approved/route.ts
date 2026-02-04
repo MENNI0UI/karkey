@@ -1,4 +1,4 @@
-export const runtime = "nodejs"
+// export const runtime = "nodejs" // Incompatible with useCache experiment
 
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"

@@ -1,8 +1,7 @@
 import { getCurrentUser } from "@/lib/mysql-auth";
-
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+// export const runtime = 'nodejs'; // Incompatible with useCache experiment
 
 // Server-Sent Events stream for notifications (best-effort, in-memory).
 // Includes cleanup on disconnect to prevent memory leaks.

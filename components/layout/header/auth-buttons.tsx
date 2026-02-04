@@ -64,8 +64,8 @@ function SmartAuthPill({ language, t }: { language: string; t: any }) {
                 layout
                 onClick={handleAction}
                 className={`flex items-center gap-2 group/pill rounded-full font-serif transition-all duration-700 border border-transparent relative overflow-hidden
-                    /* Responsive Sizing */
-                    h-[38px] px-3.5 min-w-[90px] md:h-[50px] md:px-7 md:min-w-[150px] lg:h-[46px] lg:px-6 lg:min-w-[190px]
+                    /* Responsive Sizing - FIXED width to prevent layout shift */
+                    h-[38px] px-3.5 w-[120px] md:h-[50px] md:px-7 md:w-[200px] lg:h-[46px] lg:px-6 lg:w-[220px]
                     /* State Styling */
                     ${index === 0
                         ? (open ? "bg-[#009247] text-white shadow-md scale-[1.02]" : "bg-[#00A651] text-white shadow-lg shadow-[#00A651]/20")

@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
-import { unstable_cache } from "next/cache";
+import { unstable_cache, cacheTag } from "next/cache";
 import { verifyToken } from "@/lib/mysql-auth";
 import prisma from "@/lib/prisma";
 import path from "path";
@@ -382,184 +382,185 @@ async function searchAuctions(filters?: any, page = 1, limit = 50): Promise<Sear
 
 /* ---------------- getApprovedVehicles ---------------- */
 // 🆕 النظام الجديد: يستخدم direct_sales مع auction_mode = true
-export const getApprovedVehicles = unstable_cache(
-  async (limit = 200) => {
-    try {
-      const limitVal = Number.isSafeInteger(limit) && limit > 0 ? limit : 200;
-      const items = await prisma.direct_sales.findMany({
-        where: {
-          verification_status: 'approved',
-          auction_mode: true,
-          auction_status: 'active',
-          auction_end_date: { gt: new Date() }
-        },
-        include: {
-          users_direct_sales_user_idTousers: {
-            select: { id: true, username: true, first_name: true, last_name: true, profile_picture: true }
-          },
-          direct_sale_photos: {
-            select: { photo_url: true },
-            orderBy: { position_order: 'asc' }
-          }
-        },
-        orderBy: { created_at: 'desc' },
-        take: limitVal
-      });
+/* ---------------- getApprovedVehicles ---------------- */
+// 🆕 Next.js 16: "use cache" directive for automatic caching
+export async function getApprovedVehicles(limit = 200) {
+  "use cache";
+  cacheTag("vehicles", "auctions", "approved-vehicles");
 
-      const enriched = items.map(mapVehicle);
-      return { success: true, vehicles: JSON.parse(JSON.stringify(enriched)), server_time: new Date().toISOString() };
-    } catch (err) {
-      logError("[app/actions] Error in getApprovedVehicles:", err);
-      return { success: false, vehicles: [] };
-    }
-  },
-  ["approved-vehicles-v3"],
-  { revalidate: 60, tags: ["vehicles", "auctions"] }
-);
+  try {
+    const limitVal = Number.isSafeInteger(limit) && limit > 0 ? limit : 200;
+    const items = await prisma.direct_sales.findMany({
+      where: {
+        verification_status: 'approved',
+        auction_mode: true,
+        auction_status: 'active',
+        auction_end_date: { gt: new Date() }
+      },
+      include: {
+        users_direct_sales_user_idTousers: {
+          select: { id: true, username: true, first_name: true, last_name: true, profile_picture: true }
+        },
+        direct_sale_photos: {
+          select: { photo_url: true },
+          orderBy: { position_order: 'asc' }
+        }
+      },
+      orderBy: { created_at: 'desc' },
+      take: limitVal
+    });
+
+    const enriched = items.map(mapVehicle);
+    return { success: true, vehicles: JSON.parse(JSON.stringify(enriched)), server_time: new Date().toISOString() };
+  } catch (err) {
+    logError("[app/actions] Error in getApprovedVehicles:", err);
+    return { success: false, vehicles: [] };
+  }
+}
 
 /* ---------------- getFilterOptions ---------------- */
 // 🆕 النظام الجديد: يستخدم direct_sales مع auction_mode = true
-export const getFilterOptions = unstable_cache(
-  async (): Promise<FilterOptionsResult> => {
-    const metrics = createMetricsContext();
-    metrics.start("getFilterOptions-db");
-    try {
-      // Base filter for active auctions
-      const baseWhere = {
-        verification_status: 'approved' as const,
-        auction_mode: true,
-        // Removed auction_status: 'active' to show all potential options as per user request
-      };
+/* ---------------- getFilterOptions ---------------- */
+// 🆕 Next.js 16: "use cache" directive
+export async function getFilterOptions(): Promise<FilterOptionsResult> {
+  "use cache";
+  cacheTag("filters", "vehicles", "auction-filter-options");
+  // cacheLife("hours"); // Default is usually fine, or configure in next.config.js
 
-      const standardFuels = ["Petrol", "Diesel", "Hybrid", "Electric"];
-      const standardTransmissions = ["Automatic", "Manual"];
-      const standardConditions = ["Excellent", "Good", "Fair", "Poor"];
-      const majorCities = ["Casablanca", "Rabat", "Marrakech", "Tangier", "Agadir", "Fes", "Oujda", "Kenitra", "Tetouan", "Salé", "Meknès"];
+  const metrics = createMetricsContext();
+  metrics.start("getFilterOptions-db");
+  try {
+    // Base filter for active auctions
+    const baseWhere = {
+      verification_status: 'approved' as const,
+      auction_mode: true,
+      // Removed auction_status: 'active' to show all potential options as per user request
+    };
 
-      const mapDbToLabel = (v?: any) => {
-        if (!v) return v;
-        const s = String(v).trim().toLowerCase();
-        if (s === "gasoline" || s === "petrol") return "Petrol";
-        if (s === "diesel") return "Diesel";
-        if (s === "electric") return "Electric";
-        if (s === "hybrid") return "Hybrid";
-        return String(v).replace(/^\w/, (c) => c.toUpperCase());
-      };
+    const standardFuels = ["Petrol", "Diesel", "Hybrid", "Electric"];
+    const standardTransmissions = ["Automatic", "Manual"];
+    const standardConditions = ["Excellent", "Good", "Fair", "Poor"];
+    const majorCities = ["Casablanca", "Rabat", "Marrakech", "Tangier", "Agadir", "Fes", "Oujda", "Kenitra", "Tetouan", "Salé", "Meknès"];
 
-      // Use Promise.all for parallel fetching
-      // Use Promise.all for parallel fetching
-      // Removing redundant separate queries for makes/models
-      const [makeModelData, yearsData, locationsRows, fuelData, transData, condData, makeCountsData, modelCountsData] = await dbQueryWithTimeout(
-        Promise.all([
-          prisma.direct_sales.findMany({
-            where: { verification_status: 'approved', auction_mode: true },
-            distinct: ['make', 'model'],
-            select: { make: true, model: true },
-            orderBy: [{ make: 'asc' }, { model: 'asc' }]
-          }),
-          prisma.direct_sales.findMany({
-            where: { verification_status: 'approved', auction_mode: true },
-            distinct: ['year'],
-            select: { year: true },
-            orderBy: { year: 'desc' }
-          }),
-          prisma.$queryRaw<Array<{ location: string }>>`
+    const mapDbToLabel = (v?: any) => {
+      if (!v) return v;
+      const s = String(v).trim().toLowerCase();
+      if (s === "gasoline" || s === "petrol") return "Petrol";
+      if (s === "diesel") return "Diesel";
+      if (s === "electric") return "Electric";
+      if (s === "hybrid") return "Hybrid";
+      return String(v).replace(/^\w/, (c) => c.toUpperCase());
+    };
+
+    // Use Promise.all for parallel fetching
+    const [makeModelData, yearsData, locationsRows, fuelData, transData, condData, makeCountsData, modelCountsData] = await dbQueryWithTimeout(
+      Promise.all([
+        prisma.direct_sales.findMany({
+          where: { verification_status: 'approved', auction_mode: true },
+          distinct: ['make', 'model'],
+          select: { make: true, model: true },
+          orderBy: [{ make: 'asc' }, { model: 'asc' }]
+        }),
+        prisma.direct_sales.findMany({
+          where: { verification_status: 'approved', auction_mode: true },
+          distinct: ['year'],
+          select: { year: true },
+          orderBy: { year: 'desc' }
+        }),
+        prisma.$queryRaw<Array<{ location: string }>>`
             SELECT DISTINCT TRIM(SUBSTRING_INDEX(location, ',', 1)) AS location 
             FROM direct_sales 
             WHERE verification_status = 'approved' AND auction_mode = 1
             ORDER BY location ASC`,
-          prisma.direct_sales.findMany({
-            where: { verification_status: 'approved', auction_mode: true },
-            distinct: ['fuel_type'],
-            select: { fuel_type: true }
-          }),
-          prisma.direct_sales.findMany({
-            where: { verification_status: 'approved', auction_mode: true },
-            distinct: ['transmission'],
-            select: { transmission: true }
-          }),
-          prisma.direct_sales.findMany({
-            where: { verification_status: 'approved', auction_mode: true },
-            distinct: ['vehicle_condition'],
-            select: { vehicle_condition: true }
-          }),
-          // Result Counts for Auctions
-          prisma.direct_sales.groupBy({
-            by: ['make'],
-            where: { verification_status: 'approved', auction_mode: true },
-            _count: { id: true }
-          }),
-          prisma.direct_sales.groupBy({
-            by: ['model'],
-            where: { verification_status: 'approved', auction_mode: true },
-            _count: { id: true }
-          })
-        ]),
-        5000
-      );
+        prisma.direct_sales.findMany({
+          where: { verification_status: 'approved', auction_mode: true },
+          distinct: ['fuel_type'],
+          select: { fuel_type: true }
+        }),
+        prisma.direct_sales.findMany({
+          where: { verification_status: 'approved', auction_mode: true },
+          distinct: ['transmission'],
+          select: { transmission: true }
+        }),
+        prisma.direct_sales.findMany({
+          where: { verification_status: 'approved', auction_mode: true },
+          distinct: ['vehicle_condition'],
+          select: { vehicle_condition: true }
+        }),
+        // Result Counts for Auctions
+        prisma.direct_sales.groupBy({
+          by: ['make'],
+          where: { verification_status: 'approved', auction_mode: true },
+          _count: { id: true }
+        }),
+        prisma.direct_sales.groupBy({
+          by: ['model'],
+          where: { verification_status: 'approved', auction_mode: true },
+          _count: { id: true }
+        })
+      ]),
+      5000
+    );
 
-      // Merge fuel types
-      const dbFuels = (fuelData as any[]).map(r => mapDbToLabel(r.fuel_type)).filter(Boolean);
-      const fuelOptions = Array.from(new Set([...standardFuels, ...dbFuels])).map(v => ({ value: v.toLowerCase(), label: v }));
+    // Merge fuel types
+    const dbFuels = (fuelData as any[]).map(r => mapDbToLabel(r.fuel_type)).filter(Boolean);
+    const fuelOptions = Array.from(new Set([...standardFuels, ...dbFuels])).map(v => ({ value: v.toLowerCase(), label: v }));
 
-      // Merge transmissions
-      const dbTrans = (transData as any[]).map(r => mapDbToLabel(r.transmission)).filter(Boolean);
-      const transmissionOptions = Array.from(new Set([...standardTransmissions, ...dbTrans]));
+    // Merge transmissions
+    const dbTrans = (transData as any[]).map(r => mapDbToLabel(r.transmission)).filter(Boolean);
+    const transmissionOptions = Array.from(new Set([...standardTransmissions, ...dbTrans]));
 
-      // Merge locations
-      const dbLocations = (locationsRows as any[]).map(r => r.location).filter(Boolean);
-      const locationOptions = Array.from(new Set([...majorCities, ...dbLocations])).sort();
+    // Merge locations
+    const dbLocations = (locationsRows as any[]).map(r => r.location).filter(Boolean);
+    const locationOptions = Array.from(new Set([...majorCities, ...dbLocations])).sort();
 
-      // Merge conditions
-      const dbConds = (condData as any[]).map(r => mapDbToLabel(r.vehicle_condition)).filter(Boolean);
-      const conditionOptions = Array.from(new Set([...standardConditions, ...dbConds])).map(v => ({ value: v.toLowerCase(), label: v }));
+    // Merge conditions
+    const dbConds = (condData as any[]).map(r => mapDbToLabel(r.vehicle_condition)).filter(Boolean);
+    const conditionOptions = Array.from(new Set([...standardConditions, ...dbConds])).map(v => ({ value: v.toLowerCase(), label: v }));
 
-      // Derive makes and models from makeModelData to avoid redundant queries
-      const makes = Array.from(new Set((makeModelData as any[]).map(r => r.make).filter(Boolean))).sort((a, b) => a.localeCompare(b));
-      const models = Array.from(new Set((makeModelData as any[]).map(r => r.model).filter(Boolean))).sort((a, b) => a.localeCompare(b));
-      const years = (yearsData as any[]).map(r => String(r.year)).filter(Boolean);
+    // Derive makes and models from makeModelData to avoid redundant queries
+    const makes = Array.from(new Set((makeModelData as any[]).map(r => r.make).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    const models = Array.from(new Set((makeModelData as any[]).map(r => r.model).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    const years = (yearsData as any[]).map(r => String(r.year)).filter(Boolean);
 
-      const makeCounts: Record<string, number> = {};
-      (makeCountsData as any[]).forEach(r => { if (r.make) makeCounts[r.make] = r._count.id; });
+    const makeCounts: Record<string, number> = {};
+    (makeCountsData as any[]).forEach(r => { if (r.make) makeCounts[r.make] = r._count.id; });
 
-      const modelCounts: Record<string, number> = {};
-      (modelCountsData as any[]).forEach(r => { if (r.model) modelCounts[r.model] = r._count.id; });
+    const modelCounts: Record<string, number> = {};
+    (modelCountsData as any[]).forEach(r => { if (r.model) modelCounts[r.model] = r._count.id; });
 
-      const modelsByMake: Record<string, string[]> = {};
-      (makeModelData as any[]).forEach(r => {
-        if (!r.make || !r.model) return;
-        if (!modelsByMake[r.make]) modelsByMake[r.make] = [];
-        if (!modelsByMake[r.make].includes(r.model)) modelsByMake[r.make].push(r.model);
-      });
-      for (const k of Object.keys(modelsByMake)) modelsByMake[k].sort();
+    const modelsByMake: Record<string, string[]> = {};
+    (makeModelData as any[]).forEach(r => {
+      if (!r.make || !r.model) return;
+      if (!modelsByMake[r.make]) modelsByMake[r.make] = [];
+      if (!modelsByMake[r.make].includes(r.model)) modelsByMake[r.make].push(r.model);
+    });
+    for (const k of Object.keys(modelsByMake)) modelsByMake[k].sort();
 
-      const result = {
-        options: {
-          makes,
-          models,
-          modelsByMake,
-          makeCounts,
-          modelCounts,
-          years,
-          locations: locationOptions,
-          fuelTypes: fuelOptions,
-          transmissions: transmissionOptions,
-          conditions: conditionOptions,
-        },
-      };
+    const result = {
+      options: {
+        makes,
+        models,
+        modelsByMake,
+        makeCounts,
+        modelCounts,
+        years,
+        locations: locationOptions,
+        fuelTypes: fuelOptions,
+        transmissions: transmissionOptions,
+        conditions: conditionOptions,
+      },
+    };
 
-      try { await writeCacheFile(FILTER_OPTIONS_CACHE_FILE, result); } catch { }
-      metrics.end("getFilterOptions-db");
-      return { success: true, ...result, source: "db" };
-    } catch (err) {
-      metrics.info("getFilterOptions-error", String(err));
-      logError("[app/actions] Error in getFilterOptions (attempting fs fallback):", err);
-      return { ...errorResponse(err), options: { makes: [], models: [], years: [], locations: [], fuelTypes: [], transmissions: [], conditions: [] } } as any;
-    }
-  },
-  ["auction-filter-options-v2"],
-  { revalidate: 3600, tags: ["filters", "vehicles"] }
-);
+    try { await writeCacheFile(FILTER_OPTIONS_CACHE_FILE, result); } catch { }
+    metrics.end("getFilterOptions-db");
+    return { success: true, ...result, source: "db" };
+  } catch (err) {
+    metrics.info("getFilterOptions-error", String(err));
+    logError("[app/actions] Error in getFilterOptions (attempting fs fallback):", err);
+    return { ...errorResponse(err), options: { makes: [], models: [], years: [], locations: [], fuelTypes: [], transmissions: [], conditions: [] } } as any;
+  }
+}
 
 
 /* ---------------- getDirectSalesFilterOptions ---------------- */

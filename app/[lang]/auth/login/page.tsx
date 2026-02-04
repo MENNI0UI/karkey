@@ -6,81 +6,98 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useActionState, useTransition } from "react";
 import { useTranslation } from "@/lib/i18n-context";
 import { Eye, EyeOff } from "lucide-react";
 import { AnimatedCar } from "@/components/auth/animated-car";
 import { motion } from "framer-motion";
+
+// 🆕 React 19.2: Form state type for useActionState
+type LoginFormState = {
+    error: string | null;
+    status: "idle" | "loading" | "success" | "error";
+};
+
+const initialState: LoginFormState = {
+    error: null,
+    status: "idle",
+};
 
 export default function LoginPage() {
     const { t, language } = useTranslation();
     const router = useRouter();
     const searchParams = useSearchParams();
     const callbackUrl = searchParams.get("callbackUrl") || `/${language}`;
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [loginStatus, setLoginStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+    // 🆕 React 19.2: useTransition for non-blocking form submission
+    const [isPending, startTransition] = useTransition();
+
+    // UI state (not form state)
     const [showPassword, setShowPassword] = useState(false);
     const [isPasswordFocused, setIsPasswordFocused] = useState(false);
     const [isHoveringSubmit, setIsHoveringSubmit] = useState(false);
+    const [loginStatus, setLoginStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+    const [error, setError] = useState<string | null>(null);
 
+    // 🆕 React 19.2: Form submission with startTransition
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        setLoading(true);
         setLoginStatus("loading");
         setError(null);
-        try {
-            const form = new FormData(e.target as HTMLFormElement);
-            const email = String(form.get("email") ?? "").trim();
-            const password = String(form.get("password") ?? "");
 
-            const { signIn } = await import("next-auth/react");
-            const result = await signIn("credentials", {
-                email,
-                password,
-                redirect: false,
-            });
-
-            if (result?.error) {
-                setError(t("auth.login.failed"));
-                setLoginStatus("error");
-                // Reset to idle after animation
-                setTimeout(() => setLoginStatus("idle"), 2000);
-                return;
-            }
-
-            setLoginStatus("success");
-
+        startTransition(async () => {
             try {
-                localStorage.removeItem("auth:disabled");
-                localStorage.removeItem("auth:logout");
-                if (typeof window !== "undefined") {
-                    delete (window as any).__preventAuthSync;
+                const form = new FormData(e.target as HTMLFormElement);
+                const email = String(form.get("email") ?? "").trim();
+                const password = String(form.get("password") ?? "");
+
+                const { signIn } = await import("next-auth/react");
+                const result = await signIn("credentials", {
+                    email,
+                    password,
+                    redirect: false,
+                });
+
+                if (result?.error) {
+                    setError(t("auth.login.failed"));
+                    setLoginStatus("error");
+                    // Reset to idle after animation
+                    setTimeout(() => setLoginStatus("idle"), 2000);
+                    return;
                 }
-            } catch { }
 
-            try {
-                window.dispatchEvent(
-                    new CustomEvent("auth:changed", {
-                        detail: { action: "login" }
-                    })
-                );
-            } catch { }
+                setLoginStatus("success");
 
-            // Strategic delay to allow the car "Emerald Ultra-Launch" cinematic to play
-            setTimeout(() => {
-                router.replace(callbackUrl);
-                router.refresh();
-            }, 2500);
-        } catch (err: any) {
-            console.error("[login] error:", err);
-            setError(t("auth.login.network_error"));
-            setLoginStatus("error");
-            setTimeout(() => setLoginStatus("idle"), 2000);
-        } finally {
-            setLoading(false);
-        }
+                try {
+                    localStorage.removeItem("auth:disabled");
+                    localStorage.removeItem("auth:logout");
+                    if (typeof window !== "undefined") {
+                        delete (window as any).__preventAuthSync;
+                    }
+                } catch { }
+
+                try {
+                    window.dispatchEvent(
+                        new CustomEvent("auth:changed", {
+                            detail: { action: "login" }
+                        })
+                    );
+                } catch { }
+
+                // Strategic delay to allow the car "Emerald Ultra-Launch" cinematic to play
+                setTimeout(() => {
+                    router.replace(callbackUrl);
+                    router.refresh();
+                }, 2500);
+            } catch (err: any) {
+                console.error("[login] error:", err);
+                setError(t("auth.login.network_error"));
+                setLoginStatus("error");
+                setTimeout(() => setLoginStatus("idle"), 2000);
+            }
+        });
     }
+
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-white relative overflow-hidden">
@@ -169,7 +186,7 @@ export default function LoginPage() {
                         transition={{ duration: 0.8, delay: 0.5 }}
                     >
                         {error && (
-                            <Alert className="bg-red-50 border-1 border-red-100/50 rounded-xl animate-in fade-in slide-in-from-top-4 shadow-sm">
+                            <Alert className="bg-red-50 border-1 border-red-100/50 rounded-xl animate-in fade-in slide-in-from-top-4 shadow-sm form-error">
                                 <AlertDescription className="text-red-800 text-center font-medium font-sans">
                                     {error}
                                 </AlertDescription>
@@ -245,13 +262,14 @@ export default function LoginPage() {
                         >
                             <Button
                                 type="submit"
-                                className="w-full bg-gradient-to-r from-[#103090] to-[#081848] hover:from-[#B8071C] hover:to-[#900515] text-white rounded-lg h-14 text-lg font-bold tracking-wide transition-all duration-500 hover:scale-[1.01] hover:shadow-lg hover:shadow-red-900/20 active:scale-[0.99] mt-8 font-sans uppercase overflow-hidden relative group"
-                                disabled={loading}
+                                className={`w-full bg-gradient-to-r from-[#103090] to-[#081848] hover:from-[#B8071C] hover:to-[#900515] text-white rounded-lg h-14 text-lg font-bold tracking-wide transition-all duration-500 hover:scale-[1.01] hover:shadow-lg hover:shadow-red-900/20 active:scale-[0.99] mt-8 font-sans uppercase overflow-hidden relative group ${isPending ? "form-pending" : ""}`}
+                                disabled={isPending}
+                                aria-busy={isPending}
                             >
                                 {/* Glass shine effect on button */}
                                 <div className="absolute inset-0 w-1/2 h-full bg-white/10 skew-x-[-25deg] -translate-x-full group-hover:animate-shine pointer-events-none" />
 
-                                {loading ? (
+                                {isPending ? (
                                     <span className="flex items-center gap-2">
                                         <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                         {t("common.loading")}...

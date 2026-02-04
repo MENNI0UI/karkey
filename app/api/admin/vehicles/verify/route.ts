@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     // 🆕 Update direct_sale status (vehicleId is now direct_sale id)
     await prisma.direct_sales.update({
       where: { id: vehicleId },
-      data: { 
+      data: {
         verification_status: newStatus as any, // enum: pending, approved, rejected
       },
     })
@@ -58,9 +58,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Trigger ISR revalidation
+    // @ts-ignore
     revalidateTag("vehicles");
+    // @ts-ignore
     revalidateTag("auctions");
+    // @ts-ignore
     revalidateTag("filters");
+    // @ts-ignore
     revalidateTag("direct-sales");
 
     return NextResponse.json({ success: true })

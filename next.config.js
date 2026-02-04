@@ -44,7 +44,7 @@ try {
 } catch (e) { }
 
 const nextConfig = {
-  // output: 'standalone', // Uncomment this line when deploying to VPS!
+  output: 'standalone', // Uncomment this line when deploying to VPS!
   reactStrictMode: true,
   // Optimize images for better performance
   images: {
@@ -89,7 +89,10 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '20mb',
     },
-    middlewareClientMaxBodySize: '20mb',
+    useCache: true, // 🆕 Enable Next.js 16 "use cache" directive support (replaces dynamicIO)
+    // ppr: "incremental", // ⚠ Error: merged into cacheComponents
+    // reactCompiler: true, // ⚠ Error: Unrecognized key
+    // middlewareClientMaxBodySize: '20mb', // Deprecated in Next 16
     // instrumentationHook is enabled by default in Next.js 15+
   },
   webpack: (config, { dev }) => {

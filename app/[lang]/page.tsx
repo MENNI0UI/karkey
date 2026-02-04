@@ -1,32 +1,24 @@
-import HomePageClient from "@/components/home-page-client"
 import SearchBar from "@/components/searchbar"
-import { getApprovedVehicles, getApprovedKarkeyCars, getDirectSalesFilterOptions, getHomeCitiesData } from "@/app/actions"
 import { loadTranslations } from "@/lib/translations"
 import HeroSection from "@/components/hero-section"
+import SuspendedCarGrid from "./suspended-car-grid"
 
 export const revalidate = 60
+// Force dynamic to enable PPR streaming behavior efficiently
+export const dynamic = "force-dynamic"
 
 export default async function HomePage(props: { params: Promise<{ lang: "en" | "fr" | "ar" | "es" }> }) {
     const params = await props.params;
-    // Safe language fallback
     const lang = params?.lang || "en"
-    // Parallel rendering: fetch everything simultaneously
-    // Parallel rendering: fetch essential data simultaneously
-    const [t, resultKC, resultCities] = await Promise.all([
-        loadTranslations(lang),
-        getApprovedKarkeyCars(8),
-        getHomeCitiesData(),
-    ]);
 
-    const initialKarkeyCars = resultKC?.success && Array.isArray(resultKC.cars) ? resultKC.cars : [];
-    const initialCities = resultCities?.success && Array.isArray(resultCities.cities) ? resultCities.cities : [];
+    // ⚡ PPR Optimized: Only await translations (fast/static)
+    // Heavy DB calls are moved to SuspendedCarGrid
+    const t = await loadTranslations(lang);
     const initialOptions = {};
 
     return (
-        // unified page background
         <main className="min-h-screen relative overflow-hidden bg-white">
-
-            {/* Dynamic Hero Section with Particles Background and Headline */}
+            {/* ⚡ Static Shell: Renders instantly from Edge */}
             <HeroSection
                 titleStart={t["home.premium.find_your"] || "Find Your"}
                 titleEnd={t["home.premium.dream_car"] || "Dream Car"}
@@ -37,14 +29,10 @@ export default async function HomePage(props: { params: Promise<{ lang: "en" | "
                 </div>
             </HeroSection>
 
-            {/* Card grid (grouped by make when enabled) */}
+            {/* ⚡ Dynamic Payload: Streams in parallel */}
             <section className="max-w-[1700px] mx-auto px-2 sm:px-4 py-2 mt-4 relative z-[1] bg-transparent">
                 <div className="home-cards -mt-2">
-                    {/* Disable grouping by make — render a flat grid on the client */}
-                    <HomePageClient
-                        initialKarkeyCars={initialKarkeyCars}
-                        initialCities={initialCities}
-                    />
+                    <SuspendedCarGrid lang={lang} />
                 </div>
             </section>
         </main>

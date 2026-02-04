@@ -22,17 +22,12 @@ export default function HeroSection({ titleStart, titleEnd, subtitle, children }
         <>
             {/* Instant CSS-only Background (Zero-JS) */}
             <div className="absolute inset-0 z-0 h-[600px] pointer-events-none overflow-hidden bg-white">
-                {/* Subtle Gradient Fallback - Blue Flare Only */}
-                <div
-                    className="absolute inset-0 opacity-10 pointer-events-none"
-                    style={{
-                        background: 'radial-gradient(circle at 80% 70%, #103090 0%, transparent 40%)',
-                        filter: 'blur(100px)'
-                    }}
-                />
+                {/* Instant Gradient Fallback - GPU Accelerated Class */}
+                <div className="absolute inset-0 opacity-20 pointer-events-none hero-static-bg" />
 
                 {/* Particles container with smooth secondary appearance */}
-                <div className="absolute inset-0 z-0">
+                <div className="absolute inset-0 z-0 hidden lg:block">
+                    {/* ⚡ Mobile optimization: Hide particles on small screens entirely */}
                     <ParticlesBackgroundComponent />
                 </div>
 

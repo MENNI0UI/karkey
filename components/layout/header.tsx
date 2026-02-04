@@ -160,10 +160,9 @@ function HeaderContent({ initialLoggedIn }: HeaderProps) {
 		<>
 			<header
 				ref={headerRef}
-				className="bg-white/95 backdrop-blur-md border-b border-gray-100 supports-[backdrop-filter]:bg-white/80"
+				className="glass-2026 view-transition-header border-b border-white/20"
 				dir={isRTL ? "rtl" : "ltr"}
 				style={{
-					background: "rgba(255, 255, 255, 0.95)",
 					position: "fixed",
 					top: 0,
 					left: 0,

@@ -213,7 +213,14 @@ export default function UnifiedCarLayout({
                         >
                             {photos.length > 0 ? (
                                 <>
-                                    <div className="w-full h-full cursor-zoom-in" onClick={() => { setIsViewerOpen(true); setCurrentPhotoIndex(currentPhotoIndex) }}>
+                                    <div
+                                        className="w-full h-full cursor-zoom-in"
+                                        onClick={() => { setIsViewerOpen(true); setCurrentPhotoIndex(currentPhotoIndex) }}
+                                        style={{
+                                            // 🏎️ 2026 View Transition: Match the card's image name for fluid morphing
+                                            viewTransitionName: car?.id ? `car-card-${car.id}` : undefined
+                                        } as any}
+                                    >
                                         <Image
                                             src={normalizePhotoUrl(photos[currentPhotoIndex]?.url)}
                                             alt={`${car.make} ${car.model}`}

@@ -10,6 +10,7 @@ interface CarCardImageSliderProps {
     photos: (string | { url: string; blurhash?: string | null })[]
     alt: string
     href: string
+    itemId?: string | number
     aspectRatioClass?: string
     priority?: boolean
     badges?: React.ReactNode
@@ -21,6 +22,7 @@ export function CarCardImageSlider({
     photos,
     alt,
     href,
+    itemId,
     aspectRatioClass = "min-h-[22rem] md:min-h-[26rem]",
     priority = false,
     badges,
@@ -258,7 +260,14 @@ export function CarCardImageSlider({
             )}
 
             {/* Main Image Link - Desktop: standard link behavior. Touch: default prevents link. */}
-            <Link href={href} className="absolute inset-0 z-10 block" aria-label={alt}>
+            <Link
+                href={href}
+                className="absolute inset-0 z-10 block"
+                aria-label={alt}
+                style={{
+                    viewTransitionName: itemId ? `car-card-${itemId}` : undefined
+                } as any}
+            >
                 <Image
                     src={currentSrc || "/placeholder.svg"}
                     alt={alt}

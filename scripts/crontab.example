@@ -1,0 +1,58 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Karkey Crontab Configuration for Hetzner
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Add these entries to your crontab with: crontab -e
+#
+# Prerequisites:
+#   1. Copy auction-cron.sh to /opt/karkey/scripts/
+#   2. Make it executable: chmod +x /opt/karkey/scripts/auction-cron.sh
+#   3. Create log directory: mkdir -p /var/log/karkey
+#   4. Set environment variables in /etc/environment or below
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Environment variables (adjust these)
+KARKEY_APP_URL=https://karkey.com
+KARKEY_CRON_SECRET=your-secure-cron-secret-here
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AUCTION AUTOMATION SCHEDULE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# 1️⃣ تحضير المزادات - الجمعة 23:55 (Morocco time = UTC+0 or UTC+1)
+#    Prepare auctions for weekend (Friday 23:55)
+55 23 * * 5 /opt/karkey/scripts/auction-cron.sh prepare >> /var/log/karkey/cron.log 2>&1
+
+# 2️⃣ تفعيل المزادات - السبت 00:00
+#    Activate all prepared auctions (Saturday 00:00)
+0 0 * * 6 /opt/karkey/scripts/auction-cron.sh activate >> /var/log/karkey/cron.log 2>&1
+
+# 3️⃣ فحص وإنهاء المزادات المنتهية - كل 5 دقائق
+#    Check and end expired auctions (every 5 minutes)
+*/5 * * * * /opt/karkey/scripts/auction-cron.sh end >> /var/log/karkey/cron.log 2>&1
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OPTIONAL: Additional maintenance tasks
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Saved search notifications - every 15 minutes (optional)
+# */15 * * * * cd /opt/karkey && node scripts/saved-search-notifier.js >> /var/log/karkey/notifier.log 2>&1
+
+# Auction reminders - every hour on Saturday & Sunday (optional)
+# 0 * * * 0,6 cd /opt/karkey && node scripts/send-auction-reminders.js >> /var/log/karkey/reminders.log 2>&1
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LOG ROTATION (add to /etc/logrotate.d/karkey)
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# /var/log/karkey/*.log {
+#     daily
+#     rotate 14
+#     compress
+#     missingok
+#     notifempty
+#     create 644 www-data www-data
+# }
+#
+# ═══════════════════════════════════════════════════════════════════════════════

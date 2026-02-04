@@ -127,6 +127,7 @@ function AuctionCard({ data, priority = false, initialIsWatched, viewMode = 'gri
       {/* Photo Section */}
       <div className={`relative ${isList ? 'md:w-80 lg:w-96 w-full h-64 md:h-auto' : 'w-full'}`}>
         <CarCardImageSlider
+          itemId={auctionId}
           photos={normalizedPhotos}
           alt={`${make} ${model}`}
           href={`/${language}/auctions/${auctionId}`}

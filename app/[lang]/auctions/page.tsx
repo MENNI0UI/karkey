@@ -28,7 +28,7 @@ export default async function AuctionsPage({
 		// 3. Normal data fetching
 		const [opts, searchRes] = await Promise.all([
 			getFilterOptions(),
-			searchVehicles({ ...sp, limit: 12 } as any)
+			searchVehicles({ ...sp, type: 'auction', limit: 12 } as any)
 		])
 
 		if (opts?.success && opts.options) filterOptions = opts.options

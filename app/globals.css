@@ -1,6 +1,62 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Tailwind CSS v4 Theme Configuration */
+@theme {
+  /* Custom Site Colors */
+  --color-site-primary: #B8071C;
+  --color-site-accent: #00A651;
+  --color-site-accent-dark: #007A3D;
+  --color-site-gold: #DEB735;
+  --color-site-blue: #103090;
+
+  /* Font Families */
+  --font-sans: var(--font-dm-sans), var(--font-noto-sans-arabic), sans-serif;
+  --font-serif: var(--font-dm-serif), var(--font-amiri), serif;
+  --font-body: var(--font-dm-sans), var(--font-noto-sans-arabic), sans-serif;
+  --font-poster: var(--font-dm-serif), var(--font-amiri), serif;
+
+  /* Border Radius */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* Keyframes */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-bounce-slow: bounce-slow 3s ease-in-out infinite;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+
+    to {
+      height: 0;
+    }
+  }
+
+  @keyframes bounce-slow {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+}
 
 @layer base {
   :root {
@@ -223,6 +279,22 @@
     overflow: hidden;
   }
 
+  /* ✨ White shimmer effect on hover */
+  .jewel-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        transparent 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
   .jewel-card:hover::before {
     left: 100%;
     transition: 0.5s;
@@ -263,6 +335,76 @@
     font-family: var(--font-poster);
   }
 
+  /* ✨ Shine Sweep Effect - White shimmer on hover (one-way only) */
+  .shine-sweep {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shine-sweep::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.5) 50%,
+        transparent 100%);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .shine-sweep:hover::before {
+    animation: shine-sweep-anim 0.6s ease-out forwards;
+  }
+
+  @keyframes shine-sweep-anim {
+    from {
+      left: -100%;
+    }
+
+    to {
+      left: 150%;
+    }
+  }
+
+  /* Slower version for list view (2 seconds) */
+  .shine-sweep-slow {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shine-sweep-slow::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        transparent 100%);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .shine-sweep-slow:hover::before {
+    animation: shine-sweep-slow-anim 1.7s ease-out forwards;
+  }
+
+  @keyframes shine-sweep-slow-anim {
+    from {
+      left: -100%;
+    }
+
+    to {
+      left: 150%;
+    }
+  }
+
   .premium-glass {
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(16px);
@@ -301,4 +443,227 @@
       transform: scale(1.12) translateY(-4px);
     }
   }
+}
+
+/* PERFORMANCE: Zero-Runtime Hero Background (Replaces JS/Heavy CSS) */
+.hero-static-bg {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(222, 183, 53, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(16, 48, 144, 0.15) 0%, transparent 40%);
+  /* Use transform to force GPU layer without filter: blur() which is expensive */
+  /* Accessing a blurry image is faster, but if CSS only: */
+  filter: blur(80px);
+  transform: translateZ(0);
+  /* Promote to layer */
+  will-change: transform;
+}
+
+/* PERFORMANCE: CSS-Only Text Shimmer (Replaces Framer Motion) */
+@keyframes shimmer-cycle {
+
+  0%,
+  100% {
+    text-shadow: 0 0 0px rgba(184, 7, 28, 0);
+  }
+
+  50% {
+    text-shadow: 0 0 10px rgba(184, 7, 28, 0.2);
+  }
+}
+
+.text-shimmer-anim {
+  animation: shimmer-cycle 3s ease-in-out infinite;
+}
+
+/* PERFORMANCE: CSS-Only Underline Grow (Replaces Framer Motion) */
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+.animate-grow-x {
+  animation: grow-x 0.8s cubic-bezier(0, 0.55, 0.45, 1) forwards;
+  animation-delay: 0.6s;
+  opacity: 0;
+  /* Initial state */
+}
+
+/* HEADER RESTORATION: Glass-2026 Class (Lost in recovery) */
+.glass-2026 {
+  background-color: rgba(255, 255, 255, 0.97);
+  /* High legibility background */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+@supports (not (backdrop-filter: blur(20px))) {
+  .glass-2026 {
+    background-color: rgba(255, 255, 255, 0.98);
+    /* Solid fallback */
+  }
+}
+
+/* View Transition Name for smooth Nav */
+.view-transition-header {
+  view-transition-name: site-header;
+}
+
+/* Ensure sticky header behavior is honored with correct z-index */
+header.glass-2026 {
+  z-index: 100000;
+}
+
+/* 🏎️ PREMIUM INTERACTION: Explosive Heart Pop */
+@keyframes heart-pop {
+  0% {
+    transform: scale(1);
+  }
+
+  15% {
+    transform: scale(3.5) rotate(-15deg);
+  }
+
+  30% {
+    transform: scale(3.5) rotate(15deg);
+  }
+
+  45% {
+    transform: scale(2.0);
+  }
+
+  60% {
+    transform: scale(2.5);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes heart-sparkle {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+    box-shadow: 0 0 0 rgba(184, 7, 28, 0.5);
+  }
+
+  50% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0.8;
+    box-shadow: 0 0 40px rgba(184, 7, 28, 0.8);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(3.5);
+    opacity: 0;
+    box-shadow: 0 0 60px rgba(184, 7, 28, 0);
+  }
+}
+
+.animate-heart-pop {
+  animation: heart-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  z-index: 2;
+}
+
+.animate-heart-pop::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle, #B8071C 20%, transparent 60%);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: heart-sparkle 0.6s ease-out forwards;
+}
+
+/* WATCHLIST BUTTON & BUBBLE COLORS */
+.watchlist-btn {
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  border-radius: 50%;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+}
+
+.watchlist-btn--saved {
+  color: #B8071C;
+  background: white;
+  box-shadow: 0 4px 12px rgba(184, 7, 28, 0.15);
+}
+
+.watchlist-msg {
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 14px;
+  max-width: 280px;
+  animation: slide-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.watchlist-msg-btn--confirm {
+  background: #B8071C;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.watchlist-msg-btn--confirm:hover {
+  background: #9d0617;
+  transform: scale(1.05);
+}
+
+.micro-bounce:active {
+  transform: scale(0.9);
+}
+
+.micro-bounce:hover {
+  transform: scale(1.15);
+}
+
+/* --- 🏎️ 2026 VIEW TRANSITIONS ENGINE --- */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.5s;
+}
+
+/* Ensure header doesn't jump during path changes */
+::view-transition-old(site-header),
+::view-transition-new(site-header) {
+  mix-blend-mode: normal;
 }

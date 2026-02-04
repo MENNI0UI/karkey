@@ -1,11 +1,12 @@
 "use client"
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useOptimistic, useTransition } from "react"
 import Link from "next/link"
 import { Heart } from "lucide-react"
 import { useTranslation } from "@/lib/i18n-context"
 import { useAuth } from "@/lib/auth-context"
 import { emit } from "@/lib/events"
 import logger from "@/lib/logger"
+
 
 interface WatchlistButtonProps {
     id: number | string
@@ -34,8 +35,18 @@ export function WatchlistButton({
     // prefer server-provided initialSaved, fallback to local storage
     const cachedKey = id ? `watchlist_cached:${id}` : null
     const [saved, setSaved] = useState<boolean>(initialSaved)
-    const [stableSaved, setStableSaved] = useState<boolean>(initialSaved)
-    const [saving, setSaving] = useState<boolean>(false)
+
+    // 🆕 React 19.2: useOptimistic for instant UI feedback
+    const [optimisticSaved, setOptimisticSaved] = useOptimistic(
+        saved,
+        (_current, newValue: boolean) => newValue
+    )
+
+    // 🆕 React 19.2: useTransition for non-blocking updates
+    const [isPending, startTransition] = useTransition()
+
+    // Use optimistic value for UI rendering
+    const stableSaved = optimisticSaved
 
     // Bubble state
     const [bubbleOpen, setBubbleOpen] = useState<boolean>(false)
@@ -62,11 +73,6 @@ export function WatchlistButton({
         setSaved(val)
     }
 
-    // Effect: sync stableSaved with saved (deferred)
-    useEffect(() => {
-        const timer = setTimeout(() => setStableSaved(saved), 200)
-        return () => clearTimeout(timer)
-    }, [saved])
 
     // Effect: Initial fetch / Restore from cache
     useEffect(() => {
@@ -74,8 +80,8 @@ export function WatchlistButton({
         if (cachedKey) {
             try {
                 const cv = localStorage.getItem(cachedKey)
-                if (cv === "1") { setSaved(true); setStableSaved(true) }
-                else if (cv === "0") { setSaved(false); setStableSaved(false) }
+                if (cv === "1") { setSaved(true) }
+                else if (cv === "0") { setSaved(false) }
             } catch { }
         }
 
@@ -176,7 +182,7 @@ export function WatchlistButton({
             showBubble("error", t("watchlist.own_listing"))
             return
         }
-        if (saving) return
+        if (isPending) return
 
         if (!currentUserId) {
             // Check local auth token as fallback?
@@ -196,65 +202,66 @@ export function WatchlistButton({
 
     const confirmAction = async (isRemove: boolean) => {
         hideBubble()
-        if (saving) return
-        setSaving(true)
+        if (isPending) return
 
         const prevSaved = saved
-        // Optimistic
-        safeSetSaved(!isRemove)
-        if (cachedKey) localStorage.setItem(cachedKey, !isRemove ? "1" : "0")
 
-        try {
-            const endpoint = isRemove ? "/api/direct-sales-watchlist/remove" : "/api/direct-sales-watchlist/add"
-            const body = { direct_sale_id: Number(id) } // assuming API always expects direct_sale_id
+        // 🆕 React 19.2: Use startTransition with setOptimisticSaved for instant feedback
+        startTransition(async () => {
+            // Optimistic update - shows immediately
+            setOptimisticSaved(!isRemove)
+            if (cachedKey) localStorage.setItem(cachedKey, !isRemove ? "1" : "0")
 
-            // Headers setup ...
-            const headers: Record<string, string> = { "Content-Type": "application/json" }
             try {
-                const localToken = localStorage.getItem("auth_token") ?? localStorage.getItem("auth:token");
-                if (localToken && localStorage.getItem("auth:disabled") !== "1") {
-                    headers["Authorization"] = `Bearer ${localToken}`;
+                const endpoint = isRemove ? "/api/direct-sales-watchlist/remove" : "/api/direct-sales-watchlist/add"
+                const body = { direct_sale_id: Number(id) } // assuming API always expects direct_sale_id
+
+                // Headers setup ...
+                const headers: Record<string, string> = { "Content-Type": "application/json" }
+                try {
+                    const localToken = localStorage.getItem("auth_token") ?? localStorage.getItem("auth:token");
+                    if (localToken && localStorage.getItem("auth:disabled") !== "1") {
+                        headers["Authorization"] = `Bearer ${localToken}`;
+                    }
+                } catch { }
+
+                const res = await fetch(endpoint, {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify(body),
+                    credentials: "include"
+                })
+
+                if (res.status === 401) {
+                    safeSetSaved(prevSaved) // rollback
+                    if (cachedKey) localStorage.setItem(cachedKey, prevSaved ? "1" : "0")
+                    showBubble("signin", t("watchlist.signin_required"))
+                    return
                 }
-            } catch { }
 
-            const res = await fetch(endpoint, {
-                method: "POST",
-                headers,
-                body: JSON.stringify(body),
-                credentials: "include"
-            })
+                const json = await res.json().catch(() => ({}))
 
-            if (res.status === 401) {
-                safeSetSaved(prevSaved) // rollback
+                if (res.ok && (json.success || json.alreadyExists || json.removed)) {
+                    const msg = !isRemove
+                        ? t("watchlist.success_add").replace("{model}", vehicleLabel)
+                        : t("watchlist.success_remove").replace("{model}", vehicleLabel)
+                    showBubble("success", msg, 2000)
+
+                    // emit events
+                    emit("watchlist:changed", { auctionId: Number(id), direct_sale_id: Number(id), userId: currentUserId, action: isRemove ? "remove" : "add" })
+                    // also direct sales specific event
+                    emit("watchlist:changed", { direct_sale_id: Number(id), userId: currentUserId, action: isRemove ? "remove" : "add" })
+                } else {
+                    throw new Error(json.error || "Request failed")
+                }
+
+            } catch (err) {
+                logger.error("Watchlist action failed", err)
+                safeSetSaved(prevSaved)
                 if (cachedKey) localStorage.setItem(cachedKey, prevSaved ? "1" : "0")
-                showBubble("signin", t("watchlist.signin_required"))
-                return
+                showBubble("error", t("watchlist.error"))
             }
-
-            const json = await res.json().catch(() => ({}))
-
-            if (res.ok && (json.success || json.alreadyExists || json.removed)) {
-                const msg = !isRemove
-                    ? t("watchlist.success_add").replace("{model}", vehicleLabel)
-                    : t("watchlist.success_remove").replace("{model}", vehicleLabel)
-                showBubble("success", msg, 2000)
-
-                // emit events
-                emit("watchlist:changed", { auctionId: Number(id), direct_sale_id: Number(id), userId: currentUserId, action: isRemove ? "remove" : "add" })
-                // also direct sales specific event
-                emit("watchlist:changed", { direct_sale_id: Number(id), userId: currentUserId, action: isRemove ? "remove" : "add" })
-            } else {
-                throw new Error(json.error || "Request failed")
-            }
-
-        } catch (err) {
-            logger.error("Watchlist action failed", err)
-            safeSetSaved(prevSaved)
-            if (cachedKey) localStorage.setItem(cachedKey, prevSaved ? "1" : "0")
-            showBubble("error", t("watchlist.error"))
-        } finally {
-            setSaving(false)
-        }
+        }) // End startTransition
     }
 
     // bubble hover logic
@@ -314,8 +321,10 @@ export function WatchlistButton({
                 ref={btnRef}
                 type="button"
                 onClick={handleToggle}
-                className={`watchlist-btn ${stableSaved ? "watchlist-btn--saved" : ""}`}
+                className={`watchlist-btn ${stableSaved ? "watchlist-btn--saved" : ""} ${isPending ? "animate-optimistic" : ""} micro-bounce`}
                 aria-label={stableSaved ? "Remove from watchlist" : "Add to watchlist"}
+                aria-busy={isPending}
+                disabled={isPending}
                 // Avoid bubbling to card link
                 onMouseDown={(e) => e.stopPropagation()}
                 onTouchStart={(e) => e.stopPropagation()}

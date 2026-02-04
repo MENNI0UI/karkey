@@ -2,6 +2,7 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { MapPin } from "lucide-react"
 import { useTranslation } from "@/lib/i18n-context"
 import { useAuth } from "@/lib/auth-context"
@@ -23,6 +24,7 @@ export function DirectSaleCard({
     viewMode?: 'grid' | 'list'
 }) {
     const { t, language } = useTranslation()
+    const router = useRouter()
     const isList = viewMode === 'list'
     const {
         id,
@@ -106,8 +108,15 @@ export function DirectSaleCard({
                 </div>
             )}
 
-            <div className={`relative ${isList ? 'md:w-80 lg:w-96 w-full h-64 md:h-auto' : 'w-full'}`}>
+            <div
+                className={`relative ${isList ? 'md:w-80 lg:w-96 w-full h-64 md:h-auto' : 'w-full'}`}
+                onMouseEnter={() => {
+                    // 🏎️ Prefetch detail page for 0ms feel
+                    router.prefetch(`/${language}${linkPrefix}/${id}`);
+                }}
+            >
                 <CarCardImageSlider
+                    itemId={id}
                     photos={normalizedPhotos}
                     href={`/${language}${linkPrefix}/${id}`}
                     alt={vehicleLabel}
@@ -177,12 +186,12 @@ export function DirectSaleCard({
                         )}
 
                         <div className="flex-1">
+                            {!isList && <div className="border-t border-[#DEB735]/25 my-4" />}
                             {isList && (
                                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 font-serif">
                                     {t("common.specifications" as any)}
                                 </h4>
                             )}
-                            {!isList && <div className="border-t border-[#DEB735]/25 my-4" />}
                             <CarSpecsGrid
                                 iconSize={isList ? 6 : 4}
                                 gridCols={isList ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-2'}

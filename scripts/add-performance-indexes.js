@@ -87,7 +87,8 @@ async function main() {
     await addIndex('notifications', 'idx_notif_user_read', 'user_id, is_read');
 
     console.log('\n🔄 Analyzing tables...');
-    const tables = ['direct_sales', 'karkey_cars', 'users', 'notifications', 'showroom'];
+    // Removed 'showroom' as it does not exist in the current schema
+    const tables = ['direct_sales', 'karkey_cars', 'users', 'notifications'];
     for (const table of tables) {
       try {
         await connection.query(`ANALYZE TABLE ${table}`);
