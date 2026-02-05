@@ -1,117 +1,146 @@
 # Copilot Instructions for Karkey
 
-## Architecture Overview
-Karkey is a **Next.js 15 App Router** Moroccan vehicle marketplace with three listing types: **auctions**, **direct sales**, and **showroom**. Data is stored in **MySQL via Prisma ORM**.
+## Architecture
+**Next.js 15 App Router** Moroccan vehicle marketplace with three listing types: **auctions**, **direct sales**, and **showroom (karkey-cars)**. MySQL via Prisma ORM.
 
-### Core Structure
 ```
-app/[lang]/         ← Locale-prefixed routes (en/fr/ar/es); layout handles RTL for Arabic
-app/actions.ts      ← Main server actions (searchVehicles, getApprovedVehicles, filters)
-app/actions/        ← Domain-specific actions (auctions.ts, direct-sales.ts, showroom.ts)
-app/api/            ← REST endpoints for uploads, auth, CRUD, cron jobs
-components/         ← Reusable UI: *-card.tsx, *-filters-sidebar.tsx, create-*-wizard.tsx
-lib/                ← Core utilities, schemas, auth, storage, translations
+app/[lang]/              ← Locale-prefixed routes (en/fr/ar/es); Arabic triggers RTL
+app/actions/             ← Server actions: vehicles.ts, direct-sales.ts, auctions.ts, filters.ts
+app/actions/utils/       ← dbQueryWithTimeout, cache, mappers (NO "use server" - helper files)
+app/api/                 ← REST endpoints: uploads, auth, cron, admin
+lib/search/              ← search-dictionary.ts = multilingual search terms source
+components/wizard/steps/ ← Multi-step form: step-car-details, step-photos, step-pricing, etc.
 ```
 
-## Data Layer Patterns
+## Server Actions Patterns
 
-### Prisma as Primary ORM
-- Use `prisma` from [lib/prisma.ts](lib/prisma.ts) for all DB access—singleton pattern prevents HMR leaks
-- [lib/database.ts](lib/database.ts) provides a legacy `pool` shim routing raw SQL through `prisma.$queryRawUnsafe`
-- Prefer Prisma methods (`prisma.vehicles.findMany()`) over raw SQL; use `$queryRawUnsafe` only for complex joins
-
-### Server Actions Pattern
+### Mutations (e.g., `direct-sales.ts`)
 ```typescript
-// app/actions.ts - always validate with Zod schemas from lib/schemas.ts
-const filtersResult = safeParse(SearchFiltersSchema, filters);
-if (!filtersResult.success) return { success: false, error: ... };
+"use server"
+import prisma from "@/lib/prisma";
+import { parseOrThrow, CreateDirectSaleSchema } from "@/lib/schemas";
+import { getCurrentUser } from "@/lib/mysql-auth";
+import { revalidateTag } from "next/cache";
 
-// Use dbQueryWithTimeout from app/actions/utils for resilient queries
-const result = await dbQueryWithTimeout(() => prisma.vehicles.findMany({...}), 5000);
-```
-
-### Caching Strategy
-- File cache in `os.tmpdir()/karkey-cache/` with 5-minute TTL (see `CACHE_TTL_MS` in [app/actions/utils/cache.ts](app/actions/utils/cache.ts))
-- Invalidate via `invalidateCache('approvedVehicles')` when mutations affect search results
-- Use `unstable_cache` from Next.js for request-level memoization
-
-## Validation Rules (Morocco-Specific)
-From [lib/validations.ts](lib/validations.ts):
-- **Phone**: `+212[5-7][0-9]{8}` (Moroccan format)
-- **CIN**: `[A-Z]{1,4}[0-9]{1,8}` (national ID)
-- **Auctions**: require 5-10 photos, `reserve_price > starting_price`
-
-Input validation uses Zod schemas in [lib/schemas.ts](lib/schemas.ts)—always `safeParse()` in server actions.
-
-## Authentication Flow
-- JWT tokens (HS256, 7-day expiry) via [lib/mysql-auth.ts](lib/mysql-auth.ts)
-- Cookie names: `auth_token` or `auth:token` (check both for compatibility)
-- [middleware.ts](middleware.ts) only guards `/*/create` routes; deeper auth checks happen in server actions
-- Use `verifyToken(token)` to extract `{ userId, email }` from JWT
-
-## i18n & Routing
-- All user-facing routes under `app/[lang]/` with locales: `en`, `fr`, `ar`, `es`
-- Translations in [lib/translations.ts](lib/translations.ts) as `"key.subkey": "value"` maps
-- Access via `useI18n()` hook from [lib/i18n-context.tsx](lib/i18n-context.tsx)
-- Arabic (`ar`) triggers RTL layout via `dir="rtl"` on `<html>`
-
-## File Upload Pipeline
-```
-Client → POST /api/upload/* → lib/file-upload.ts → lib/storage.ts → local or S3
-```
-- Never handle file uploads in server actions directly
-- [lib/storage.ts](lib/storage.ts) auto-watermarks images when `WATERMARK_ENABLED=true`
-- Normalize URLs via `normalizePhotoUrl()` from `app/actions/utils/helpers.ts`
-
-## Developer Workflow
-
-### Setup
-```powershell
-npm install
-# Copy .env.example → .env.local (see MYSQL-SETUP.md for DB config)
-npm run db:setup    # Creates tables
-npm run dev         # Starts dev server on localhost:3000
-```
-
-### Key Scripts
-| Script | Purpose |
-|--------|---------|
-| `npm run db:reset` | Drop and recreate all tables |
-| `npm run admin:create` | Create admin user interactively |
-| `npm run cron:complete-auctions` | Close expired auctions (run via scheduler) |
-| `npm test` | Run Vitest tests |
-
-### Testing
-- Vitest config in [vitest.config.ts](vitest.config.ts) with `@/` alias support
-- Tests in `__tests__/` directory; run `npm test`
-
-## Component Conventions
-
-### Reusable Components by Domain
-- **Cards**: `auction-card.tsx`, `showroom-card.tsx`, `karkey-car-card.tsx`
-- **Filters**: `auction-filters-sidebar.tsx`, `direct-sales-filters-sidebar.tsx`
-- **Wizards**: `create-auction-wizard.tsx`, `create-direct-sale-wizard.tsx`
-
-### UI Primitives
-All shadcn/Radix components in `components/ui/`—use these for consistency:
-```tsx
-import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
-```
-
-## Error Handling
-Use structured errors from [lib/errors.ts](lib/errors.ts):
-```typescript
-import { normalizeError, ErrorCode, errorResponse } from "@/lib/errors";
-
-try { ... } catch (err) {
-  const appError = normalizeError(err); // Handles Zod, timeouts, Prisma errors
-  return errorResponse(appError.code, appError.message);
+export async function createDirectSale(prevState: any, formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user?.userId) return { success: false, error: "Unauthorized" };
+  
+  const data = parseOrThrow(CreateDirectSaleSchema, Object.fromEntries(formData));
+  const result = await prisma.direct_sales.create({ data: {...} });
+  
+  revalidateTag("direct-sales");
+  revalidateTag("filters");
+  return { success: true, directSaleId: result.id };
 }
 ```
 
-## Adding New Features Checklist
-1. **New search filter**: Update both `*-filters-sidebar.tsx` component AND `app/actions.ts` query logic
-2. **New API route**: Add to `app/api/[domain]/route.ts`; validate inputs with Zod
-3. **New translation**: Add keys to all language objects in [lib/translations.ts](lib/translations.ts)
-4. **DB schema change**: Modify `prisma/schema.prisma`, run `npx prisma generate && npx prisma db push`
+### Queries (e.g., `vehicles.ts`, `filters.ts`) - use `dbQueryWithTimeout`
+```typescript
+"use server"
+import { dbQueryWithTimeout } from "./utils";
+import { unstable_cache, cacheTag } from "next/cache";
+
+export async function getFilterOptions() {
+  "use cache";
+  cacheTag("filters", "vehicles");
+  
+  const data = await dbQueryWithTimeout(
+    prisma.direct_sales.findMany({ where: {...} }),
+    5000
+  );
+  return data;
+}
+```
+
+**Key patterns:**
+- `parseOrThrow()` with Zod schemas from `lib/schemas.ts`
+- `getCurrentUser()` from `lib/mysql-auth.ts` for auth
+- `revalidateTag()` after mutations: `direct-sales`, `auctions`, `vehicles`, `filters`, `karkey-cars`
+- Query actions use `"use cache"` + `cacheTag()` (Next.js 15+)
+
+## API Routes - Error Handling
+```typescript
+import { errorResponse } from "@/lib/errors";
+
+export async function GET() {
+  try {
+    // ...
+  } catch (err) {
+    return NextResponse.json(errorResponse(err), { status: 500 });
+  }
+}
+```
+
+## Multilingual Search
+`lib/search/search-dictionary.ts` = single source for searchable terms (4 languages + Moroccan dialects).
+
+```typescript
+// Adding a new fuel type:
+FUEL_DICTIONARY: {
+  hydrogen: ['hydrogen', 'hydrogène', 'هيدروجين', 'hidrógeno', ...]
+}
+// vehicles.ts uses getUnifiedSearchMatches() automatically
+```
+
+## i18n Pattern
+```tsx
+import { useTranslation } from "@/lib/i18n-context";
+const { t, dir, language } = useTranslation();
+<div dir={dir}>{t("home.title")}</div>
+
+// Update ALL 4 files: lib/locales/{en,fr,ar,es}.ts
+```
+
+## File Uploads
+Use API route `POST /api/upload` + `useImageUpload()` hook:
+```tsx
+import { useImageUpload } from "@/hooks/use-image-upload";
+const { upload, waitForAll } = useImageUpload({ watermark: true });
+```
+Client compresses → `/api/upload` → R2/S3. Never upload in server actions.
+
+## Auctions
+Created via **Direct Sales with `auction_consent: true`**. Standalone auction creation is deprecated.
+See `components/wizard/steps/step-pricing.tsx` for consent toggle.
+
+## Developer Commands
+```powershell
+npm run dev           # Turbo dev server
+npm run db:setup      # Create MySQL tables
+npm run db:reset      # Drop & recreate tables
+npm run admin:create  # Create admin interactively
+npm test              # Vitest
+```
+
+## Component Patterns
+| Pattern | Files | Notes |
+|---------|-------|-------|
+| Cards | `*-card.tsx` | direct-sale-card, auction-card, karkey-car-card |
+| Filters | `*-filters-sidebar.tsx` | Sync with `app/actions/filters.ts` |
+| Wizard Steps | `components/wizard/steps/step-*.tsx` | Props: `{ data, update, t, errors }` |
+| Draft Persistence | `useLocalStorage` | In `create-direct-sale-wizard.tsx` |
+| UI primitives | `components/ui/*` | shadcn/Radix only |
+
+## Middleware
+`middleware.ts` handles:
+- Locale detection & redirects (en/fr/ar/es)
+- CSP headers with nonce
+- Rate limiting for API routes (100 req/min)
+- Saved search redirects from cookies
+
+## Security Tools
+Located in `security-tools/`:
+```powershell
+# Scan for leaked secrets in git history
+.\security-tools\gitleaks.exe detect --source .
+
+# Scan for vulnerabilities in dependencies
+.\security-tools\trivy.exe fs . --scanners vuln
+```
+
+## Adding Features Checklist
+- [ ] **New filter**: sidebar + `app/actions/vehicles.ts` + search-dictionary
+- [ ] **New translation**: ALL 4 files `lib/locales/{en,fr,ar,es}.ts`
+- [ ] **DB change**: `prisma/schema.prisma` → `npx prisma generate && npx prisma db push`
+- [ ] **New API route**: `app/api/[domain]/route.ts` + `errorResponse()` for errors

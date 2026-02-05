@@ -53,10 +53,10 @@ const limiter = rateLimit({
 });
 
 /**
- * Next.js 16 Proxy Function
- * Replaces the deprecated middleware.ts convention
+ * Next.js Middleware
+ * Handles locale detection, CSP headers, rate limiting, and saved search redirects
  */
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const startTime = Date.now();
     const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
 

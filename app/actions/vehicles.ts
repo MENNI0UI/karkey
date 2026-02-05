@@ -4,7 +4,7 @@ import { unstable_cache, cacheTag } from "next/cache";
 import path from "path";
 import prisma from "@/lib/prisma";
 import { error as logError } from "@/lib/logger";
-import { getSearchTermVariants, getEnumMatches, formatFTSQuery, normalizeSearchFilter } from "@/lib/search-utils";
+import { getSearchTermVariants, getEnumMatches, formatFTSQuery, normalizeSearchFilter, getUnifiedSearchMatches, parseNumericSearch } from "@/lib/search-utils";
 import { createMetricsContext } from "@/lib/metrics";
 import type { SearchResult } from "@/lib/types/filters";
 import type { Vehicle } from "@/lib/types/vehicle";
@@ -30,9 +30,18 @@ export async function unifiedSearch(filters?: {
                 const type = filters?.type;
                 const qAsNum = Number.parseInt(q, 10);
 
-                const fuelMatches = getEnumMatches(q, "fuel");
-                const transMatches = getEnumMatches(q, "transmission");
-                const condMatches = getEnumMatches(q, "condition");
+                // Use unified multilingual search dictionary
+                const searchMatches = getUnifiedSearchMatches(q);
+                const fuelMatches = searchMatches.fuel;
+                const transMatches = searchMatches.transmission;
+                const condMatches = searchMatches.condition;
+                const cityMatches = searchMatches.city;
+                const doorsMatches = searchMatches.doors;
+                const colorMatches = searchMatches.color;
+                const engineMatches = searchMatches.engine;
+
+                // Parse numeric search (price, mileage, engine size)
+                const numericSearch = parseNumericSearch(q);
 
                 const queryVariants = getSearchTermVariants(q);
                 const orClauses: any[] = [];
@@ -48,9 +57,56 @@ export async function unifiedSearch(filters?: {
                     orClauses.push({ description: { search: ftsQuery } });
                 }
 
+                // Add multilingual field matches
                 if (fuelMatches.length > 0) orClauses.push({ fuel_type: { in: fuelMatches } });
                 if (transMatches.length > 0) orClauses.push({ transmission: { in: transMatches } });
                 if (condMatches.length > 0) orClauses.push({ vehicle_condition: { in: condMatches } });
+                if (cityMatches.length > 0) orClauses.push({ location: { in: cityMatches } });
+                if (doorsMatches.length > 0) orClauses.push({ doors: { in: doorsMatches } });
+                if (engineMatches.length > 0) orClauses.push({ engine_size: { in: engineMatches } });
+                if (colorMatches.length > 0) {
+                    orClauses.push({ exterior_color: { in: colorMatches } });
+                    orClauses.push({ interior_color: { in: colorMatches } });
+                }
+
+                // Add numeric search conditions
+                if (numericSearch) {
+                    const tolerance = 0.15; // 15% tolerance for approximate matching
+                    const val = numericSearch.value;
+                    
+                    switch (numericSearch.type) {
+                        case 'price':
+                            if (numericSearch.operator === 'lte') {
+                                orClauses.push({ price: { lte: val } });
+                                orClauses.push({ auction_starting_price: { lte: val } });
+                            } else if (numericSearch.operator === 'gte') {
+                                orClauses.push({ price: { gte: val } });
+                                orClauses.push({ auction_starting_price: { gte: val } });
+                            } else {
+                                // Approximate match (within 15%)
+                                orClauses.push({ price: { gte: val * (1 - tolerance), lte: val * (1 + tolerance) } });
+                                orClauses.push({ auction_starting_price: { gte: val * (1 - tolerance), lte: val * (1 + tolerance) } });
+                            }
+                            break;
+                        case 'mileage':
+                            if (numericSearch.operator === 'lte') {
+                                orClauses.push({ mileage: { lte: val } });
+                            } else if (numericSearch.operator === 'gte') {
+                                orClauses.push({ mileage: { gte: val } });
+                            } else {
+                                orClauses.push({ mileage: { gte: val * (1 - tolerance), lte: val * (1 + tolerance) } });
+                            }
+                            break;
+                        case 'engine':
+                            // Engine size is stored as string, convert to number for comparison
+                            const engineStr = val.toFixed(1);
+                            orClauses.push({ engine_size: engineStr });
+                            break;
+                        case 'year':
+                            orClauses.push({ year: val });
+                            break;
+                    }
+                }
 
                 if (!Number.isNaN(qAsNum) && qAsNum > 1900 && qAsNum < 2100) {
                     orClauses.push({ year: qAsNum });
@@ -58,7 +114,7 @@ export async function unifiedSearch(filters?: {
 
                 const where: any = {
                     verification_status: 'approved',
-                    OR: orClauses
+                    OR: orClauses.length > 0 ? orClauses : undefined
                 };
 
                 if (type === 'auction') {
@@ -98,7 +154,7 @@ export async function unifiedSearch(filters?: {
                 return { success: false, vehicles: [] };
             }
         },
-        [`unified-search-v3-${Buffer.from(filterKey).toString('base64').substring(0, 16)}`],
+        [`unified-search-v4-${Buffer.from(filterKey).toString('base64').substring(0, 16)}`],
         { revalidate: 60, tags: ["vehicles", "search"] }
     )();
 }
@@ -223,9 +279,20 @@ async function searchAuctions(filters?: any, page = 1, limit = 50): Promise<Sear
                 if (safeFilters.q && String(safeFilters.q).trim() !== "") {
                     const q = String(safeFilters.q).trim().toLowerCase();
                     const qAsNum = Number.parseInt(q, 10);
-                    const fuelMatches = getEnumMatches(q, "fuel");
-                    const transMatches = getEnumMatches(q, "transmission");
-                    const condMatches = getEnumMatches(q, "condition");
+                    
+                    // Use unified multilingual search dictionary
+                    const searchMatches = getUnifiedSearchMatches(q);
+                    const fuelMatches = searchMatches.fuel;
+                    const transMatches = searchMatches.transmission;
+                    const condMatches = searchMatches.condition;
+                    const cityMatches = searchMatches.city;
+                    const doorsMatches = searchMatches.doors;
+                    const colorMatches = searchMatches.color;
+                    const engineMatches = searchMatches.engine;
+
+                    // Parse numeric search (price, mileage, engine size)
+                    const numericSearch = parseNumericSearch(q);
+                    
                     const queryVariants = getSearchTermVariants(q);
                     const qOR: any[] = [];
 
@@ -238,16 +305,59 @@ async function searchAuctions(filters?: any, page = 1, limit = 50): Promise<Sear
                         qOR.push({ description: { search: ftsQuery } });
                     }
 
+                    // Add all multilingual field matches
                     if (fuelMatches.length > 0) qOR.push({ fuel_type: { in: fuelMatches } });
                     if (transMatches.length > 0) qOR.push({ transmission: { in: transMatches } });
                     if (condMatches.length > 0) qOR.push({ vehicle_condition: { in: condMatches } });
+                    if (cityMatches.length > 0) qOR.push({ location: { in: cityMatches } });
+                    if (doorsMatches.length > 0) qOR.push({ doors: { in: doorsMatches } });
+                    if (engineMatches.length > 0) qOR.push({ engine_size: { in: engineMatches } });
+                    if (colorMatches.length > 0) {
+                        qOR.push({ exterior_color: { in: colorMatches } });
+                        qOR.push({ interior_color: { in: colorMatches } });
+                    }
+
+                    // Add numeric search conditions (price, mileage, engine, year)
+                    if (numericSearch) {
+                        const tolerance = 0.15; // 15% tolerance for approximate matching
+                        const val = numericSearch.value;
+                        
+                        switch (numericSearch.type) {
+                            case 'price':
+                                if (numericSearch.operator === 'lte') {
+                                    qOR.push({ auction_starting_price: { lte: val } });
+                                } else if (numericSearch.operator === 'gte') {
+                                    qOR.push({ auction_starting_price: { gte: val } });
+                                } else {
+                                    qOR.push({ auction_starting_price: { gte: val * (1 - tolerance), lte: val * (1 + tolerance) } });
+                                }
+                                break;
+                            case 'mileage':
+                                if (numericSearch.operator === 'lte') {
+                                    qOR.push({ mileage: { lte: val } });
+                                } else if (numericSearch.operator === 'gte') {
+                                    qOR.push({ mileage: { gte: val } });
+                                } else {
+                                    qOR.push({ mileage: { gte: val * (1 - tolerance), lte: val * (1 + tolerance) } });
+                                }
+                                break;
+                            case 'engine':
+                                const engineStr = val.toFixed(1);
+                                qOR.push({ engine_size: engineStr });
+                                break;
+                            case 'year':
+                                qOR.push({ year: val });
+                                break;
+                        }
+                    }
+
                     if (!Number.isNaN(qAsNum) && qAsNum > 1900 && qAsNum < 2100) qOR.push({ year: qAsNum });
 
                     if (where.OR) {
                         const existingOR = where.OR;
                         delete where.OR;
                         where.AND = [{ OR: existingOR }, { OR: qOR }];
-                    } else {
+                    } else if (qOR.length > 0) {
                         where.OR = qOR;
                     }
                 }
@@ -446,24 +556,18 @@ export async function searchDirectSales(filters?: any) {
                     const q = String(safeFilters.q).trim().toLowerCase();
                     const qAsNum = parseInt(q, 10);
 
-                    const fuelMatches = Object.entries({
-                        gasoline: ['gasoline', 'essence', 'petrol', 'بنزين', 'ايصانص', 'gasolina'],
-                        diesel: ['diesel', 'gazole', 'مازوت', 'ديزل', 'كازوال', 'diésel', 'gasóleo'],
-                        electric: ['electric', 'electrique', 'كهربائية', 'كهرباء', 'eléctrico'],
-                        hybrid: ['hybrid', 'hybride', 'هجينة', 'híbrido']
-                    }).filter(([_, terms]) => terms.some(t => t.includes(q))).map(([k]) => k);
+                    // Use unified multilingual search dictionary
+                    const searchMatches = getUnifiedSearchMatches(q);
+                    const fuelMatches = searchMatches.fuel;
+                    const transMatches = searchMatches.transmission;
+                    const condMatches = searchMatches.condition;
+                    const cityMatches = searchMatches.city;
+                    const doorsMatches = searchMatches.doors;
+                    const colorMatches = searchMatches.color;
+                    const engineMatches = searchMatches.engine;
 
-                    const transMatches = Object.entries({
-                        automatic: ['automatic', 'automatique', 'auto', 'أوتوماتيك', 'اوتوماتيك', 'automático'],
-                        manual: ['manual', 'manuelle', 'boite', 'manuel', 'يدوي', 'مانويل', 'manual']
-                    }).filter(([_, terms]) => terms.some(t => t.includes(q))).map(([k]) => k);
-
-                    const condMatches = Object.entries({
-                        excellent: ['excellent', 'parfaite', 'neuve', 'ممتازة', 'نظيفة', 'excelente', 'perfecto'],
-                        good: ['good', 'bonne', 'جيدة', 'bueno'],
-                        fair: ['fair', 'moyenne', 'متوسطة', 'medio'],
-                        poor: ['poor', 'mauvaise', 'سيئة', 'malo']
-                    }).filter(([_, terms]) => terms.some(t => t.includes(q))).map(([k]) => k);
+                    // Parse numeric search (price, mileage, engine size)
+                    const numericSearch = parseNumericSearch(q);
 
                     const qOR: any[] = [
                         { make: { contains: q } },
@@ -471,9 +575,52 @@ export async function searchDirectSales(filters?: any) {
                         { location: { contains: q } },
                     ];
 
+                    // Add all multilingual field matches
                     if (fuelMatches.length > 0) qOR.push({ fuel_type: { in: fuelMatches } });
                     if (transMatches.length > 0) qOR.push({ transmission: { in: transMatches } });
                     if (condMatches.length > 0) qOR.push({ vehicle_condition: { in: condMatches } });
+                    if (cityMatches.length > 0) qOR.push({ location: { in: cityMatches } });
+                    if (doorsMatches.length > 0) qOR.push({ doors: { in: doorsMatches } });
+                    if (engineMatches.length > 0) qOR.push({ engine_size: { in: engineMatches } });
+                    if (colorMatches.length > 0) {
+                        qOR.push({ exterior_color: { in: colorMatches } });
+                        qOR.push({ interior_color: { in: colorMatches } });
+                    }
+
+                    // Add numeric search conditions (price, mileage, engine, year)
+                    if (numericSearch) {
+                        const tolerance = 0.15; // 15% tolerance for approximate matching
+                        const val = numericSearch.value;
+                        
+                        switch (numericSearch.type) {
+                            case 'price':
+                                if (numericSearch.operator === 'lte') {
+                                    qOR.push({ price: { lte: val } });
+                                } else if (numericSearch.operator === 'gte') {
+                                    qOR.push({ price: { gte: val } });
+                                } else {
+                                    qOR.push({ price: { gte: val * (1 - tolerance), lte: val * (1 + tolerance) } });
+                                }
+                                break;
+                            case 'mileage':
+                                if (numericSearch.operator === 'lte') {
+                                    qOR.push({ mileage: { lte: val } });
+                                } else if (numericSearch.operator === 'gte') {
+                                    qOR.push({ mileage: { gte: val } });
+                                } else {
+                                    qOR.push({ mileage: { gte: val * (1 - tolerance), lte: val * (1 + tolerance) } });
+                                }
+                                break;
+                            case 'engine':
+                                const engineStr = val.toFixed(1);
+                                qOR.push({ engine_size: engineStr });
+                                break;
+                            case 'year':
+                                qOR.push({ year: val });
+                                break;
+                        }
+                    }
+
                     if (!Number.isNaN(qAsNum) && qAsNum > 1900 && qAsNum < 2100) qOR.push({ year: qAsNum });
 
                     if (where.OR) {
