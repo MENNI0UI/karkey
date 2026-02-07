@@ -220,9 +220,9 @@ export async function POST(request: NextRequest) {
 
         // ISR revalidation
         // @ts-ignore
-        revalidateTag("karkey-cars")
+        revalidateTag("karkey-cars", "max")
         // @ts-ignore
-        revalidateTag("filters")
+        revalidateTag("filters", "max")
 
         return NextResponse.json({
             success: true,

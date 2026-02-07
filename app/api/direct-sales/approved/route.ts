@@ -171,7 +171,8 @@ export async function GET(req: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+          // Reduce cache time for fresher data, allow revalidation
+          'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=20',
         },
       }
     )

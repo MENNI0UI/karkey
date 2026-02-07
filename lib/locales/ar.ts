@@ -2,6 +2,21 @@
 import type { en } from './en';
 
 export const ar: typeof en = {
+  // Chat Assistant
+  "chat.title": "مساعد كاركي",
+  "chat.open": "تحدث معنا",
+  "chat.close": "إغلاق المحادثة",
+  "chat.clear": "مسح المحادثة",
+  "chat.maximize": "ملء الشاشة",
+  "chat.minimize": "الخروج من ملء الشاشة",
+  "chat.welcome_title": "مرحباً بك!",
+  "chat.welcome": "أنا هنا لمساعدتك في العثور على سيارة أحلامك أو بيع سيارتك بسرعة. شنو نقدر ندير ليك اليوم؟",
+  "chat.online": "متصل",
+  "chat.placeholder": "اكتب رسالتك...",
+  "chat.error": "حدث خطأ. حاول مرة أخرى.",
+  "chat.quick_auctions": "على المزادات",
+  "chat.quick_sell": "بيع سيارتي",
+
   // Common
   "common.soon": "قريباً",
   "common.search": "بحث...",

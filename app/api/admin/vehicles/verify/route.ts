@@ -59,13 +59,13 @@ export async function POST(request: NextRequest) {
 
     // Trigger ISR revalidation
     // @ts-ignore
-    revalidateTag("vehicles");
+    revalidateTag("vehicles", "max");
     // @ts-ignore
-    revalidateTag("auctions");
+    revalidateTag("auctions", "max");
     // @ts-ignore
-    revalidateTag("filters");
+    revalidateTag("filters", "max");
     // @ts-ignore
-    revalidateTag("direct-sales");
+    revalidateTag("direct-sales", "max");
 
     return NextResponse.json({ success: true })
   } catch (error: any) {

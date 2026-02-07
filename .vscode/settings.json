@@ -36,6 +36,5 @@
   ],
   "python.testing.pytestEnabled": false,
   "python.testing.unittestEnabled": true,
-  "snyk.advanced.autoSelectOrganization": true,
-  "snyk.advanced.organization": "918d2ef2-11d0-43c7-a43d-2d07866f7f6e"
+  "snyk.advanced.autoSelectOrganization": false
 }

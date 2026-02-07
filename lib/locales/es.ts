@@ -2,6 +2,21 @@
 import type { en } from './en';
 
 export const es: typeof en = {
+  // Chat Assistant
+  "chat.title": "Asistente Karkey",
+  "chat.open": "Chatea con nosotros",
+  "chat.close": "Cerrar chat",
+  "chat.clear": "Borrar conversación",
+  "chat.maximize": "Pantalla completa",
+  "chat.minimize": "Salir de pantalla completa",
+  "chat.welcome_title": "¡Bienvenido!",
+  "chat.welcome": "Estoy aquí para ayudarte a encontrar el coche de tus sueños o vender el tuyo rápidamente. ¿Qué puedo hacer por ti hoy?",
+  "chat.online": "En línea",
+  "chat.placeholder": "Escribe tu mensaje...",
+  "chat.error": "Algo salió mal. Por favor, inténtalo de nuevo.",
+  "chat.quick_auctions": "Las Subastas",
+  "chat.quick_sell": "Vender Mi Coche",
+
   // Common
   "common.try_adjusting_filters": "Intenta ajustar tus filtros",
   "common.try_again": "Intentar de nuevo",

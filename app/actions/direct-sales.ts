@@ -321,9 +321,9 @@ export async function createDirectSale(prevState: any, formData: FormData) {
         // ISR revalidation
         // ISR revalidation
         // @ts-ignore
-        revalidateTag("direct-sales")
+        revalidateTag("direct-sales", "max")
         // @ts-ignore
-        revalidateTag("filters")
+        revalidateTag("filters", "max")
 
         return { success: true, directSaleId }
 

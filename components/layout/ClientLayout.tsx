@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/toaster"
 import BackButton, { saveLastNonProfilePage } from "@/app/[lang]/profile/back-button";
 import { SessionProvider } from "next-auth/react"
 import { LazyMotion, domAnimation, AnimatePresence, motion } from "framer-motion"
+import { ChatBubble } from "@/components/chat"
 
 export default function ClientLayout({ children, isLoggedIn }: { children: React.ReactNode; isLoggedIn?: boolean }) {
   const pathname = usePathname() || "/"
@@ -149,6 +150,9 @@ export default function ClientLayout({ children, isLoggedIn }: { children: React
           {!shouldHideHeaderFooter ? (
             <Footer />
           ) : null}
+
+          {/* AI Chat Assistant */}
+          {!shouldHideHeaderFooter && <ChatBubble />}
 
           <Toaster />
         </LazyMotion>

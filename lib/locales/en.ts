@@ -1,5 +1,20 @@
 ﻿// English Translations
 export const en = {
+  // Chat Assistant
+  "chat.title": "Karkey Assistant",
+  "chat.open": "Chat with us",
+  "chat.close": "Close chat",
+  "chat.clear": "Clear conversation",
+  "chat.maximize": "Fullscreen",
+  "chat.minimize": "Exit fullscreen",
+  "chat.welcome_title": "Welcome!",
+  "chat.welcome": "I'm here to help you find your dream car or sell yours quickly. How can I assist you today?",
+  "chat.online": "Online",
+  "chat.placeholder": "Type your message...",
+  "chat.error": "Something went wrong. Please try again.",
+  "chat.quick_auctions": "About Auctions",
+  "chat.quick_sell": "Sell My Car",
+
   // Common
 
   "common.soon": "Coming Soon",

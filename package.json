@@ -23,6 +23,8 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@ai-sdk/groq": "^3.0.21",
+    "@ai-sdk/react": "^3.0.72",
     "@aws-sdk/client-s3": "^3.958.0",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@hookform/resolvers": "^3.10.0",
@@ -54,6 +56,7 @@
     "@tsparticles/react": "^3.0.0",
     "@tsparticles/slim": "^3.9.1",
     "@vercel/analytics": "1.5.0",
+    "ai": "^6.0.70",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

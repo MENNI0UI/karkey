@@ -11,6 +11,9 @@ type Props = {
   isLoading?: boolean; // New prop to sync with parent loading state
 };
 
+// Storage key for persisting the last seen ID across reloads
+const LAST_SEEN_STORAGE_KEY = "newItemsNotifier_lastSeenId";
+
 export default function NewItemsNotifier({
   fetchUrl,
   initialTopId = null,
@@ -29,8 +32,25 @@ export default function NewItemsNotifier({
     }
 
     let mounted = true;
-    let lastTop = initialTopId ?? null;
-    let initialized = initialTopId != null;
+    
+    // Try to get last seen ID from sessionStorage first (persisted after reload)
+    let storedLastSeen: string | number | null = null;
+    try {
+      const stored = sessionStorage.getItem(LAST_SEEN_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Only use if it's recent (within 10 seconds) - to handle the reload case
+        if (parsed && parsed.id != null && parsed.ts && (Date.now() - parsed.ts < 10000)) {
+          storedLastSeen = parsed.id;
+          // Clear it after using
+          sessionStorage.removeItem(LAST_SEEN_STORAGE_KEY);
+        }
+      }
+    } catch {}
+    
+    // Use stored value if available, otherwise fall back to initialTopId
+    let lastTop = storedLastSeen ?? initialTopId ?? null;
+    let initialized = lastTop != null;
 
     // We establish a baseline. 
     // Since we now use a key and isLoading prop, this baseline is much more reliable.
@@ -130,7 +150,56 @@ export default function NewItemsNotifier({
         <button
           onClick={() => {
             setHasNew(false);
-            router.refresh();
+            // Clear all direct sales prefetch caches in sessionStorage
+            try {
+              const keysToRemove: string[] = [];
+              for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                if (key?.startsWith('direct_sales_search_prefetch:')) {
+                  keysToRemove.push(key);
+                }
+              }
+              keysToRemove.forEach(k => sessionStorage.removeItem(k));
+            } catch {}
+            
+            // Fetch the latest ID and store it before reload
+            // This ensures we don't show the same notification again after reload
+            (async () => {
+              try {
+                const res = await fetch(fetchUrl, { cache: "no-store" });
+                const data = await res.json();
+                
+                const tryExtractArray = (obj: any): any[] | null => {
+                  if (!obj) return null;
+                  if (Array.isArray(obj)) return obj;
+                  const keys = ["direct_sales", "results", "vehicles", "auctions", "items", "data"];
+                  for (const k of keys) {
+                    try { if (Array.isArray(obj[k])) return obj[k]; } catch {}
+                  }
+                  return null;
+                };
+                
+                const arr = tryExtractArray(data);
+                let latestId: string | number | null = null;
+                if (arr && arr.length > 0) {
+                  const first = arr[0];
+                  latestId = first?.id ?? first?.vehicle_id ?? first?.auction_id ?? null;
+                } else if (data?.id) {
+                  latestId = data.id;
+                }
+                
+                if (latestId != null) {
+                  // Store with timestamp so we know it's fresh
+                  sessionStorage.setItem(LAST_SEEN_STORAGE_KEY, JSON.stringify({
+                    id: latestId,
+                    ts: Date.now()
+                  }));
+                }
+              } catch {}
+              
+              // Force full page reload to bypass all caches
+              window.location.reload();
+            })();
           }}
           className="flex items-center gap-2 text-sm font-bold text-[#B1060F]"
         >

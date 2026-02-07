@@ -4,6 +4,7 @@ import NotificationActionButton from "@/components/layout/notification-action-bu
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTranslation } from "@/lib/i18n-context"
+import { ChatBubble } from "@/components/chat"
 
 interface MainLayoutProps {
 	children: React.ReactNode
@@ -337,6 +338,9 @@ export function MainLayout({ children, isLoggedIn, email, profilePicture, hideHe
 
 			{/* Main Content */}
 			<main className="pt-20 pb-20 min-h-[calc(100vh-160px)]">{children}</main>
+
+			{/* Chat Assistant */}
+			{!shouldHideHeaderFooter && <ChatBubble />}
 
 			{/* Footer omitted for hidden pages */}
 		</div>
