@@ -12,6 +12,7 @@ type Props = {
 };
 
 import { useState, useMemo, useEffect } from "react";
+import { CarGridSkeleton } from "@/components/ui/car-card-skeleton";
 
 export default function ListingsSection({ auctions, mode = "listings", initialSubTab = "all" }: Props) {
   const { t } = useTranslation();
@@ -29,13 +30,7 @@ export default function ListingsSection({ auctions, mode = "listings", initialSu
   }, [auctions, activeSubTab]);
 
   if (auctions === undefined) {
-    return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="rounded-2xl bg-gray-100 h-36 border border-gray-200 animate-pulse" />
-        ))}
-      </div>
-    );
+    return <CarGridSkeleton count={3} viewMode="list" />;
   }
 
   const list = filteredList;
@@ -140,7 +135,7 @@ export default function ListingsSection({ auctions, mode = "listings", initialSu
                   <div className="w-56 h-44 relative flex-shrink-0 bg-gradient-to-br from-slate-100 to-slate-50 overflow-hidden">
                     {item.image_url ? (
                       <>
-                        <Image src={item.image_url} alt={item.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <Image src={item.image_url} alt={item.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" unoptimized={true} />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       </>
                     ) : (

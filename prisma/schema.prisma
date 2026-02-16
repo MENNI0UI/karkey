@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
-  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextIndex", "fullTextSearch"]
 }
 
 datasource db {
@@ -71,9 +71,9 @@ model direct_sale_photos {
   id             Int          @id @default(autoincrement())
   direct_sale_id Int
   photo_url      String       @db.VarChar(500)
-  blurhash       String?      @db.VarChar(500)
   position_order Int          @default(0)
   created_at     DateTime     @default(now()) @db.Timestamp(0)
+  blurhash       String?      @db.VarChar(500)
   direct_sales   direct_sales @relation(fields: [direct_sale_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "direct_sale_photos_ibfk_1")
 
   @@index([direct_sale_id], map: "idx_direct_sale_photos_direct_sale_id")
@@ -124,6 +124,7 @@ model direct_sales {
   auction_status                     direct_sales_auction_status?      @default(none)
   auction_winner_id                  Int?
   views                              Int                               @default(0)
+  embedding                          String?                           @db.LongText
   direct_sale_photos                 direct_sale_photos[]
   users_direct_sales_user_idTousers  users                             @relation("direct_sales_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "direct_sales_ibfk_1")
   admins                             admins?                           @relation(fields: [reviewed_by], references: [id], onUpdate: Restrict, map: "direct_sales_ibfk_2")
@@ -141,17 +142,17 @@ model direct_sales {
   @@index([verification_status])
   @@index([created_at])
   @@index([auction_consent])
-  
-  // Performance Indexes for Range Filters
   @@index([mileage], map: "idx_direct_sales_mileage")
   @@index([price], map: "idx_direct_sales_price")
   @@index([year], map: "idx_direct_sales_year")
-
-  // Composite Indexes for main listings
   @@index([verification_status, sale_status, created_at], map: "idx_ds_status_composite")
   @@index([auction_mode, auction_status, verification_status, auction_end_date], map: "idx_ds_auction_composite")
-  
-  // Full Text Search Index
+  @@index([fuel_type], map: "idx_direct_sales_fuel_type")
+  @@index([transmission], map: "idx_direct_sales_transmission")
+  @@index([make, model], map: "idx_ds_make_model")
+  @@index([sale_status], map: "idx_ds_sale_status")
+  @@index([verification_status], map: "idx_ds_verification")
+  @@index([year], map: "idx_ds_year")
   @@fulltext([make, model, location, description])
 }
 
@@ -231,21 +232,22 @@ model invoices {
 }
 
 model notifications {
-  id          Int                 @id @default(autoincrement())
-  user_id     Int
-  title       String              @db.VarChar(255)
-  message     String              @db.Text
-  type        notifications_type? @default(info)
-  is_read     Boolean?            @default(false)
-  created_at  DateTime            @default(now()) @db.Timestamp(0)
-  auction_id  Int?
-  users       users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "notifications_ibfk_1")
+  id         Int                 @id @default(autoincrement())
+  user_id    Int
+  title      String              @db.VarChar(255)
+  message    String              @db.Text
+  type       notifications_type? @default(info)
+  is_read    Boolean?            @default(false)
+  created_at DateTime            @default(now()) @db.Timestamp(0)
+  auction_id Int?
+  users      users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "notifications_ibfk_1")
 
   @@index([auction_id], map: "auction_id")
   @@index([is_read], map: "idx_notifications_is_read")
   @@index([user_id, created_at], map: "idx_notifications_user_created")
   @@index([user_id], map: "idx_notifications_user_id")
   @@index([user_id, is_read], map: "idx_notifications_user_read")
+  @@index([user_id, is_read], map: "idx_notif_user_read")
 }
 
 model payments {
@@ -345,23 +347,24 @@ model subscriptions {
 }
 
 model users {
-  id                                        Int                       @id @default(autoincrement())
-  username                                  String                    @unique(map: "username") @db.VarChar(20)
-  first_name                                String?                   @db.VarChar(50)
-  last_name                                 String?                   @db.VarChar(50)
-  email                                     String                    @unique(map: "email") @db.VarChar(255)
-  password_hash                             String?                   @db.VarChar(255)
-  phone_number                              String?                   @db.VarChar(20)
-  profile_picture                           String?                   @db.VarChar(500)
+  id                                        Int                 @id @default(autoincrement())
+  username                                  String              @unique(map: "username") @db.VarChar(20)
+  first_name                                String?             @db.VarChar(50)
+  last_name                                 String?             @db.VarChar(50)
+  email                                     String              @unique(map: "email") @db.VarChar(255)
+  password_hash                             String?             @db.VarChar(255)
+  phone_number                              String?             @db.VarChar(20)
+  profile_picture                           String?             @db.VarChar(500)
   user_type                                 users_user_type
-  created_at                                DateTime                  @default(now()) @db.Timestamp(0)
-  updated_at                                DateTime                  @default(now()) @db.Timestamp(0)
-  google_id                                 String?                   @unique(map: "google_id") @db.VarChar(255)
-  is_profile_complete                       Boolean                   @default(true)
+  created_at                                DateTime            @default(now()) @db.Timestamp(0)
+  updated_at                                DateTime            @default(now()) @db.Timestamp(0)
+  google_id                                 String?             @unique(map: "google_id") @db.VarChar(255)
+  is_profile_complete                       Boolean             @default(true)
+  auction_reminders                         auction_reminders[]
   blacklists                                blacklists?
   deposits                                  deposits[]
-  direct_sales_direct_sales_user_idTousers  direct_sales[]            @relation("direct_sales_user_idTousers")
-  direct_sales_direct_sales_buyer_idTousers direct_sales[]            @relation("direct_sales_buyer_idTousers")
+  direct_sales_direct_sales_user_idTousers  direct_sales[]      @relation("direct_sales_user_idTousers")
+  direct_sales_direct_sales_buyer_idTousers direct_sales[]      @relation("direct_sales_buyer_idTousers")
   inspections                               inspections[]
   invoices                                  invoices[]
   notifications                             notifications[]
@@ -369,7 +372,6 @@ model users {
   requests                                  requests[]
   saved_searches                            saved_searches[]
   subscriptions                             subscriptions[]
-  auction_reminders                         auction_reminders[]
 
   @@index([email], map: "idx_users_email")
 }
@@ -382,8 +384,8 @@ model auction_reminders {
   language   String   @default("en") @db.VarChar(5)
   created_at DateTime @default(now()) @db.Timestamp(0)
   updated_at DateTime @default(now()) @db.Timestamp(0)
-
   users      users?   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
   @@index([user_id], map: "idx_user_id")
 }
 
@@ -425,6 +427,7 @@ model karkey_cars {
   interior_color    String?                  @db.VarChar(50)
   is_original_paint Boolean?                 @default(true)
   special_features  String?                  @db.Text
+  embedding         String?                  @db.LongText
   inquiries         karkey_car_inquiries[]
   photos            karkey_car_photos[]
 
@@ -434,16 +437,13 @@ model karkey_cars {
   @@index([make, year])
   @@index([location, price])
   @@index([created_at])
-
-  // Performance Indexes for Range Filters
   @@index([mileage], map: "idx_karkey_cars_mileage")
   @@index([price], map: "idx_karkey_cars_price")
   @@index([year], map: "idx_karkey_cars_year")
-
-  // Composite Index for main listing
   @@index([is_active, created_at], map: "idx_karkey_cars_active_composite")
-
-  // Full Text Search Index
+  @@index([is_active, created_at], map: "idx_kc_active_created")
+  @@index([make, model], map: "idx_kc_make_model")
+  @@index([price], map: "idx_kc_price")
   @@fulltext([make, model, location, description])
 }
 
@@ -451,9 +451,9 @@ model karkey_car_photos {
   id             Int         @id @default(autoincrement())
   karkey_car_id  Int
   photo_url      String      @db.VarChar(500)
-  blurhash       String?     @db.VarChar(500)
   position_order Int         @default(0)
   created_at     DateTime    @default(now()) @db.Timestamp(0)
+  blurhash       String?     @db.VarChar(500)
   karkey_cars    karkey_cars @relation(fields: [karkey_car_id], references: [id], onDelete: Cascade)
 
   @@index([karkey_car_id], map: "idx_karkey_car_photos_car_id")

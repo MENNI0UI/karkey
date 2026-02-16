@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma"
 import logger from "@/lib/logger"
 import { UserProfile, AuctionItem, DirectSaleItem, StatisticsResponse } from "./types"
+import { normalizePhotoUrl, normalizeAvatarUrl } from "@/lib/image-utils"
 
 export async function getUserProfile(userId: number): Promise<UserProfile | null> {
   try {
@@ -37,7 +38,7 @@ export async function getUserProfile(userId: number): Promise<UserProfile | null
       email: user.email,
       phone_number: user.phone_number,
       user_type: user.user_type,
-      profile_picture: user.profile_picture,
+      profile_picture: normalizeAvatarUrl(user.profile_picture),
       is_profile_complete: user.is_profile_complete,
       created_at: user.created_at,
       updated_at: user.updated_at,
@@ -71,7 +72,7 @@ export async function getUserAuctions(userId: number): Promise<{ success: boolea
 
     const result = auctions.map((a: typeof auctions[number]) => {
       const title = [a.make, a.model].filter(Boolean).join(" ").trim()
-      const imageUrl = a.direct_sale_photos?.[0]?.photo_url ?? null
+      const imageUrl = normalizePhotoUrl(a.direct_sale_photos?.[0]?.photo_url)
 
       // تحديد الحالة
       let effectiveStatus: string = a.auction_status ?? "none"
@@ -225,7 +226,7 @@ export async function getWatchlistForUser(userId: number): Promise<AuctionItem[]
       .map((w: typeof watchlistItems[number]) => {
         const ds = dsMap.get(w.direct_sale_id) as DirectSaleRecord
         const title = [ds.make, ds.model].filter(Boolean).join(" ").trim()
-        const imageUrl = ds.direct_sale_photos?.[0]?.photo_url ?? null
+        const imageUrl = normalizePhotoUrl(ds.direct_sale_photos?.[0]?.photo_url)
         const sp = ds.auction_starting_price ? Number(ds.auction_starting_price) : null
 
         let effectiveStatus: string = ds.auction_status ?? "none"
@@ -282,7 +283,7 @@ export async function getDirectSalesWatchlistForUser(userId: number): Promise<Di
     return watchlistItems.map((w: typeof watchlistItems[number]) => {
       const ds = dsMap.get(w.direct_sale_id)
       const title = ds ? [ds.make, ds.model].filter(Boolean).join(" ").trim() : ""
-      const imageUrl = ds?.direct_sale_photos?.[0]?.photo_url ?? null
+      const imageUrl = normalizePhotoUrl(ds?.direct_sale_photos?.[0]?.photo_url)
 
       // Normalize status
       let effectiveStatus: string = ds?.verification_status ?? "pending"
@@ -328,7 +329,7 @@ export async function getUserDirectSales(userId: number): Promise<{ success: boo
 
     const result = directSales.map((ds: typeof directSales[number]) => {
       const title = [ds.make, ds.model].filter(Boolean).join(" ").trim()
-      const imageUrl = ds.direct_sale_photos?.[0]?.photo_url ?? null
+      const imageUrl = normalizePhotoUrl(ds.direct_sale_photos?.[0]?.photo_url)
 
       // Normalize status: if it's sold it should show as ended/sold.
       // If it's not approved yet, it stays pending.
@@ -464,7 +465,7 @@ export async function getUserStatistics(userId: number): Promise<StatisticsRespo
       return {
         id: ds.id,
         title: `${ds.make} ${ds.model} ${ds.year}`,
-        image_url: ds.direct_sale_photos?.[0]?.photo_url || null,
+        image_url: normalizePhotoUrl(ds.direct_sale_photos?.[0]?.photo_url),
         price: ds.price ? Number(ds.price) : 0,
         status,
         views: viewsMap[ds.id] || 0,

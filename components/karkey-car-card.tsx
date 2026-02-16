@@ -3,11 +3,13 @@
 import React, { useState } from "react"
 import Link from "next/link"
 import { useTranslation } from "@/lib/i18n-context"
-import { MapPin, MessageCircle } from "lucide-react"
+import { MapPin, MessageCircle, GitCompare } from "lucide-react"
 import { CarCardImageSlider } from "@/components/ui/car-card/card-image-slider"
 import { CarSpecsGrid } from "@/components/ui/car-card/card-specs"
 import { ScaleButton } from "@/components/ui/motion-wrappers"
 import dynamic from "next/dynamic"
+import { useCompare, toCompareVehicle } from "@/hooks/use-comparison"
+import { cn } from "@/lib/utils"
 
 const KarkeyInquiryModal = dynamic(() => import("@/components/karkey-inquiry-modal"), { ssr: false })
 
@@ -44,6 +46,19 @@ interface KarkeyCarCardProps {
 export default function KarkeyCarCard({ car, onContact, priority = false }: KarkeyCarCardProps) {
     const { t, language } = useTranslation()
     const [contactOpen, setContactOpen] = useState(false)
+    const { addToCompare, isInCompare, removeFromCompare } = useCompare()
+
+    const isCompared = isInCompare(car.id)
+
+    const toggleCompare = (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (isCompared) {
+            removeFromCompare(car.id)
+        } else {
+            addToCompare(toCompareVehicle(car, "karkey", language))
+        }
+    }
 
     const handleContactClick = () => {
         if (onContact) {
@@ -87,14 +102,29 @@ export default function KarkeyCarCard({ car, onContact, priority = false }: Kark
                     showPhotoCount={false}
                     priority={priority}
                     badges={
-                        <div className="bg-[#DEB735] text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm">
+                        <div className="bg-[#103090] text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm border border-white/20">
                             Karkey
                         </div>
                     }
                 />
 
+
                 {/* Content Section */}
-                <div className="p-4 flex flex-col flex-1">
+                <div className="p-4 flex flex-col flex-1 relative">
+                    {/* Compare Button (Absolute Top Right of Content) */}
+                    <button
+                        onClick={toggleCompare}
+                        className={cn(
+                            "absolute top-4 end-4 z-20 w-10 h-10 rounded-full shadow-lg transition-all duration-500 flex items-center justify-center backdrop-blur-md border",
+                            isCompared
+                                ? "bg-[#B8071C] text-white border-white/20 rotate-12"
+                                : "bg-white/40 text-gray-500 border-white/40 hover:bg-[#103090]/10 hover:text-[#103090] opacity-0 group-hover:opacity-100"
+                        )}
+                        title={isCompared ? t("compare.remove") : t("compare.add")}
+                    >
+                        <GitCompare className={cn("w-5 h-5 transition-transform", isCompared && "scale-110")} />
+                    </button>
+
                     <Link href={`/${language}/karkey-cars/${car.id}`} className="flex-1">
                         {/* Title & Year */}
                         <div className="flex items-start justify-between gap-2 mb-1">

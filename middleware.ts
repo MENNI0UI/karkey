@@ -11,14 +11,14 @@ const CSP_TEMPLATE = `
   default-src 'self';
   script-src 'self' 'nonce-{{NONCE}}' 'strict-dynamic' https://accounts.google.com;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com;
-  img-src 'self' blob: data: https: http:;
+  img-src 'self' blob: data: https:;
   font-src 'self' data: https://fonts.gstatic.com;
   object-src 'none';
   base-uri 'self';
   form-action 'self' https://accounts.google.com;
   frame-ancestors 'none';
   frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://www.paypal.com https://www.sandbox.paypal.com https://accounts.google.com;
-  connect-src 'self' https: http: https://api.stripe.com https://www.paypal.com https://accounts.google.com https://oauth2.googleapis.com;
+  connect-src 'self' https: https://api.stripe.com https://www.paypal.com https://accounts.google.com https://oauth2.googleapis.com;
   upgrade-insecure-requests;
 `.replace(/\s{2,}/g, ' ').trim();
 

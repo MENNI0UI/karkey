@@ -10,6 +10,8 @@ import BackButton, { saveLastNonProfilePage } from "@/app/[lang]/profile/back-bu
 import { SessionProvider } from "next-auth/react"
 import { LazyMotion, domAnimation, AnimatePresence, motion } from "framer-motion"
 import { ChatBubble } from "@/components/chat"
+import { CompareProvider } from "@/hooks/use-comparison"
+import CompareTray from "@/components/compare/compare-tray"
 
 export default function ClientLayout({ children, isLoggedIn }: { children: React.ReactNode; isLoggedIn?: boolean }) {
   const pathname = usePathname() || "/"
@@ -115,47 +117,52 @@ export default function ClientLayout({ children, isLoggedIn }: { children: React
     <SessionProvider>
       <FetchGuard />
       <AuthProvider>
-        <LazyMotion features={domAnimation}>
-          {!shouldHideHeaderFooter ? (
-            <Header initialLoggedIn={isLoggedIn} />
-          ) : null}
+        <CompareProvider>
+          <LazyMotion features={domAnimation}>
+            {!shouldHideHeaderFooter ? (
+              <Header initialLoggedIn={isLoggedIn} />
+            ) : null}
 
-          {/* Always reserve header space unless hidden */}
-          {!shouldHideHeaderFooter ? (
-            <div aria-hidden="true" style={{ height: "var(--site-header-height, 76px)" }} />
-          ) : null}
+            {/* Always reserve header space unless hidden */}
+            {!shouldHideHeaderFooter ? (
+              <div aria-hidden="true" style={{ height: "var(--site-header-height, 76px)" }} />
+            ) : null}
 
-          {pageLoading && !pathname.startsWith("/admin") && (
-            /* make loading overlay non-white to avoid white flash on refresh/hydration */
-            <div
-              className="fixed inset-0 z-[100001] flex items-center justify-center bg-transparent backdrop-blur-sm pointer-events-none"
-              aria-hidden="true"
-            >
-              <div className="animate-spin rounded-full h-10 w-10 border-4 border-gray-200 border-t-[#B8071C]" />
-            </div>
-          )}
+            {pageLoading && !pathname.startsWith("/admin") && (
+              /* make loading overlay non-white to avoid white flash on refresh/hydration */
+              <div
+                className="fixed inset-0 z-[100001] flex items-center justify-center bg-transparent backdrop-blur-sm pointer-events-none"
+                aria-hidden="true"
+              >
+                <div className="animate-spin rounded-full h-10 w-10 border-4 border-gray-200 border-t-[#B8071C]" />
+              </div>
+            )}
 
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <main>{children}</main>
-            </motion.div>
-          </AnimatePresence>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={pathname}
+                initial={{ opacity: 0, ...(pathname.includes('/compare') ? {} : { y: 8 }) }}
+                animate={{ opacity: 1, ...(pathname.includes('/compare') ? {} : { y: 0 }) }}
+                exit={{ opacity: 0, ...(pathname.includes('/compare') ? {} : { y: -8 }) }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <main>{children}</main>
+              </motion.div>
+            </AnimatePresence>
 
-          {!shouldHideHeaderFooter ? (
-            <Footer />
-          ) : null}
+            {!shouldHideHeaderFooter ? (
+              <Footer />
+            ) : null}
 
-          {/* AI Chat Assistant */}
-          {!shouldHideHeaderFooter && <ChatBubble />}
+            {/* AI Chat Assistant */}
+            {!shouldHideHeaderFooter && <ChatBubble />}
 
-          <Toaster />
-        </LazyMotion>
+            {/* Comparison Tray */}
+            <CompareTray />
+
+            <Toaster />
+          </LazyMotion>
+        </CompareProvider>
       </AuthProvider>
     </SessionProvider>
   )

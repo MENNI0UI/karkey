@@ -152,11 +152,8 @@ export default function HomePageClient({
 	// Logic descent enabled: KarkeyCarCard manages its own state
 	if (loading) {
 		return (
-			<div className="text-center py-20 flex flex-col items-center justify-center gap-6">
-				<LuxuryLoader size="lg" />
-				<div className="max-w-[3000px] w-full mx-auto px-8 sm:px-12 lg:px-24">
-					<CarGridSkeleton count={8} />
-				</div>
+			<div className="max-w-[3000px] w-full mx-auto px-4 sm:px-6 lg:px-10 xl:px-20 2xl:px-32 py-12">
+				<CarGridSkeleton count={8} type="karkey" />
 			</div>
 		)
 	}

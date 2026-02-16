@@ -6,10 +6,13 @@ import { useRouter } from "next/navigation";
 import BoxedCountdown from "@/components/boxed-countdown";
 import { useTranslation } from "@/lib/i18n-context";
 import { useAuth } from "@/lib/auth-context";
-import { MapPin, Zap } from "lucide-react";
+import { MapPin, Zap, GitCompare } from "lucide-react";
 import { CarCardImageSlider } from "@/components/ui/car-card/card-image-slider";
 import { CarSpecsGrid } from "@/components/ui/car-card/card-specs";
 import { WatchlistButton } from "@/components/watchlist-button";
+import { useCompare, toCompareVehicle } from "@/hooks/use-comparison";
+import { cn } from "@/lib/utils";
+import { normalizePhotoUrl } from "@/lib/image-utils";
 
 
 function AuctionCard({ data, priority = false, initialIsWatched, viewMode = 'grid' }: { data: any, priority?: boolean, initialIsWatched?: boolean, viewMode?: 'grid' | 'list' }) {
@@ -35,26 +38,24 @@ function AuctionCard({ data, priority = false, initialIsWatched, viewMode = 'gri
     user_id,
   } = data;
 
+  const { addToCompare, isInCompare, removeFromCompare } = useCompare();
+  const isCompared = isInCompare(id);
+
+  const toggleCompare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isCompared) {
+      removeFromCompare(id);
+    } else {
+      addToCompare(toCompareVehicle(data, "auction", language));
+    }
+  };
+
   // prefer auction id (route target) when available
   const auctionId = (data as any).auction_id ?? (data as any).auctionId ?? id;
   // Get owner user_id from various possible locations in data
   const ownerUserId = user_id ?? (data as any).vehicle_user_id ?? (seller as any)?.id ?? (seller as any)?.user_id ?? null;
 
-  // helper: normalize photo URLs
-  const normalizePhotoUrl = (p: string | null | undefined) => {
-    if (!p) return "/placeholder.svg";
-    const s = String(p).trim();
-    if (s.startsWith("data:image/")) return s;
-    if (s.startsWith("blob:")) return s;
-    if (s.startsWith("http://") || s.startsWith("https://")) {
-      try {
-        const url = new URL(s);
-        if (url.protocol === 'http:' || url.protocol === 'https:') return s;
-      } catch { return "/placeholder.svg"; }
-    }
-    const filename = s.includes("/") ? (s.split("/").pop() || s) : s;
-    return `https://img.karkey.space/vehicles/${filename}`;
-  };
 
   // Support multiple photo array formats
   const rawPhotos: any[] = Array.isArray(photos) ? photos : [];
@@ -117,7 +118,7 @@ function AuctionCard({ data, priority = false, initialIsWatched, viewMode = 'gri
 
   return (
     <article
-      className={`bg-white rounded-3xl shadow-md transition-all duration-300 overflow-hidden border border-gray-100 hover:border-[#DEB735]/40 group flex ${isList ? 'flex-col md:flex-row' : 'flex-col'} h-full auction-card font-serif premium-card ${isList ? 'shine-sweep-slow' : 'shine-sweep'} hover:scale-[1.015] hover:shadow-xl animate-fade-in-up`}
+      className={`bg-white rounded-3xl shadow-md transition-all duration-300 overflow-hidden border border-gray-100 hover:border-[#B8071C]/20 group flex ${isList ? 'flex-col md:flex-row' : 'flex-col'} h-full auction-card font-serif premium-card ${isList ? 'shine-sweep-slow' : 'shine-sweep'} hover:scale-[1.015] hover:shadow-xl animate-fade-in-up`}
       style={{
         perspective: "1000px",
         willChange: "transform, opacity, box-shadow",
@@ -157,7 +158,24 @@ function AuctionCard({ data, priority = false, initialIsWatched, viewMode = 'gri
       <div className={`p-4 flex flex-col flex-1 bg-white ${isList ? 'md:p-8' : ''}`}>
         <div className="flex-1 flex flex-col h-full">
           <Link href={`/${language}/auctions/${auctionId}`} className="flex flex-col flex-1">
-            <div className={`flex flex-wrap items-center justify-between gap-4 mb-4 ${!isList ? 'mb-2' : ''}`}>
+            <div className={`flex flex-wrap items-center justify-between gap-4 mb-4 ${!isList ? 'mb-2' : ''} relative`}>
+              {/* Compare Button - Only for Grid View */}
+              {!isList && (
+                <button
+                  onClick={toggleCompare}
+                  aria-label={isCompared ? t("compare.remove") : t("compare.add")}
+                  className={cn(
+                    "absolute top-0 end-0 z-20 w-10 h-10 rounded-full shadow-lg transition-all duration-500 flex items-center justify-center backdrop-blur-md border",
+                    isCompared
+                      ? "bg-[#B8071C] text-white border-white/20 rotate-12"
+                      : "bg-white/40 text-gray-500 border-white/40 hover:bg-[#103090]/10 hover:text-[#103090] opacity-0 group-hover:opacity-100"
+                  )}
+                  title={isCompared ? t("compare.remove") : t("compare.add")}
+                >
+                  <GitCompare className={cn("w-5 h-5 transition-transform", isCompared && "scale-110")} />
+                </button>
+              )}
+
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold font-serif text-[#B8071C] bg-[#B8071C]/10 px-2 py-0.5 rounded">
                   {year}
@@ -203,9 +221,28 @@ function AuctionCard({ data, priority = false, initialIsWatched, viewMode = 'gri
 
             <div className="flex-1">
               {isList && (
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 font-serif">
-                  {t("common.specifications" as any)}
-                </h4>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest font-serif">
+                    {t("common.specifications" as any)}
+                  </h4>
+
+                  {/* Compare Button - List View Position */}
+                  <button
+                    onClick={(e) => {
+                      toggleCompare(e);
+                    }}
+                    aria-label={isCompared ? t("compare.remove") : t("compare.add")}
+                    className={cn(
+                      "z-20 w-9 h-9 rounded-full shadow-md transition-all duration-500 flex items-center justify-center backdrop-blur-md border",
+                      isCompared
+                        ? "bg-[#B8071C] text-white border-white/20 rotate-12"
+                        : "bg-white/80 text-gray-500 border-gray-200 hover:bg-[#103090]/10 hover:text-[#103090] opacity-0 group-hover:opacity-100"
+                    )}
+                    title={isCompared ? t("compare.remove") : t("compare.add")}
+                  >
+                    <GitCompare className={cn("w-4 h-4 transition-transform", isCompared && "scale-110")} />
+                  </button>
+                </div>
               )}
               {!isList && <div className="border-t border-[#DEB735]/25 my-4" />}
               <CarSpecsGrid

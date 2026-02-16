@@ -2,7 +2,10 @@
 
 import React, { useEffect } from 'react'
 import { Button } from "@/components/ui/button"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, RefreshCw, Home } from "lucide-react"
+import { useParams } from "next/navigation";
+import { useTranslation } from "@/lib/i18n-context";
+import Link from 'next/link';
 
 export default function Error({
     error,
@@ -11,51 +14,57 @@ export default function Error({
     error: Error & { digest?: string }
     reset: () => void
 }) {
+    const params = useParams();
+    const lang = (params?.lang as string) || "en";
+    const { t } = useTranslation();
+
     useEffect(() => {
         // Log error details for debugging
         console.error("[ErrorBoundary] Caught error:", error)
-        console.error("[ErrorBoundary] Error name:", error?.name)
-        console.error("[ErrorBoundary] Error message:", error?.message)
-        console.error("[ErrorBoundary] Error stack:", error?.stack)
-        console.error("[ErrorBoundary] Error digest:", error?.digest)
-        
-        // Also write to server if possible
-        try {
-            fetch('/api/log-error', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: error?.name,
-                    message: error?.message,
-                    stack: error?.stack,
-                    digest: error?.digest,
-                    url: typeof window !== 'undefined' ? window.location.href : 'unknown',
-                    timestamp: new Date().toISOString()
-                })
-            }).catch(() => {})
-        } catch {}
     }, [error])
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 px-4">
-            <div className="flex flex-col items-center gap-2 text-center">
-                <div className="p-3 bg-red-100 rounded-full text-red-600">
-                    <AlertCircle size={48} />
+        <div className="flex flex-col items-center justify-center min-h-[70vh] gap-8 px-4 bg-white">
+            <div className="flex flex-col items-center gap-4 text-center max-w-md">
+                <div className="p-6 bg-red-50 rounded-full text-red-600 mb-2">
+                    <AlertCircle size={48} strokeWidth={1.5} />
                 </div>
-                <h2 className="text-3xl font-bold tracking-tight">Something went wrong!</h2>
-                <p className="text-muted-foreground text-lg max-w-md">
-                    We encountered an unexpected error. Please try again later.
-                </p>
+
+                <div className="space-y-2">
+                    <h1 className="text-3xl font-bold text-gray-900">
+                        {t('error.page_title' as any)}
+                    </h1>
+                    <p className="text-gray-500 text-lg">
+                        {t('error.page_desc' as any)}
+                    </p>
+                    {error.digest && (
+                        <p className="text-xs text-gray-400 font-mono mt-4">
+                            ID: {error.digest}
+                        </p>
+                    )}
+                </div>
             </div>
-            <Button
-                size="lg"
-                onClick={
-                    // Attempt to recover by trying to re-render the segment
-                    () => reset()
-                }
-            >
-                Try again
-            </Button>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+                <Button
+                    onClick={() => reset()}
+                    size="lg"
+                    className="rounded-full px-8 bg-primary hover:opacity-90"
+                >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    {t('error.page_button' as any)}
+                </Button>
+                <Button asChild variant="outline" size="lg" className="rounded-full px-8">
+                    <Link href={`/${lang}`}>
+                        <Home className="mr-2 h-4 w-4" />
+                        {t('notfound.page_button' as any)}
+                    </Link>
+                </Button>
+            </div>
+
+            <div className="mt-12 opacity-10">
+                <img src="/logo.png" alt="Karkey" className="h-8 grayscale" />
+            </div>
         </div>
     )
 }

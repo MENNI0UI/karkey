@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useTranslation } from "@/lib/i18n-context"
+import { normalizePhotoUrl, normalizeAvatarUrl } from "@/lib/image-utils"
 import type { TranslationKey } from "@/lib/locales"
 import {
     Car,
@@ -107,20 +108,6 @@ export default function UnifiedCarLayout({
         }
     }, [currentPhotoIndex, photos.length])
 
-    const normalizePhotoUrl = (p: string | null | undefined) => {
-        if (!p) return "/placeholder-car.jpg"
-        const s = String(p).trim()
-        if (s.startsWith("data:image/")) return s
-        if (s.startsWith("blob:")) return s
-        if (s.startsWith("http://") || s.startsWith("https://")) {
-            try {
-                const url = new URL(s)
-                if (url.protocol === 'http:' || url.protocol === 'https:') return s
-            } catch { return "/placeholder-car.jpg" }
-        }
-        const filename = s.includes("/") ? (s.split("/").pop() || s) : s
-        return `https://img.karkey.space/vehicles/${filename}`
-    }
 
     const formatPrice = (price: string | number | undefined) => {
         if (price === undefined || price === null || price === "") return null
@@ -176,12 +163,62 @@ export default function UnifiedCarLayout({
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
-                <div className="w-full max-w-4xl p-6">
-                    <div className="animate-pulse space-y-4">
-                        <div className="h-72 bg-[#ececec] rounded-3xl" />
-                        <div className="h-6 w-2/3 bg-[#ececec] rounded" />
-                        <div className="h-4 w-1/3 bg-[#ececec] rounded" />
+            <div className="min-h-screen bg-white font-serif" dir={isRTL ? "rtl" : "ltr"}>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-8">
+                    {/* Back Link Skeleton */}
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="w-5 h-5 bg-gray-100 rounded-full" />
+                        <div className="h-4 w-12 bg-gray-100 rounded" />
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-12 lg:grid-cols-[55%_45%] animate-pulse">
+                        {/* Left: Photos Area Skeleton */}
+                        <div className="space-y-4">
+                            <div className="relative aspect-square md:aspect-[16/10] bg-gray-50 rounded-3xl" />
+                            <div className="flex gap-2 py-1">
+                                {[1, 2, 3, 4, 5].map(i => (
+                                    <div key={i} className="flex-shrink-0 w-20 h-14 bg-gray-50 rounded-lg" />
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Right: Info Area Skeleton */}
+                        <div className="flex flex-col">
+                            <div className="flex-1">
+                                {/* Seller Skeleton */}
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-full bg-gray-50" />
+                                    <div className="h-4 w-24 bg-gray-50 rounded" />
+                                </div>
+
+                                <div className="h-10 w-3/4 bg-gray-100 rounded-lg mb-2" />
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="h-8 w-16 bg-red-100/50 rounded-full" />
+                                    <div className="h-6 w-32 bg-gray-50 rounded" />
+                                </div>
+
+                                <div className="h-10 w-40 bg-gray-100 rounded-lg mb-6" />
+
+                                {/* Specs Grid Skeleton */}
+                                <div className="grid grid-cols-2 gap-6 p-7 bg-gray-50 rounded-2xl border border-gray-100 mb-6">
+                                    {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                                        <div key={i} className="space-y-2">
+                                            <div className="h-3 w-16 bg-gray-200/50 rounded" />
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-5 h-5 bg-gray-200/50 rounded" />
+                                                <div className="h-6 w-20 bg-gray-100 rounded" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Actions Skeleton */}
+                                <div className="mt-8 space-y-3">
+                                    <div className="h-14 w-full bg-gray-100 rounded-full" />
+                                    <div className="h-14 w-full bg-red-100/50 rounded-full" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -366,20 +403,27 @@ export default function UnifiedCarLayout({
                             {seller && (
                                 <div className="flex items-center gap-3 mb-4">
                                     <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
-                                        {seller.avatar && seller.avatar !== "/placeholder.svg" ? (
-                                            <Image
-                                                src={seller.avatar}
-                                                alt={seller.name}
-                                                width={40}
-                                                height={40}
-                                                className="w-full h-full object-cover"
-                                                priority
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full bg-gradient-to-br from-[#103090] to-[#B8071C] flex items-center justify-center text-white font-bold font-serif text-lg">
-                                                {seller.name.charAt(0).toUpperCase()}
-                                            </div>
-                                        )}
+                                        {(() => {
+                                            const normalized = normalizeAvatarUrl(seller.avatar);
+                                            if (normalized) {
+                                                return (
+                                                    <Image
+                                                        src={normalized}
+                                                        alt={seller.name}
+                                                        width={40}
+                                                        height={40}
+                                                        className="w-full h-full object-cover"
+                                                        priority
+                                                        unoptimized={true}
+                                                    />
+                                                );
+                                            }
+                                            return (
+                                                <div className="w-full h-full bg-gradient-to-br from-[#103090] to-[#B8071C] flex items-center justify-center text-white font-bold font-serif text-lg">
+                                                    {seller.name.charAt(0).toUpperCase()}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                     <div>
                                         <p className="text-sm font-semibold text-[#103090]">{seller.name}</p>

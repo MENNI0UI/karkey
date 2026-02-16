@@ -7,12 +7,13 @@
 
 'use client';
 
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n-context';
+import { useAuth } from '@/lib/auth-context';
 
 export interface ChatVehicle {
     id: number;
-    type: 'direct_sale' | 'auction';
+    type: 'direct_sale' | 'auction' | 'karkey';
     make: string;
     model: string;
     year: number;
@@ -40,13 +41,55 @@ export interface UseKarkeyChatOptions {
 
 export function useKarkeyChat(options: UseKarkeyChatOptions = {}) {
     const { language } = useTranslation();
+    const { currentUserId } = useAuth();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
     const [error, setError] = useState<Error | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
 
+    // Storage key varies by user to ensure privacy
+    const storageKey = `karkey-chat-v1-${currentUserId || 'guest'}`;
+
     const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    // 1. Load history on mount or when user changes
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        try {
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed)) {
+                    setMessages(parsed);
+                }
+            } else {
+                setMessages([]); // Reset for new user if no history
+            }
+        } catch (e) {
+            console.error('[Chat] Failed to load history:', e);
+            setMessages([]);
+        } finally {
+            setIsHistoryLoaded(true);
+        }
+    }, [storageKey]);
+
+    // 2. Save history whenever messages change
+    useEffect(() => {
+        if (typeof window === 'undefined' || !isHistoryLoaded) return;
+
+        try {
+            if (messages.length > 0) {
+                localStorage.setItem(storageKey, JSON.stringify(messages));
+            } else {
+                localStorage.removeItem(storageKey);
+            }
+        } catch (e) {
+            console.error('[Chat] Failed to save history:', e);
+        }
+    }, [messages, storageKey, isHistoryLoaded]);
 
     const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setInput(e.target.value);
@@ -204,7 +247,10 @@ export function useKarkeyChat(options: UseKarkeyChatOptions = {}) {
     const clearChat = useCallback(() => {
         setMessages([]);
         setError(null);
-    }, []);
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem(storageKey);
+        }
+    }, [storageKey]);
 
     // Quick action helpers
     const askAboutAuctions = useCallback(() => {

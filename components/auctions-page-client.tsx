@@ -840,7 +840,7 @@ export function AuctionsGridClient({
 
     return (
       <div className="w-full">
-        <CarGridSkeleton count={12} viewMode={internalViewMode} />
+        <CarGridSkeleton count={12} viewMode={internalViewMode} type="auction" />
       </div>
     )
   }

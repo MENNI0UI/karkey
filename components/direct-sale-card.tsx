@@ -3,13 +3,16 @@
 import React, { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { MapPin } from "lucide-react"
+import { MapPin, GitCompare } from "lucide-react"
 import { useTranslation } from "@/lib/i18n-context"
 import { useAuth } from "@/lib/auth-context"
 import { CarCardImageSlider } from "@/components/ui/car-card/card-image-slider"
 import { CarSpecsGrid } from "@/components/ui/car-card/card-specs"
 import ContactUsModal from "@/components/contact-us-modal"
 import { WatchlistButton } from "@/components/watchlist-button"
+import { useCompare, toCompareVehicle } from "@/hooks/use-comparison";
+import { cn } from "@/lib/utils";
+import { normalizePhotoUrl } from "@/lib/image-utils";
 
 
 export function DirectSaleCard({
@@ -26,6 +29,19 @@ export function DirectSaleCard({
     const { t, language } = useTranslation()
     const router = useRouter()
     const isList = viewMode === 'list'
+    const { addToCompare, isInCompare, removeFromCompare } = useCompare()
+    const isCompared = isInCompare(item.id)
+
+    const toggleCompare = (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (isCompared) {
+            removeFromCompare(item.id)
+        } else {
+            addToCompare(toCompareVehicle(item, "sale", language))
+        }
+    }
+
     const {
         id,
         make,
@@ -45,32 +61,12 @@ export function DirectSaleCard({
 
     const vehicleLabel = make ? `${make} ${model}` : (model ?? "vehicle")
 
-    const normalizePhotoUrl = (p: any): { url: string; blurhash?: string | null } => {
-        if (!p) return { url: "/placeholder.svg" }
-        const s = typeof p === "string" ? p.trim() : (p.photo_url || p.url || "/placeholder.svg")
-        let finalUrl = s
-        // Normalize logic with safety checks
-        if (!s.startsWith("data:image/") && !s.startsWith("blob:")) {
-            if (s.startsWith("http://") || s.startsWith("https://")) {
-                try {
-                    const url = new URL(s)
-                    if (url.protocol !== 'http:' && url.protocol !== 'https:') finalUrl = "/placeholder.svg"
-                } catch { finalUrl = "/placeholder.svg" }
-            } else {
-                // Strip any path and force vehicles/ prefix for CDN
-                const filename = s.includes("/") ? (s.split("/").pop() || s) : s;
-                finalUrl = `https://img.karkey.space/vehicles/${filename}`
-            }
-        }
-
-        return {
-            url: finalUrl,
-            blurhash: (typeof p === 'object' && p.blurhash) ? p.blurhash : null
-        }
-    }
 
     const normalizedPhotos = Array.isArray(photos) && photos.length > 0
-        ? photos.map(normalizePhotoUrl)
+        ? photos.map((p: any) => ({
+            url: normalizePhotoUrl(typeof p === "string" ? p : (p.photo_url || p.url || "/placeholder.svg")),
+            blurhash: (typeof p === 'object' && p.blurhash) ? p.blurhash : null
+        }))
         : [{ url: "/placeholder.svg" }]
 
     // Use Auth Context instead of fetching in each card
@@ -137,7 +133,24 @@ export function DirectSaleCard({
                 <div className="flex-1 flex flex-col h-full">
                     <Link href={`/${language}${linkPrefix}/${id}`} className="flex flex-col flex-1">
                         {/* Always use Header Row Structure */}
-                        <div className={`flex flex-wrap items-center justify-between gap-4 mb-4 ${!isList ? 'mb-2' : ''}`}>
+                        <div className={`flex flex-wrap items-center justify-between gap-4 mb-4 ${!isList ? 'mb-2' : ''} relative`}>
+                            {/* Compare Button - Only for Grid View */}
+                            {!isList && (
+                                <button
+                                    onClick={toggleCompare}
+                                    aria-label={isCompared ? t("compare.remove") : t("compare.add")}
+                                    className={cn(
+                                        "absolute top-0 end-0 z-20 w-10 h-10 rounded-full shadow-lg transition-all duration-500 flex items-center justify-center backdrop-blur-md border",
+                                        isCompared
+                                            ? "bg-[#B8071C] text-white border-white/20 rotate-12"
+                                            : "bg-white/40 text-gray-500 border-white/40 hover:bg-[#103090]/10 hover:text-[#103090] opacity-0 group-hover:opacity-100"
+                                    )}
+                                    title={isCompared ? t("compare.remove") : t("compare.add")}
+                                >
+                                    <GitCompare className={cn("w-5 h-5 transition-transform", isCompared && "scale-110")} />
+                                </button>
+                            )}
+
                             <div className="flex items-center gap-2">
                                 {make && (
                                     <span className="text-[10px] font-medium font-serif text-white bg-[#B8071C] px-3 py-1 rounded-full shadow-sm uppercase">
@@ -188,9 +201,28 @@ export function DirectSaleCard({
                         <div className="flex-1">
                             {!isList && <div className="border-t border-[#DEB735]/25 my-4" />}
                             {isList && (
-                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 font-serif">
-                                    {t("common.specifications" as any)}
-                                </h4>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest font-serif">
+                                        {t("common.specifications" as any)}
+                                    </h4>
+
+                                    {/* Compare Button - List View Position */}
+                                    <button
+                                        onClick={(e) => {
+                                            toggleCompare(e);
+                                        }}
+                                        aria-label={isCompared ? t("compare.remove") : t("compare.add")}
+                                        className={cn(
+                                            "z-20 w-9 h-9 rounded-full shadow-md transition-all duration-500 flex items-center justify-center backdrop-blur-md border",
+                                            isCompared
+                                                ? "bg-[#B8071C] text-white border-white/20 rotate-12"
+                                                : "bg-white/80 text-gray-500 border-gray-200 hover:bg-[#103090]/10 hover:text-[#103090] opacity-0 group-hover:opacity-100"
+                                        )}
+                                        title={isCompared ? t("compare.remove") : t("compare.add")}
+                                    >
+                                        <GitCompare className={cn("w-4 h-4 transition-transform", isCompared && "scale-110")} />
+                                    </button>
+                                </div>
                             )}
                             <CarSpecsGrid
                                 iconSize={isList ? 6 : 4}

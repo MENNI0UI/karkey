@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import HomePageClient from "@/components/home-page-client"
 import { getApprovedKarkeyCars, getHomeCitiesData } from "@/app/actions/vehicles"
-import { loadTranslations } from "@/lib/translations"
+import { CarGridSkeleton } from "@/components/ui/car-card-skeleton"
 
 // Internal component that suspends
 async function CarGrid({ lang }: { lang: string }) {
@@ -21,19 +21,13 @@ async function CarGrid({ lang }: { lang: string }) {
     )
 }
 
-function CarGridSkeleton() {
-    return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-pulse">
-            {[...Array(8)].map((_, i) => (
-                <div key={i} className="aspect-[4/3] bg-gray-100 dark:bg-white/5 rounded-2xl" />
-            ))}
-        </div>
-    )
-}
-
 export default async function SuspendedCarGrid({ lang }: { lang: string }) {
     return (
-        <Suspense fallback={<CarGridSkeleton />}>
+        <Suspense fallback={(
+            <div className="max-w-[3000px] w-full mx-auto px-4 sm:px-6 lg:px-10 xl:px-20 2xl:px-32 py-12">
+                <CarGridSkeleton count={8} type="karkey" />
+            </div>
+        )}>
             <CarGrid lang={lang} />
         </Suspense>
     )

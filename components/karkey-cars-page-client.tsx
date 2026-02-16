@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react"
 import { useTranslation } from "@/lib/i18n-context"
 import KarkeyCarCard from "@/components/karkey-car-card"
 import { LuxuryLoader } from "@/components/ui/luxury-loader"
-import { CarCardSkeleton } from "@/components/ui/car-card-skeleton"
+import { CarCardSkeleton, CarGridSkeleton } from "@/components/ui/car-card-skeleton"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import logger from "@/lib/logger"
 
@@ -103,13 +103,8 @@ export default function KarkeyCarsPageClient({ initialCars = [] }: { initialCars
             <div className="w-full max-w-screen-2xl mx-auto px-4 lg:px-6 xl:px-8 pt-4 flex-1">
                 {loading ? (
                     /* Loading State - Skeleton */
-                    <div className="w-full flex flex-col items-center gap-8">
-                        <LuxuryLoader size="lg" />
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6 w-full">
-                            {Array.from({ length: 12 }).map((_, i) => (
-                                <CarCardSkeleton key={`karkey-skel-${i}`} />
-                            ))}
-                        </div>
+                    <div className="w-full py-4">
+                        <CarGridSkeleton count={12} type="karkey" />
                     </div>
                 ) : cars.length === 0 ? (
                     /* Empty State - Same as other pages */

@@ -8,6 +8,7 @@ import Script from "next/script";
 import { notFound } from "next/navigation";
 import { Language, loadTranslations } from "@/lib/translations";
 import { DM_Sans, Noto_Sans_Arabic, DM_Serif_Display, Amiri } from "next/font/google";
+import { auth } from "@/auth";
 
 const dmSans = DM_Sans({
     subsets: ["latin"],
@@ -130,7 +131,6 @@ export default async function RootLayout({
     // 🆕 Smart Scheduler handles automation automatically via instrumentation.ts
     // No need for lazy automation triggers anymore
 
-    const { auth } = await import("@/auth");
     const session = await auth();
     const isLoggedIn = !!session?.user;
 

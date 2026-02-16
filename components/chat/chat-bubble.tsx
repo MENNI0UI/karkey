@@ -59,13 +59,15 @@ function VehicleCard({ vehicle, language, isLarge = false }: { vehicle: ChatVehi
         }).format(mileage) + ' km';
     };
 
+    const { t } = useTranslation();
+
     // Get condition label and color
     const getConditionInfo = (condition: string) => {
         const conditionMap: Record<string, { label: string; color: string; bg: string }> = {
-            'excellent': { label: language === 'ar' ? 'ممتازة' : 'Excellent', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-            'good': { label: language === 'ar' ? 'جيدة' : 'Good', color: 'text-blue-600', bg: 'bg-blue-50' },
-            'fair': { label: language === 'ar' ? 'مقبولة' : 'Fair', color: 'text-amber-600', bg: 'bg-amber-50' },
-            'poor': { label: language === 'ar' ? 'ضعيفة' : 'Poor', color: 'text-red-600', bg: 'bg-red-50' },
+            'excellent': { label: t('vehicle.condition.excellent'), color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            'good': { label: t('vehicle.condition.good'), color: 'text-blue-600', bg: 'bg-blue-50' },
+            'fair': { label: t('vehicle.condition.fair'), color: 'text-amber-600', bg: 'bg-amber-50' },
+            'poor': { label: t('vehicle.condition.poor'), color: 'text-red-600', bg: 'bg-red-50' },
         };
         return conditionMap[condition?.toLowerCase()] || { label: condition || '-', color: 'text-gray-600', bg: 'bg-gray-50' };
     };
@@ -76,105 +78,107 @@ function VehicleCard({ vehicle, language, isLarge = false }: { vehicle: ChatVehi
         <Link href={vehicle.url} target="_blank">
             <motion.div
                 className={cn(
-                    "bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg hover:border-site-primary/30 transition-all duration-300 cursor-pointer group h-full flex flex-col",
+                    "bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-xl hover:border-site-primary/20 transition-all duration-500 cursor-pointer group h-full flex flex-col",
                     isLarge && "rounded-2xl"
                 )}
-                whileHover={{ y: -2, scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
+                whileHover={{ y: -4, scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
             >
                 {/* Vehicle Image */}
                 <div className={cn(
-                    "relative bg-gray-100 overflow-hidden flex-shrink-0",
-                    isLarge ? "h-40" : "h-24"
+                    "relative bg-gray-50 overflow-hidden flex-shrink-0",
+                    isLarge ? "h-48" : "h-32"
                 )}>
                     {vehicle.photo ? (
                         <img
                             src={vehicle.photo}
                             alt={`${vehicle.make} ${vehicle.model}`}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                            <Car className={cn("text-gray-300", isLarge ? "w-12 h-12" : "w-8 h-8")} />
+                            <Car className={cn("text-gray-200", isLarge ? "w-16 h-16" : "w-10 h-10")} />
                         </div>
                     )}
-                    {/* Price badge */}
-                    <div className={cn(
-                        "absolute bottom-2 right-2 bg-site-primary text-white font-bold rounded-lg shadow-lg",
-                        isLarge ? "px-3 py-1.5 text-sm" : "px-2 py-1 text-xs"
-                    )}>
-                        {formatPrice(vehicle.price)}
-                    </div>
-                    {/* Condition badge */}
+
+                    {/* Subtle Overlay for readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                    {/* Source type badge - Bottom Left, Discrete */}
+                    {vehicle.type && (
+                        <div className={cn(
+                            "absolute bottom-2 start-2 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border",
+                            vehicle.type === 'auction' ? "bg-amber-500/80 text-white border-amber-400/30" :
+                                vehicle.type === 'karkey' ? "bg-site-primary/80 text-white border-white/20" :
+                                    "bg-blue-600/80 text-white border-blue-400/30",
+                        )}>
+                            {vehicle.type === 'auction' ? t('chat.type_auction') :
+                                vehicle.type === 'karkey' ? t('chat.type_karkey') :
+                                    t('chat.type_sale')}
+                        </div>
+                    )}
+
+                    {/* Condition pill - Top Right, Minimal */}
                     {vehicle.condition && (
                         <div className={cn(
-                            "absolute top-2 left-2 rounded-md font-medium flex items-center gap-1",
-                            conditionInfo.bg, conditionInfo.color,
-                            isLarge ? "px-2 py-1 text-xs" : "px-1.5 py-0.5 text-[10px]"
+                            "absolute top-2 end-2 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-tighter backdrop-blur-sm",
+                            conditionInfo.bg.replace('bg-', 'bg-').replace('50', '800/20'),
+                            conditionInfo.color
                         )}>
-                            <Shield className={cn(isLarge ? "w-3 h-3" : "w-2.5 h-2.5")} />
                             {conditionInfo.label}
                         </div>
                     )}
                 </div>
 
-                {/* Vehicle Info - Organized layout */}
-                <div className={cn("p-2.5 flex-1 flex flex-col", isLarge && "p-3")}>
-                    {/* Title */}
-                    <h4 className={cn(
-                        "font-bold text-gray-900 truncate",
-                        isLarge ? "text-base" : "text-sm"
-                    )}>
-                        {vehicle.make} {vehicle.model}
-                    </h4>
-
-                    {/* Year & Location - Row 1 */}
-                    <div className={cn(
-                        "flex items-center gap-3 mt-1.5 text-gray-500",
-                        isLarge ? "text-sm mt-2" : "text-[11px]"
-                    )}>
-                        <span className="flex items-center gap-1">
-                            <Calendar className={cn(isLarge ? "w-3.5 h-3.5" : "w-3 h-3")} />
-                            {vehicle.year}
-                        </span>
-                        <span className="flex items-center gap-1 truncate">
-                            <MapPin className={cn(isLarge ? "w-3.5 h-3.5" : "w-3 h-3")} />
-                            {vehicle.location}
-                        </span>
+                {/* Vehicle Info - Premium Spacing */}
+                <div className={cn("p-3 flex-1 flex flex-col gap-2", isLarge && "p-4 gap-3")}>
+                    {/* Header: Title & Price */}
+                    <div className="flex items-start justify-between gap-2">
+                        <h4 className={cn(
+                            "font-bold text-gray-900 line-clamp-1 flex-1 transition-colors group-hover:text-site-primary",
+                            isLarge ? "text-lg leading-tight" : "text-sm"
+                        )}>
+                            {vehicle.make} {vehicle.model}
+                        </h4>
+                        <div className={cn(
+                            "font-extrabold text-site-primary whitespace-nowrap",
+                            isLarge ? "text-lg" : "text-[13px]"
+                        )}>
+                            {formatPrice(vehicle.price)}
+                        </div>
                     </div>
 
-                    {/* Mileage & Transmission - Row 2 */}
-                    <div className={cn(
-                        "flex items-center gap-3 mt-1 text-gray-400",
-                        isLarge ? "text-sm mt-1.5" : "text-[11px]"
-                    )}>
+                    {/* Metadata Grid */}
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                        <div className="flex items-center gap-1.5 text-gray-500 min-w-0">
+                            <Calendar className={cn("flex-shrink-0 text-gray-400", isLarge ? "w-4 h-4" : "w-3 h-3")} />
+                            <span className={cn("truncate", isLarge ? "text-sm" : "text-[11px]")}>{vehicle.year}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-gray-500 min-w-0">
+                            <MapPin className={cn("flex-shrink-0 text-gray-400", isLarge ? "w-4 h-4" : "w-3 h-3")} />
+                            <span className={cn("truncate", isLarge ? "text-sm" : "text-[11px]")}>{vehicle.location}</span>
+                        </div>
                         {vehicle.mileage !== undefined && (
-                            <span className="flex items-center gap-1">
-                                <Gauge className={cn(isLarge ? "w-3.5 h-3.5" : "w-3 h-3")} />
-                                {formatMileage(vehicle.mileage)}
-                            </span>
+                            <div className="flex items-center gap-1.5 text-gray-500 min-w-0">
+                                <Gauge className={cn("flex-shrink-0 text-gray-400", isLarge ? "w-4 h-4" : "w-3 h-3")} />
+                                <span className={cn("truncate", isLarge ? "text-sm" : "text-[11px]")}>{formatMileage(vehicle.mileage)}</span>
+                            </div>
                         )}
                         {vehicle.transmission && (
-                            <span className="flex items-center gap-1">
-                                <Cog className={cn(isLarge ? "w-3.5 h-3.5" : "w-3 h-3")} />
-                                {vehicle.transmission}
-                            </span>
+                            <div className="flex items-center gap-1.5 text-gray-500 min-w-0">
+                                <Cog className={cn("flex-shrink-0 text-gray-400", isLarge ? "w-4 h-4" : "w-3 h-3")} />
+                                <span className={cn("truncate", isLarge ? "text-sm" : "text-[11px]")}>{vehicle.transmission}</span>
+                            </div>
                         )}
-                    </div>
-
-                    {/* Fuel Type & Engine - Row 3 */}
-                    <div className={cn(
-                        "flex items-center gap-3 mt-1 text-gray-400",
-                        isLarge ? "text-sm mt-1.5" : "text-[11px]"
-                    )}>
-                        <span className="flex items-center gap-1">
-                            <Fuel className={cn(isLarge ? "w-3.5 h-3.5" : "w-3 h-3")} />
-                            {vehicle.fuel_type}
-                        </span>
+                        <div className="flex items-center gap-1.5 text-gray-500 min-w-0">
+                            <Fuel className={cn("flex-shrink-0 text-gray-400", isLarge ? "w-4 h-4" : "w-3 h-3")} />
+                            <span className={cn("truncate", isLarge ? "text-sm" : "text-[11px]")}>{vehicle.fuel_type}</span>
+                        </div>
                         {vehicle.engine_size && (
-                            <span className="flex items-center gap-1">
-                                ⚙️ {vehicle.engine_size}L
-                            </span>
+                            <div className="flex items-center gap-1.5 text-gray-500 min-w-0">
+                                <span className={cn("flex-shrink-0", isLarge ? "text-sm" : "text-[11px]")}>⚙️</span>
+                                <span className={cn("truncate", isLarge ? "text-sm" : "text-[11px]")}>{vehicle.engine_size}L</span>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -185,6 +189,7 @@ function VehicleCard({ vehicle, language, isLarge = false }: { vehicle: ChatVehi
 
 // Vehicle results grid - Enhanced responsive layout
 function VehicleResults({ vehicles, language, isFullscreen = false }: { vehicles: ChatVehicle[]; language: string; isFullscreen?: boolean }) {
+    const { t } = useTranslation();
     if (!vehicles || vehicles.length === 0) return null;
 
     const displayCount = isFullscreen ? 24 : 8;
@@ -197,7 +202,7 @@ function VehicleResults({ vehicles, language, isFullscreen = false }: { vehicles
                 <div className="flex items-center justify-between mb-4 px-1">
                     <div className="flex items-center gap-2 text-base text-gray-600">
                         <TrendingUp className="w-5 h-5 text-site-primary" />
-                        <span className="font-medium">{vehicles.length} cars found</span>
+                        <span className="font-medium">{t('chat.cars_found', { count: vehicles.length })}</span>
                     </div>
                 </div>
             )}
@@ -207,7 +212,7 @@ function VehicleResults({ vehicles, language, isFullscreen = false }: { vehicles
                     "gap-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent",
                     isFullscreen
                         ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 max-h-[calc(100vh-320px)] p-2"
-                        : "grid grid-cols-2 max-h-[300px] pr-1"
+                        : "grid grid-cols-2 max-h-[300px] pe-1"
                 )}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -232,7 +237,7 @@ function VehicleResults({ vehicles, language, isFullscreen = false }: { vehicles
             {/* Show more indicator */}
             {vehicles.length > displayCount && (
                 <div className="text-center mt-3 text-xs text-gray-400">
-                    +{vehicles.length - displayCount} more cars available
+                    {t('chat.more_cars', { count: vehicles.length - displayCount })}
                 </div>
             )}
         </div>
@@ -241,13 +246,14 @@ function VehicleResults({ vehicles, language, isFullscreen = false }: { vehicles
 
 // Quick search suggestions component
 function QuickSuggestions({ onSelect, language, isFullscreen = false }: { onSelect: (query: string) => void; language: string; isFullscreen?: boolean }) {
+    const { t } = useTranslation();
     const suggestions = [
-        { icon: Car, label: language === 'ar' ? 'تويوتا' : 'Toyota', query: 'Toyota cars' },
-        { icon: TrendingUp, label: language === 'ar' ? 'أقل من 200k' : 'Under 200k', query: 'cars under 200000' },
-        { icon: Sparkles, label: language === 'ar' ? 'سيارات 2023' : '2023 Models', query: 'cars 2023' },
-        { icon: Fuel, label: language === 'ar' ? 'ديزل' : 'Diesel', query: 'diesel cars' },
-        { icon: MapPin, label: language === 'ar' ? 'كازابلانكا' : 'Casablanca', query: 'cars in Casablanca' },
-        { icon: Cog, label: language === 'ar' ? 'أوتوماتيك' : 'Automatic', query: 'automatic cars' },
+        { icon: Car, label: t('chat.suggestion_toyota'), query: 'Toyota cars' },
+        { icon: TrendingUp, label: t('chat.suggestion_under_200k'), query: 'cars under 200000' },
+        { icon: Sparkles, label: t('chat.suggestion_2023_models'), query: 'cars 2023' },
+        { icon: Fuel, label: t('chat.suggestion_diesel'), query: 'diesel cars' },
+        { icon: MapPin, label: t('chat.suggestion_casablanca'), query: 'cars in Casablanca' },
+        { icon: Cog, label: t('chat.suggestion_automatic'), query: 'automatic cars' },
     ];
 
     return (
@@ -441,7 +447,7 @@ export function ChatBubble({ onSearchIntent }: ChatBubbleProps) {
                                 "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-medium",
                                 "shadow-lg border border-gray-100 dark:border-gray-700",
                                 "whitespace-nowrap",
-                                dir === 'rtl' ? 'right-[72px]' : 'left-auto right-[72px]'
+                                dir === 'rtl' ? 'left-[72px]' : 'right-[72px]'
                             )}
                         >
                             {t('chat.open')}
@@ -476,7 +482,7 @@ export function ChatBubble({ onSearchIntent }: ChatBubbleProps) {
                             ] : [
                                 // Normal mode
                                 "bottom-0 sm:bottom-28",
-                                "left-0 right-0 sm:left-auto sm:right-6",
+                                dir === 'rtl' ? "left-0 right-0 sm:right-auto sm:left-6" : "left-0 right-0 sm:left-auto sm:right-6",
                                 "w-full sm:w-[420px]",
                                 "h-[100dvh] sm:h-[620px]",
                                 "max-h-none sm:max-h-[700px]",
@@ -593,7 +599,7 @@ export function ChatBubble({ onSearchIntent }: ChatBubbleProps) {
                                                 initial={{ opacity: 0, y: 8 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: 0.15 + i * 0.08 }}
-                                                whileHover={{ x: dir === 'rtl' ? -4 : 4 }}
+                                                whileHover={{ x: dir === 'rtl' ? 4 : -4 }} // Point inward
                                                 className={cn(
                                                     "flex items-center justify-between w-full",
                                                     "bg-white text-gray-600",
@@ -622,7 +628,7 @@ export function ChatBubble({ onSearchIntent }: ChatBubbleProps) {
                                             isFullscreen ? "text-base mb-4" : "text-xs"
                                         )}>
                                             <Sparkles className={cn(isFullscreen ? "w-5 h-5" : "w-3.5 h-3.5")} />
-                                            {language === 'ar' ? 'بحث سريع' : 'Quick search'}
+                                            {t('chat.quick_search')}
                                         </p>
                                         <QuickSuggestions onSelect={handleSuggestionSelect} language={language} isFullscreen={isFullscreen} />
                                     </div>
@@ -642,14 +648,15 @@ export function ChatBubble({ onSearchIntent }: ChatBubbleProps) {
                                         >
                                             <div
                                                 className={cn(
-                                                    "leading-relaxed",
+                                                    "leading-relaxed text-start",
                                                     isFullscreen
                                                         ? "max-w-[70%] px-6 py-4 text-base"
                                                         : "max-w-[85%] px-4 py-2.5 text-sm",
                                                     message.role === 'user'
-                                                        ? "bg-gradient-to-br from-site-primary to-site-blue text-white rounded-2xl rounded-br-sm"
-                                                        : "bg-white text-gray-800 rounded-2xl rounded-bl-sm border border-gray-200"
+                                                        ? "bg-gradient-to-br from-site-primary to-site-blue text-white rounded-2xl rounded-ee-sm"
+                                                        : "bg-white text-gray-800 rounded-2xl rounded-es-sm border border-gray-200"
                                                 )}
+                                                dir="auto"
                                             >
                                                 <p className="whitespace-pre-wrap">{message.content}</p>
                                             </div>
@@ -668,9 +675,9 @@ export function ChatBubble({ onSearchIntent }: ChatBubbleProps) {
                                                     isFullscreen ? "text-base" : "text-sm"
                                                 )}>
                                                     <span className="text-2xl mb-2">🤔</span>
-                                                    {language === 'ar' ? 'لا توجد سيارات متاحة حالياً. تابع الموقع للمزيد!' : 'Hmm, no cars available at the moment. Good news though – our inventory updates frequently!'}
+                                                    {t('chat.no_cars')}
                                                     <div className="mt-2">
-                                                        <a href="https://karkey.ma/en/direct-sales" target="_blank" className="text-site-primary underline">{language === 'ar' ? 'عرض السيارات المتاحة' : 'Check available cars'}</a>
+                                                        <a href="https://karkey.ma/en/direct-sales" target="_blank" className="text-site-primary underline">{t('chat.view_available_cars')}</a>
                                                     </div>
                                                 </div>
                                             )}
@@ -689,7 +696,7 @@ export function ChatBubble({ onSearchIntent }: ChatBubbleProps) {
                                                 isFullscreen ? "text-base mb-3 justify-center" : "text-xs"
                                             )}>
                                                 <Sparkles className={cn(isFullscreen ? "w-5 h-5" : "w-3.5 h-3.5")} />
-                                                {language === 'ar' ? 'جرب أيضاً' : 'Try also'}
+                                                {t('chat.try_also')}
                                             </p>
                                             <QuickSuggestions onSelect={handleSuggestionSelect} language={language} isFullscreen={isFullscreen} />
                                         </motion.div>
@@ -703,7 +710,7 @@ export function ChatBubble({ onSearchIntent }: ChatBubbleProps) {
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                 >
-                                    <div className="bg-white rounded-2xl rounded-bl-sm border border-gray-200">
+                                    <div className="bg-white rounded-2xl rounded-es-sm border border-gray-200">
                                         <TypingIndicator />
                                     </div>
                                 </motion.div>
@@ -769,7 +776,7 @@ export function ChatBubble({ onSearchIntent }: ChatBubbleProps) {
                                 >
                                     <Send className={cn(
                                         isFullscreen ? "w-5 h-5" : "w-4 h-4",
-                                        dir === 'rtl' && "rotate-180"
+                                        dir === 'rtl' && "scale-x-[-1]"
                                     )} />
                                 </motion.button>
                             </div>
@@ -778,7 +785,7 @@ export function ChatBubble({ onSearchIntent }: ChatBubbleProps) {
                                 "text-center text-gray-400 tracking-wide",
                                 isFullscreen ? "text-sm mt-4" : "text-[11px] mt-2.5"
                             )}>
-                                Powered by <span className="font-medium text-site-primary">Karkey</span>
+                                {t('chat.powered_by')} <span className="font-medium text-site-primary">Karkey</span>
                             </p>
                         </form>
                     </motion.div>

@@ -53,19 +53,34 @@ export default function CircularGalleryHtml({ items = [] }: CircularGalleryHtmlP
 
     // Drag handlers
     const onDrag = (_: any, info: PanInfo) => {
-        // Simple linear mapping of drag to index
         const current = indexValue.get();
-        const delta = -info.delta.x / TOTAL_WIDTH;
-        indexValue.set(current + delta);
+        let delta = -info.delta.x / TOTAL_WIDTH;
+
+        // Stronger rubber-band clamping at boundaries
+        if (current < 0 && delta < 0) {
+            // Dragging left past start - add high resistance
+            delta *= Math.max(0.05, 1 - Math.abs(current) / 0.3);
+        } else if (current > maxIndex && delta > 0) {
+            // Dragging right past end - add high resistance
+            delta *= Math.max(0.05, 1 - (current - maxIndex) / 0.3);
+        }
+
+        // Hard clamping: Never let it escape more than 0.8 index units
+        const next = current + delta;
+        const hardClamped = Math.max(-0.8, Math.min(maxIndex + 0.8, next));
+        indexValue.set(hardClamped);
     };
 
     const onDragEnd = (_: any, info: PanInfo) => {
         const current = indexValue.get();
         // Incorporate velocity for momentum
         const velocity = -info.velocity.x / TOTAL_WIDTH;
-        const target = current + velocity * 0.15; // 0.15 is momentum multiplier
+        let target = current + velocity * 0.1; // Reduced momentum for stability
 
-        animateToIndex(Math.round(target));
+        // Clamp target strictly within valid indices
+        target = Math.max(0, Math.min(maxIndex, Math.round(target)));
+
+        animateToIndex(target);
     };
 
     const isAtStart = displayIndex <= 0;
@@ -97,6 +112,8 @@ export default function CircularGalleryHtml({ items = [] }: CircularGalleryHtmlP
                 ref={containerRef}
                 className="circular-gallery-container"
                 drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0}
                 onDrag={onDrag}
                 onDragEnd={onDragEnd}
                 style={{
@@ -168,8 +185,8 @@ function Card({
     const rotateY = useTransform(indexValue, (val: number) => (index - val) * -3);
     const zIndex = useTransform(absOffset, (val: number) => 100 - Math.round(val * 10));
 
-    // Visibility optimization: hide if too far
-    const display = useTransform(absOffset, (val: number) => val > 4 ? "none" : "block");
+    // Visibility optimization: hide only if very far (safety net)
+    const display = useTransform(absOffset, (val: number) => val > 10 ? "none" : "block");
 
     return (
         <motion.div
